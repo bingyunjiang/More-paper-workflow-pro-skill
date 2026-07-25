@@ -45,7 +45,7 @@ class Step7Step8ContractsTest(unittest.TestCase):
     def test_step7_writing_quality_contracts_are_explicit(self):
         text = read_rel("agents/step_7_writing.md")
         for token in [
-            "先生成 `section_blueprints.json/md`，再写正文",
+            "先从 Step 2 不可变 `section_blueprints.json` 派生 `writing_blueprints.json/md`，再写正文",
             "section_function / expected_length / key_claims / evidence_needed / do_not_write / transition_from / transition_to / risk_flags",
             "argument_plan 之后才能进入 7.8 正文流水线",
             "每节只承担一个主要功能",
@@ -1182,7 +1182,7 @@ class Step7Step8ContractsTest(unittest.TestCase):
             "section_role",
             "language_mode",
             "style_target",
-            "不替代 `target_genre / writing_mode / entry_mode`",
+            "不替代 `target_genre / writing_mode / evidence_entry_mode`",
             "不得把 Nature 风格设为默认目标",
             "one_sentence_argument",
             "paragraph_job_map",

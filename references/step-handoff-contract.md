@@ -29,6 +29,8 @@ recommended_next_step:
 - 推荐下一步
 ```
 
+机器交接同时写入 `morepaper.workflow-run.v1` envelope；Markdown handoff 只做人类可读摘要，不另造状态事实源。生成和验证入口为 `scripts/workflow_run_envelope.py`，字段定义见 `static/core/workflow-run-envelope.md`。
+
 ---
 
 ## 2. 字段解释
@@ -62,6 +64,7 @@ recommended_next_step:
 - handoff 应与 Artifact Passport 互补：
   - Passport 偏 Step 4-8 的机读材料索引与 readiness 路由
   - handoff 偏当前阶段的人类可读结论
+  - workflow run envelope 提供 Step 1-8 统一的 `domain_state + readiness` 机器状态
 
 ---
 

@@ -52,6 +52,9 @@
 - `report`
 - `proposal`
 - `conference`
+- `course-paper`
+
+`existing-draft` 是现有文本的入口状态，由 `mode=continue-existing|revision-only` 表达，不属于 `target_genre`。
 
 ## 路由规则
 
@@ -116,6 +119,7 @@ Step 7 的正式输出应显式说明：
 - `target_genre`
 - `figure_mode`
 - `figure_backend`
+- `figure_asset_action`
 - `evidence_basis`
 - `citation_risk_summary`
 - `recommended_next_step`

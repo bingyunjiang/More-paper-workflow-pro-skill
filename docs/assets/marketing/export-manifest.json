@@ -1,0 +1,19 @@
+{
+  "schema": "more-paper-workflow.marketing-kit.v1",
+  "source": "marketing-kit.html",
+  "generated_at": "2026-07-25T23:07:35.194Z",
+  "assets": [
+    {
+      "id": "wechat-long",
+      "filename": "more-paper-workflow-wechat-long.png"
+    },
+    {
+      "id": "slide-16x9",
+      "filename": "more-paper-workflow-slide-16x9.png"
+    },
+    {
+      "id": "bilingual-poster",
+      "filename": "more-paper-workflow-bilingual-poster.png"
+    }
+  ]
+}

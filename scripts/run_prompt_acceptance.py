@@ -14,7 +14,16 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CASES = ROOT / "evals" / "prompt_acceptance.json"
 EXPECTED_LANGUAGES = {"zh", "en"}
-EXPECTED_STEPS = {"step1-topic", "step5-download", "step7-writing", "step8-polishing"}
+EXPECTED_STEPS = {
+    "step1-topic",
+    "step2-outline",
+    "step3-search-plan",
+    "step4-search-execute",
+    "step5-download",
+    "step6-zotero",
+    "step7-writing",
+    "step8-polishing",
+}
 
 
 def load_cases(path: Path) -> dict[str, Any]:

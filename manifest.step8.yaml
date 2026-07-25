@@ -23,9 +23,31 @@ axes:
       - report
       - proposal
       - conference
+      - course-paper
     default: thesis
+  output_mode:
+    allowed:
+      - quick-polish
+      - audited-polish
+    default: audited-polish
+  rewrite_scope:
+    allowed:
+      - in-place
+      - bounded
+      - structural
+    default: bounded
+  rewrite_level:
+    allowed:
+      - minimal
+      - standard
+      - aggressive
+    default: standard
 
 always_load:
   - static/core/output-contract.md
+  - static/core/workflow-run-envelope.md
   - references/polish-modes.md
   - references/ai-trace-taxonomy.md
+  - references/step8-rewrite-scope.md
+  - references/protected-spans.md
+  - references/academic-ai-trace-index.md

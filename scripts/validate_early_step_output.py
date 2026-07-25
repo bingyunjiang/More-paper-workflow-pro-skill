@@ -127,13 +127,45 @@ def validate_step1(path: Path) -> list[str]:
             scores.append(score)
         if not _nonempty(record.get("reason")):
             errors.append(f"pre_review.{axis}.reason is required")
+    fatal_axes = {"feasibility", "method_readiness"}
+    fatal_signal = False
+    for axis in STEP1_SCORE_AXES:
+        record = pre.get(axis)
+        if not isinstance(record, dict):
+            continue
+        score = record.get("score")
+        signal = record.get("signal")
+        if signal is not None:
+            if signal not in {"green", "yellow", "red"}:
+                errors.append(f"pre_review.{axis}.signal must be green, yellow, or red")
+            elif isinstance(score, (int, float)) and not isinstance(score, bool):
+                expected_signal = "green" if score >= 4 else "yellow" if score >= 2 else "red"
+                if signal != expected_signal:
+                    errors.append(
+                        f"pre_review.{axis}.signal must be {expected_signal} for score={score}"
+                    )
+            if axis in fatal_axes and signal == "red":
+                fatal_signal = True
+    fatal_risks = pre.get("fatal_risks") or []
+    if not isinstance(fatal_risks, list):
+        errors.append("pre_review.fatal_risks must be a list")
+        fatal_risks = []
     if len(scores) == len(STEP1_SCORE_AXES):
         total = sum(scores)
         if pre.get("total_score") != total:
             errors.append(f"pre_review.total_score must equal {total}")
-        expected = "green" if total >= 21 else "yellow" if total >= 15 else "red"
+        expected = (
+            "red"
+            if fatal_signal or fatal_risks
+            else "green"
+            if total >= 21
+            else "yellow"
+            if total >= 15
+            else "red"
+        )
         if pre.get("decision") != expected:
-            errors.append(f"pre_review.decision must be {expected} for total_score={total}")
+            reason = "fatal axis/risk precedence" if fatal_signal or fatal_risks else f"total_score={total}"
+            errors.append(f"pre_review.decision must be {expected} for {reason}")
     return errors
 
 
@@ -191,6 +223,21 @@ def validate_step3(path: Path) -> list[str]:
         errors.append("execution_context must be step3_planning or step4_direct_entry")
     if payload.get("retrieval_language") not in {"zh", "en", "mixed"}:
         errors.append("retrieval_language must be zh, en, or mixed")
+    if "plan_state" in payload and payload.get("plan_state") not in {
+        "compiled", "pilot_verified", "offline_unverified",
+    }:
+        errors.append("plan_state must be compiled, pilot_verified, or offline_unverified")
+    if "base_workflow" in payload and payload.get("base_workflow") not in {"standard", "systematic"}:
+        errors.append("base_workflow must be standard or systematic")
+    if "addons" in payload:
+        addons = payload.get("addons")
+        allowed_addons = {"citation-expansion", "prisma-s", "chinese-sources"}
+        if not isinstance(addons, list) or any(item not in allowed_addons for item in addons):
+            errors.append("addons must contain only citation-expansion, prisma-s, or chinese-sources")
+        elif len(addons) != len(set(addons)):
+            errors.append("addons must not contain duplicates")
+    if payload.get("plan_mode") == "systematic" and payload.get("base_workflow") not in {None, "systematic"}:
+        errors.append("systematic plan_mode requires base_workflow=systematic")
     include = {str(item).strip().lower() for item in payload.get("inclusion_criteria", []) if str(item).strip()}
     exclude = {str(item).strip().lower() for item in payload.get("exclusion_criteria", []) if str(item).strip()}
     overlap = sorted(include & exclude)

@@ -45,13 +45,13 @@
 
 Step 1 本身就是独立入口，只要求用户提供研究方向或待澄清的问题。用户身份、阶段、方法偏好或既有材料缺失时，应在当前 Step 内通过决策包补足最小依据，不要求用户先完成任何其他 Step。
 
-**中文论文库提前登录：** 一旦用户研究方向、目标语料或关键词包含中文，且 Step 1 计划使用 CNKI/万方预检索，应在第一轮互动时提醒用户提前完成两站登录，不要等到候选题已经生成后才触发登录门。若需要 CDP 浏览器，Agent 直接运行：
+**中文论文库能力预检：** 一旦用户研究方向、目标语料或关键词包含中文，先判断本轮候选题生成是否确实需要 CNKI/万方真实预检索。只有确实需要中文实检索或用户明确要求时，才在第一轮互动中提示登录并启动页面；只做问题澄清、候选池生成或可用公开源完成校准时，不主动打开浏览器。若需要 CDP 浏览器，Agent 运行：
 
 ```bash
 python3 scripts/batch_chinese_search.py --open-login-tabs --port 9223
 ```
 
-该命令必须自动启动或复用持久化 CDP 浏览器，同时打开 CNKI 与万方页面，然后立即返回，让选题互动继续进行。向用户说明：“请在已打开的 CNKI、万方页面完成机构账号/CARSI 登录；我会继续收集研究对象、方法和约束，后续预检索复用该会话。”登录未完成不阻塞 Step 1 的问题澄清和候选池生成，但在真实中文预检索前必须确认登录状态或降级为 OpenAlex/Crossref 中英文映射检索。
+该命令必须自动启动或复用持久化 CDP 浏览器，同时打开本轮实际需要的 CNKI/万方页面，然后立即返回，让选题互动继续进行。向用户说明：“请在已打开的中文数据库页面完成机构账号/CARSI 登录；我会继续收集研究对象、方法和约束，后续预检索复用该会话。”登录未完成不阻塞 Step 1 的问题澄清和候选池生成，但在真实中文预检索前必须确认登录状态或降级为 OpenAlex/Crossref 中英文映射检索。
 
 ---
 
@@ -456,6 +456,8 @@ evidence_calibration:
 ## 7. Step 2/3 Handoff
 ```
 
+`pre_review` 的决策采用“致命轴优先、总分其次”：`feasibility` 或 `method_readiness` 为 red，或 `fatal_risks` 非空时，`decision` 必须为 `red`；否则再按总分阈值判定。完整映射见 `references/step1-handoff-schema.md`。
+
 ### 1.7. Step 2/3 Handoff Block
 
 `研究主题.md` 末尾必须包含以下交接块：
@@ -529,7 +531,7 @@ evidence_calibration:
 ```md
 ## CHECKPOINT 1 — CP-TOPIC
 
-entry_mode: normal_chain
+route_mode: normal_chain
 status: confirmed_by_workflow
 blocks_next: none unless topic basis is insufficient
 must_confirm: false

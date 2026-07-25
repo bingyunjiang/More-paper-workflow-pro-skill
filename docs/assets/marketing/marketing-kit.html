@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>more-paper-workflow Marketing Kit</title>
+  <style>
+    :root {
+      --ink: #10211d;
+      --paper: #f4f0e6;
+      --cream: #fffaf0;
+      --blue: #3159e8;
+      --green: #16a276;
+      --orange: #ff7b45;
+      --muted: #66736d;
+      --hairline: rgba(16, 33, 29, .10);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #101210; }
+    body {
+      font-family: "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      color: var(--ink);
+    }
+
+    .artboard {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .artboard::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      pointer-events: none;
+      opacity: .025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.8'/%3E%3C/svg%3E");
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      background: rgba(49, 89, 232, .08);
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 0 5px color-mix(in srgb, currentColor 12%, transparent);
+    }
+
+    .brand {
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: -.035em;
+    }
+
+    .brand span { color: var(--blue); }
+
+    .shell {
+      padding: 7px;
+      border-radius: 30px;
+      background: rgba(16, 33, 29, .045);
+      box-shadow: inset 0 0 0 1px rgba(16, 33, 29, .055);
+    }
+
+    .core {
+      height: 100%;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, .72);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .9),
+        0 18px 50px rgba(16, 33, 29, .055);
+    }
+
+    .smallcaps {
+      font-size: 12px;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+      font-weight: 750;
+      color: var(--muted);
+    }
+
+    /* -------------------- WeChat long poster -------------------- */
+    #wechat-long {
+      width: 1080px;
+      height: 3200px;
+      padding: 64px 68px 58px;
+      background:
+        radial-gradient(circle at 92% 3%, rgba(49, 89, 232, .16), transparent 18%),
+        radial-gradient(circle at 2% 34%, rgba(22, 162, 118, .10), transparent 20%),
+        linear-gradient(180deg, #f8f4ea 0%, #f2ede1 100%);
+    }
+
+    .long-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 70px;
+    }
+
+    .long-nav .meta {
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: .08em;
+    }
+
+    .long-hero {
+      display: grid;
+      grid-template-columns: 1.34fr .66fr;
+      gap: 46px;
+      align-items: end;
+      margin-bottom: 64px;
+    }
+
+    .long-hero h1 {
+      margin: 24px 0 24px;
+      max-width: 670px;
+      font-family: "Songti SC", "STSong", serif;
+      font-size: 84px;
+      font-weight: 700;
+      line-height: 1.06;
+      letter-spacing: -.055em;
+    }
+
+    .long-hero h1 em {
+      color: var(--blue);
+      font-style: normal;
+    }
+
+    .long-hero p {
+      max-width: 650px;
+      margin: 0;
+      font-size: 23px;
+      line-height: 1.72;
+      color: #53615c;
+    }
+
+    .hero-orbit {
+      position: relative;
+      height: 300px;
+      border-radius: 50% 50% 44% 56% / 48% 55% 45% 52%;
+      background:
+        radial-gradient(circle at 36% 32%, #fff 0 7%, transparent 8%),
+        radial-gradient(circle at 50% 50%, rgba(49, 89, 232, .88), rgba(49, 89, 232, .18) 48%, transparent 49%),
+        radial-gradient(circle at 50% 50%, transparent 0 61%, rgba(16, 33, 29, .12) 62% 62.7%, transparent 63%);
+      transform: rotate(-7deg);
+    }
+
+    .hero-orbit::before,
+    .hero-orbit::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      background: var(--green);
+    }
+
+    .hero-orbit::before { width: 26px; height: 26px; right: 30px; top: 82px; }
+    .hero-orbit::after { width: 14px; height: 14px; left: 18px; bottom: 62px; background: var(--orange); }
+
+    .hero-orbit b {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-size: 74px;
+      letter-spacing: -.08em;
+      transform: rotate(7deg);
+    }
+
+    .promise-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 84px;
+    }
+
+    .promise .core { padding: 28px 26px 24px; min-height: 132px; }
+    .promise strong { display: block; margin-bottom: 8px; font-size: 24px; letter-spacing: -.03em; }
+    .promise p { margin: 0; font-size: 16px; line-height: 1.55; color: var(--muted); }
+    .promise:nth-child(2) .core { background: #172a25; color: white; }
+    .promise:nth-child(2) p { color: #becbc6; }
+    .promise:nth-child(3) .core { background: #3159e8; color: white; }
+    .promise:nth-child(3) p { color: #dce5ff; }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    .section-head h2 {
+      margin: 8px 0 0;
+      font-family: "Songti SC", "STSong", serif;
+      font-size: 48px;
+      letter-spacing: -.04em;
+    }
+
+    .section-head p { max-width: 400px; margin: 0; color: var(--muted); font-size: 16px; line-height: 1.6; text-align: right; }
+
+    .phase-stack { display: grid; gap: 18px; margin-bottom: 84px; }
+
+    .phase {
+      display: grid;
+      grid-template-columns: 170px 1fr;
+      min-height: 250px;
+      padding: 8px;
+      border-radius: 34px;
+      background: rgba(16, 33, 29, .05);
+      box-shadow: inset 0 0 0 1px rgba(16, 33, 29, .045);
+    }
+
+    .phase-label {
+      padding: 28px 20px;
+      border-radius: 27px;
+      color: white;
+      background: #17322a;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .phase:nth-child(2) .phase-label { background: var(--blue); }
+    .phase:nth-child(3) .phase-label { background: #8d4b2f; }
+    .phase-label b { font-size: 20px; }
+    .phase-label span { font-family: "Songti SC", serif; font-size: 34px; line-height: 1.2; }
+
+    .step-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding-left: 8px;
+    }
+
+    .phase:last-child .step-grid { grid-template-columns: repeat(2, 1fr); }
+
+    .step-card {
+      position: relative;
+      padding: 28px 22px 22px;
+      border-radius: 26px;
+      background: rgba(255,255,255,.72);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.92);
+    }
+
+    .step-card .no {
+      display: inline-grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      margin-bottom: 28px;
+      border-radius: 50%;
+      background: rgba(49, 89, 232, .10);
+      color: var(--blue);
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .step-card h3 { margin: 0 0 10px; font-size: 24px; letter-spacing: -.035em; }
+    .step-card p { margin: 0; font-size: 15px; line-height: 1.55; color: var(--muted); }
+    .step-card .artifact { position: absolute; left: 22px; bottom: 18px; font-size: 11px; color: #87918d; letter-spacing: .04em; }
+
+    .direct-entry {
+      display: grid;
+      grid-template-columns: .82fr 1.18fr;
+      gap: 18px;
+      margin-bottom: 84px;
+    }
+
+    .direct-entry .statement {
+      padding: 42px;
+      border-radius: 32px;
+      color: white;
+      background:
+        radial-gradient(circle at 90% 10%, rgba(255,255,255,.16), transparent 30%),
+        #10211d;
+    }
+
+    .direct-entry .statement h2 { margin: 14px 0 20px; font-family: "Songti SC", serif; font-size: 46px; line-height: 1.12; }
+    .direct-entry .statement p { margin: 0; color: #c2cec9; font-size: 17px; line-height: 1.7; }
+
+    .entry-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .entry-list .entry { padding: 22px; border-radius: 24px; background: rgba(255,255,255,.78); }
+    .entry small { color: var(--blue); font-weight: 800; }
+    .entry strong { display: block; margin: 8px 0 5px; font-size: 17px; }
+    .entry span { color: var(--muted); font-size: 13px; }
+
+    .quality {
+      padding: 42px;
+      margin-bottom: 74px;
+      border-radius: 38px;
+      background: #fffaf0;
+      box-shadow: 0 30px 80px rgba(16, 33, 29, .07), inset 0 0 0 1px rgba(16,33,29,.05);
+    }
+
+    .quality-title { display: flex; align-items: end; justify-content: space-between; margin-bottom: 28px; }
+    .quality-title h2 { margin: 0; font-family: "Songti SC", serif; font-size: 44px; }
+    .quality-title p { margin: 0; color: var(--muted); font-size: 15px; }
+
+    .quality-flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .quality-item { position: relative; min-height: 150px; padding: 24px 20px; border-radius: 24px; background: #f0eadf; }
+    .quality-item:not(:last-child)::after { content: "→"; position: absolute; right: -17px; top: 57px; z-index: 2; color: var(--orange); font-size: 25px; font-weight: 800; }
+    .quality-item b { display: block; margin-bottom: 10px; color: var(--orange); font-size: 13px; letter-spacing: .08em; }
+    .quality-item strong { display: block; font-size: 20px; margin-bottom: 8px; }
+    .quality-item span { color: var(--muted); font-size: 13px; line-height: 1.5; }
+
+    .prompt-strip {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 58px;
+    }
+
+    .prompt {
+      padding: 27px 24px;
+      border-radius: 26px;
+      background: rgba(255,255,255,.68);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+    }
+
+    .prompt b { display: block; margin-bottom: 14px; color: var(--green); font-size: 13px; letter-spacing: .08em; }
+    .prompt p { margin: 0; color: #34433e; font-family: "SFMono-Regular", "Menlo", monospace; font-size: 13px; line-height: 1.58; }
+
+    .long-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 26px;
+      border-top: 1px solid var(--hairline);
+    }
+
+    .long-footer a { color: var(--blue); font-size: 18px; font-weight: 750; text-decoration: none; }
+    .long-footer span { color: var(--muted); font-size: 13px; }
+
+    /* -------------------- 16:9 slide -------------------- */
+    #slide-16x9 {
+      width: 1920px;
+      height: 1080px;
+      padding: 62px 72px;
+      color: #eef4f1;
+      background:
+        radial-gradient(circle at 90% 13%, rgba(84, 115, 255, .30), transparent 21%),
+        radial-gradient(circle at 72% 84%, rgba(34, 210, 153, .16), transparent 25%),
+        linear-gradient(135deg, #07110f 0%, #0c1916 52%, #081411 100%);
+    }
+
+    .slide-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 44px; }
+    .slide-top .brand { color: white; font-size: 23px; }
+    .slide-top .brand span { color: #6f8cff; }
+    .slide-top .tag { padding: 11px 16px; border-radius: 999px; color: #c8d2ce; background: rgba(255,255,255,.055); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); font-size: 13px; letter-spacing: .08em; }
+
+    .slide-main { display: grid; grid-template-columns: 1.05fr .95fr; gap: 72px; height: 670px; }
+    .slide-copy { display: flex; flex-direction: column; justify-content: space-between; }
+    .slide-copy .eyebrow { width: max-content; background: rgba(111,140,255,.12); color: #9fb2ff; }
+    .slide-copy h1 { margin: 28px 0 22px; font-family: "Songti SC", serif; font-size: 94px; line-height: 1.03; letter-spacing: -.055em; }
+    .slide-copy h1 em { color: #6f8cff; font-style: normal; }
+    .slide-copy > div > p { width: 780px; margin: 0; color: #aebdb7; font-size: 25px; line-height: 1.6; }
+
+    .slide-pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .slide-pillar { padding: 22px; border-radius: 23px; background: rgba(255,255,255,.045); box-shadow: inset 0 0 0 1px rgba(255,255,255,.065); }
+    .slide-pillar b { display: block; margin-bottom: 7px; color: #f5f8f7; font-size: 19px; }
+    .slide-pillar span { color: #8fa099; font-size: 14px; line-height: 1.45; }
+
+    .slide-bento { display: grid; grid-template-columns: 1.18fr .82fr; grid-template-rows: 1.2fr .8fr; gap: 18px; }
+    .slide-card { padding: 8px; border-radius: 34px; background: rgba(255,255,255,.045); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
+    .slide-card > div { height: 100%; padding: 30px; border-radius: 27px; background: rgba(255,255,255,.045); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
+    .slide-card.big { grid-row: 1 / span 2; }
+    .slide-card h3 { margin: 8px 0 22px; font-size: 27px; }
+    .slide-card .smallcaps { color: #748780; }
+
+    .mini-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .mini-step { display: grid; grid-template-columns: 40px 1fr; align-items: center; min-height: 64px; padding: 9px; border-radius: 18px; background: rgba(255,255,255,.055); }
+    .mini-step i { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 50%; background: rgba(111,140,255,.14); color: #aebdff; font-style: normal; font-size: 13px; font-weight: 800; }
+    .mini-step b { font-size: 14px; color: #e7eeeb; }
+
+    .direct-visual { position: relative; height: 170px; margin-top: 4px; }
+    .direct-visual .ring { position: absolute; inset: 8px 28px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(255,255,255,.16); transform: rotate(-8deg); }
+    .direct-visual .ring::before { content: ""; position: absolute; width: 18px; height: 18px; border-radius: 50%; left: 4px; top: 68px; background: #28c792; box-shadow: 0 0 26px rgba(40,199,146,.55); }
+    .direct-visual strong { position: absolute; inset: 0; display: grid; place-items: center; color: #dfe7e4; font-size: 26px; text-align: center; line-height: 1.25; }
+
+    .gate-list { display: grid; gap: 10px; }
+    .gate-row { display: flex; align-items: center; gap: 12px; color: #b8c6c1; font-size: 14px; }
+    .gate-row::before { content: ""; width: 25px; height: 2px; background: #ff9c72; box-shadow: 8px 0 0 rgba(255,156,114,.35); }
+
+    .slide-flow {
+      position: absolute;
+      left: 72px;
+      right: 72px;
+      bottom: 54px;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 7px;
+    }
+
+    .slide-flow .flow-step { position: relative; min-height: 112px; padding: 18px 16px; border-radius: 19px; background: rgba(255,255,255,.045); box-shadow: inset 0 0 0 1px rgba(255,255,255,.055); }
+    .slide-flow .flow-step:not(:last-child)::after { content: ""; position: absolute; right: -8px; top: 54px; width: 9px; height: 2px; background: #6f8cff; }
+    .flow-step small { color: #6f8cff; font-size: 12px; font-weight: 800; }
+    .flow-step b { display: block; margin: 12px 0 4px; color: #eef4f1; font-size: 15px; }
+    .flow-step span { color: #7f918a; font-size: 11px; }
+
+    /* -------------------- bilingual poster -------------------- */
+    #bilingual-poster {
+      width: 1080px;
+      height: 1440px;
+      padding: 58px 62px 50px;
+      background:
+        radial-gradient(circle at 85% 15%, rgba(255,123,69,.13), transparent 22%),
+        radial-gradient(circle at 15% 80%, rgba(49,89,232,.11), transparent 24%),
+        #f7f8f4;
+    }
+
+    .bi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 54px; }
+    .bi-top .edition { color: var(--muted); font-size: 12px; letter-spacing: .14em; }
+    .bi-hero { display: grid; grid-template-columns: 1.15fr .85fr; gap: 34px; align-items: center; margin-bottom: 46px; }
+    .bi-hero h1 { margin: 18px 0 18px; font-size: 68px; line-height: .99; letter-spacing: -.06em; }
+    .bi-hero h1 .cn { display: block; margin-top: 20px; font-family: "Songti SC", serif; font-size: 56px; color: var(--blue); }
+    .bi-hero p { margin: 0; color: var(--muted); font-size: 17px; line-height: 1.6; }
+
+    .bi-mark { position: relative; height: 250px; }
+    .bi-mark .disc { position: absolute; right: 0; top: 0; width: 240px; height: 240px; border-radius: 50%; background: conic-gradient(from 40deg, var(--blue), #8ba0ff 30%, #e8edff 30% 48%, var(--green) 48% 66%, #d9f4eb 66% 82%, var(--orange) 82%); }
+    .bi-mark .disc::after { content: "MPW"; position: absolute; inset: 42px; display: grid; place-items: center; border-radius: 50%; background: #f7f8f4; color: var(--ink); font-size: 38px; font-weight: 850; letter-spacing: -.08em; }
+
+    .bi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 40px; }
+    .bi-step { min-height: 150px; padding: 18px; border-radius: 24px; background: rgba(255,255,255,.78); box-shadow: 0 18px 45px rgba(16,33,29,.045), inset 0 1px 0 white; }
+    .bi-step:nth-child(2), .bi-step:nth-child(7) { transform: translateY(12px); }
+    .bi-step:nth-child(4), .bi-step:nth-child(5) { background: #12251f; color: white; }
+    .bi-step small { color: var(--blue); font-weight: 800; }
+    .bi-step:nth-child(4) small, .bi-step:nth-child(5) small { color: #61d9ae; }
+    .bi-step b { display: block; margin: 18px 0 4px; font-size: 16px; line-height: 1.25; }
+    .bi-step span { color: var(--muted); font-size: 12px; line-height: 1.4; }
+    .bi-step:nth-child(4) span, .bi-step:nth-child(5) span { color: #9fb1aa; }
+
+    .bi-bento { display: grid; grid-template-columns: 1.16fr .84fr; gap: 14px; margin-bottom: 38px; }
+    .bi-message { padding: 34px; border-radius: 30px; background: #3159e8; color: white; }
+    .bi-message .smallcaps { color: #dbe4ff; }
+    .bi-message h2 { margin: 14px 0 12px; font-family: "Songti SC", serif; font-size: 38px; }
+    .bi-message p { margin: 0; color: #dbe4ff; font-size: 15px; line-height: 1.65; }
+    .bi-facts { display: grid; gap: 8px; }
+    .bi-fact { padding: 20px; border-radius: 22px; background: white; box-shadow: inset 0 0 0 1px rgba(16,33,29,.05); }
+    .bi-fact b { display: block; margin-bottom: 5px; font-size: 16px; }
+    .bi-fact span { color: var(--muted); font-size: 12px; }
+
+    .bi-gates { display: flex; gap: 12px; margin-bottom: 42px; }
+    .bi-gate { flex: 1; padding: 18px; border-radius: 20px; background: rgba(255,255,255,.76); }
+    .bi-gate small { display: block; color: var(--orange); font-weight: 800; margin-bottom: 6px; }
+    .bi-gate b { font-size: 14px; }
+
+    .bi-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 24px; border-top: 1px solid var(--hairline); }
+    .bi-footer strong { font-size: 17px; color: var(--blue); }
+    .bi-footer span { color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <section class="artboard" id="wechat-long" data-asset="wechat-long">
+    <div class="long-nav">
+      <div class="brand">more-paper-<span>workflow</span></div>
+      <div class="meta">EVIDENCE-DRIVEN ACADEMIC WORKFLOW · CC BY-NC-SA 4.0</div>
+    </div>
+
+    <div class="long-hero">
+      <div>
+        <span class="eyebrow">Research workflow · 研究工作流</span>
+        <h1>从研究问题<br>到<em>可核验论文</em></h1>
+        <p>不只是让 AI 生成文字，而是让选题、文献、全文证据、引用、图表和修订状态进入同一条可追溯链路。</p>
+      </div>
+      <div class="hero-orbit"><b>8</b></div>
+    </div>
+
+    <div class="promise-row">
+      <div class="shell promise"><div class="core"><strong>八步完整覆盖</strong><p>从定题与检索，到 Zotero、写作、科研图表和终稿验证。</p></div></div>
+      <div class="shell promise"><div class="core"><strong>任意 Step 直达</strong><p>已有 DOI、PDF、文库或草稿时，从当前任务直接开始。</p></div></div>
+      <div class="shell promise"><div class="core"><strong>快速但不越界</strong><p>Checkpoint、证据等级与 Completion Gate 始终保留。</p></div></div>
+    </div>
+
+    <div class="section-head">
+      <div><span class="smallcaps">The workflow</span><h2>论文全流程，一张图看懂</h2></div>
+      <p>三个阶段，八个可独立进入的工作单元。每一步都有明确输入、产物和质量门。</p>
+    </div>
+
+    <div class="phase-stack">
+      <div class="phase">
+        <div class="phase-label"><b>PHASE A</b><span>研究<br>设计</span></div>
+        <div class="step-grid">
+          <div class="step-card"><span class="no">01</span><h3>确定研究主题</h3><p>诊断研究阶段，收敛问题、范围、指标与可证伪条件。</p><span class="artifact">研究主题.md</span></div>
+          <div class="step-card"><span class="no">02</span><h3>大纲与关键词</h3><p>建立章节结构、关键词清单和章节证据需求。</p><span class="artifact">大纲关键词.md</span></div>
+          <div class="step-card"><span class="no">03</span><h3>检索方案</h3><p>把研究问题编译成可执行、可复核的 search tasks。</p><span class="artifact">检索方案.json</span></div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-label"><b>PHASE B</b><span>证据<br>获取</span></div>
+        <div class="step-grid">
+          <div class="step-card"><span class="no">04</span><h3>检索与评分</h3><p>多源检索、去重、验证、五维评分与 Tier 分级。</p><span class="artifact">workflow_search_results.json</span></div>
+          <div class="step-card"><span class="no">05</span><h3>PDF 下载路由</h3><p>先 manifest 与 dry-run，再按访问条件路由并记录失败。</p><span class="artifact">download_manifest.json</span></div>
+          <div class="step-card"><span class="no">06</span><h3>Zotero 对齐</h3><p>集合、条目、BibTeX 与 PDF 附件进入可追溯映射。</p><span class="artifact">capability_index.json</span></div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-label"><b>PHASE C</b><span>证据化<br>生产</span></div>
+        <div class="step-grid">
+          <div class="step-card"><span class="no">07</span><h3>写作、图表与审计</h3><p>先证据矩阵与论证计划，再写作、绘图、评审和引用审计。</p><span class="artifact">论文初稿.md / 引用审计报告</span></div>
+          <div class="step-card"><span class="no">08</span><h3>保守润色与终验</h3><p>先诊断后局部修改，保留证据边界并生成修订台账。</p><span class="artifact">论文润色稿.md / revision_ledger</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="direct-entry">
+      <div class="statement">
+        <span class="smallcaps" style="color:#8fa69d">Direct entry</span>
+        <h2>不用从头重跑，<br>从你真正需要的地方开始。</h2>
+        <p>入口由“你想完成什么”决定，而不是由文件扩展名决定。已有等价材料可以跳过前序产物，但不能跳过当前步骤的证据边界和质量门。</p>
+      </div>
+      <div class="entry-list">
+        <div class="entry"><small>STEP 1</small><strong>只有研究方向</strong><span>诊断并收敛研究主题</span></div>
+        <div class="entry"><small>STEP 4</small><strong>已有查询或文献表</strong><span>直接检索、核验与评分</span></div>
+        <div class="entry"><small>STEP 5</small><strong>已有 DOI / URL / BibTeX</strong><span>直接建立下载路由</span></div>
+        <div class="entry"><small>STEP 6</small><strong>已有 Zotero / PDF</strong><span>直接整理文库和附件</span></div>
+        <div class="entry"><small>STEP 7</small><strong>已有证据或章节草稿</strong><span>直接写作、续写或审计</span></div>
+        <div class="entry"><small>STEP 8</small><strong>已有待润色稿件</strong><span>直接诊断并保守修订</span></div>
+      </div>
+    </div>
+
+    <div class="quality">
+      <div class="quality-title"><h2>AI 可以更快，但结论必须过门。</h2><p>统一质量闭环</p></div>
+      <div class="quality-flow">
+        <div class="quality-item"><b>01 · DEFINE</b><strong>确认输入与边界</strong><span>说清目标、材料、证据风险和当前进入方式。</span></div>
+        <div class="quality-item"><b>02 · EXECUTE</b><strong>执行当前 Step</strong><span>生成主产物，并分开记录成功、失败和待人工项。</span></div>
+        <div class="quality-item"><b>03 · VERIFY</b><strong>Completion Gate</strong><span>没有新鲜、可追溯证据，就不宣布当前步骤完成。</span></div>
+        <div class="quality-item"><b>04 · HANDOFF</b><strong>交付与下一步</strong><span>输出确认输入、主产物、开放风险和推荐动作。</span></div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <div><span class="smallcaps">Try it now</span><h2>三句话，立即开始</h2></div>
+      <p>把方括号替换为你的材料即可。</p>
+    </div>
+
+    <div class="prompt-strip">
+      <div class="prompt"><b>从模糊方向开始</b><p>使用 more-paper-workflow，从 Step 1 开始。我的研究方向是：[方向]。请先诊断研究阶段。</p></div>
+      <div class="prompt"><b>已有 DOI，直接下载</b><p>直接进入 Step 5，不重跑前序步骤。材料：[DOI / URL / BibTeX]。先生成 manifest 和 dry-run。</p></div>
+      <div class="prompt"><b>已有资料，直接写作</b><p>直接进入 Step 7。目标章节：[章节]；已有材料：[Zotero / PDF / 草稿]。先建立证据映射。</p></div>
+    </div>
+
+    <div class="long-footer">
+      <a href="https://github.com/bingyunjiang/more-paper-workflow">github.com/bingyunjiang/more-paper-workflow</a>
+      <span>Dr. Jiang Bingyun · more series</span>
+    </div>
+  </section>
+
+  <section class="artboard" id="slide-16x9" data-asset="slide-16x9">
+    <div class="slide-top">
+      <div class="brand">more-paper-<span>workflow</span></div>
+      <div class="tag">END-TO-END · DIRECT-ENTRY · EVIDENCE-GATED</div>
+    </div>
+
+    <div class="slide-main">
+      <div class="slide-copy">
+        <div>
+          <span class="eyebrow">Academic workflow system</span>
+          <h1>从研究问题<br>到<em>可核验论文</em></h1>
+          <p>八步覆盖研究设计、证据获取、证据化写作与终稿验证；已有材料可直接进入任意 Step。</p>
+        </div>
+        <div class="slide-pillars">
+          <div class="slide-pillar"><b>完整链路</b><span>定题、检索、PDF、Zotero、写作、图表与润色。</span></div>
+          <div class="slide-pillar"><b>任意直达</b><span>按任务意图路由，不机械要求重跑前序步骤。</span></div>
+          <div class="slide-pillar"><b>质量闭环</b><span>证据等级、Checkpoint、审计与完成门贯穿全程。</span></div>
+        </div>
+      </div>
+
+      <div class="slide-bento">
+        <div class="slide-card big"><div>
+          <span class="smallcaps">8-step architecture</span>
+          <h3>三阶段 · 八步骤</h3>
+          <div class="mini-steps">
+            <div class="mini-step"><i>01</i><b>研究主题</b></div>
+            <div class="mini-step"><i>02</i><b>大纲关键词</b></div>
+            <div class="mini-step"><i>03</i><b>检索方案</b></div>
+            <div class="mini-step"><i>04</i><b>检索评分</b></div>
+            <div class="mini-step"><i>05</i><b>PDF 下载</b></div>
+            <div class="mini-step"><i>06</i><b>Zotero 对齐</b></div>
+            <div class="mini-step"><i>07</i><b>写作与审计</b></div>
+            <div class="mini-step"><i>08</i><b>润色与终验</b></div>
+          </div>
+        </div></div>
+        <div class="slide-card"><div>
+          <span class="smallcaps">Direct entry</span>
+          <div class="direct-visual"><div class="ring"></div><strong>Start where<br>your evidence is.</strong></div>
+        </div></div>
+        <div class="slide-card"><div>
+          <span class="smallcaps">Quality gates</span>
+          <h3>快速，但不越界</h3>
+          <div class="gate-list">
+            <div class="gate-row">证据等级不混用</div>
+            <div class="gate-row">外部写入先确认</div>
+            <div class="gate-row">完成声明必须过门</div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="slide-flow">
+      <div class="flow-step"><small>01</small><b>定题</b><span>Topic</span></div>
+      <div class="flow-step"><small>02</small><b>大纲</b><span>Outline</span></div>
+      <div class="flow-step"><small>03</small><b>方案</b><span>Search plan</span></div>
+      <div class="flow-step"><small>04</small><b>检索</b><span>Search & score</span></div>
+      <div class="flow-step"><small>05</small><b>下载</b><span>PDF routing</span></div>
+      <div class="flow-step"><small>06</small><b>文库</b><span>Zotero</span></div>
+      <div class="flow-step"><small>07</small><b>写作</b><span>Write & audit</span></div>
+      <div class="flow-step"><small>08</small><b>润色</b><span>Polish</span></div>
+    </div>
+  </section>
+
+  <section class="artboard" id="bilingual-poster" data-asset="bilingual-poster">
+    <div class="bi-top">
+      <div class="brand">more-paper-<span>workflow</span></div>
+      <div class="edition">ACADEMIC WORKFLOW · 学术论文工作流</div>
+    </div>
+
+    <div class="bi-hero">
+      <div>
+        <span class="eyebrow">Evidence-driven · Direct-entry</span>
+        <h1>Research to<br>verifiable writing.<span class="cn">从研究到可核验写作</span></h1>
+        <p>An eight-step workflow for topic design, literature evidence, Zotero alignment, writing, figures, citation audit and conservative revision.</p>
+      </div>
+      <div class="bi-mark"><div class="disc"></div></div>
+    </div>
+
+    <div class="bi-grid">
+      <div class="bi-step"><small>STEP 01</small><b>Topic<br>研究主题</b><span>scope · RQ · falsifiability</span></div>
+      <div class="bi-step"><small>STEP 02</small><b>Outline<br>大纲关键词</b><span>chapters · evidence needs</span></div>
+      <div class="bi-step"><small>STEP 03</small><b>Search plan<br>检索方案</b><span>tasks · queries · pilot</span></div>
+      <div class="bi-step"><small>STEP 04</small><b>Search & score<br>检索评分</b><span>verify · dedupe · tier</span></div>
+      <div class="bi-step"><small>STEP 05</small><b>PDF routing<br>下载路由</b><span>manifest · verify · resume</span></div>
+      <div class="bi-step"><small>STEP 06</small><b>Zotero<br>文库对齐</b><span>items · collections · PDFs</span></div>
+      <div class="bi-step"><small>STEP 07</small><b>Write & audit<br>写作审计</b><span>evidence · figures · citations</span></div>
+      <div class="bi-step"><small>STEP 08</small><b>Polish<br>保守润色</b><span>diagnose · revise · verify</span></div>
+    </div>
+
+    <div class="bi-bento">
+      <div class="bi-message">
+        <span class="smallcaps">The difference · 核心差异</span>
+        <h2>任意步骤直达，<br>质量门不可跳过。</h2>
+        <p>Start from a DOI list, PDF folder, Zotero library or existing draft. Upstream artifacts may be skipped when equivalent inputs exist; evidence boundaries and completion gates remain.</p>
+      </div>
+      <div class="bi-facts">
+        <div class="bi-fact"><b>Evidence-aware</b><span>候选、摘要与全文证据分级使用</span></div>
+        <div class="bi-fact"><b>Traceable</b><span>主产物、风险与下一步可回查</span></div>
+        <div class="bi-fact"><b>Recoverable</b><span>失败分层、断点恢复和最小补救</span></div>
+      </div>
+    </div>
+
+    <div class="bi-gates">
+      <div class="bi-gate"><small>CHECKPOINT</small><b>高风险动作先确认</b></div>
+      <div class="bi-gate"><small>COMPLETION GATE</small><b>没有新鲜证据，不宣布完成</b></div>
+      <div class="bi-gate"><small>HANDOFF</small><b>交付产物、风险与下一步</b></div>
+    </div>
+
+    <div class="bi-footer">
+      <strong>github.com/bingyunjiang/more-paper-workflow</strong>
+      <span>Dr. Jiang Bingyun · CC BY-NC-SA 4.0</span>
+    </div>
+  </section>
+</body>
+</html>

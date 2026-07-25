@@ -70,6 +70,7 @@
 - pilot 已基于标题+摘要检查必需概念块覆盖；有已知相关文献时已计算 seed recall
 - 每个来源已通过已查证的 endpoint-specific compiler；无 `invalid`，所有 `degraded/manual_required` 均记录丢失语义、客户端复核或当前 UI 探针要求
 - `plan_mode=systematic` 时已记录数据库与平台、完整查询式、检索日期、边界及理由、去重方法、补充检索和 PRESS 审核
+- `plan_state=pilot_verified` 时才能称为“已试跑可执行”；`compiled` 或 `offline_unverified` 是有效计划交付，但必须使用相应限定表述
 
 ### Step 4：检索完成
 
@@ -83,6 +84,8 @@
 - 若局部修复实质改变研究对象、核心 RQ 或纳入边界，已在 Step 4 内取得用户确认并保存 before/after 决策记录
 - 追溯覆盖矩阵不存在 `uncovered/weak` 必需任务；分层饱和度和偏差审计已完成
 - 存在 Step 2 基线时已生成 Step 2 检索对账和证据校准版；无基线或局部任务时已记录 `not_applicable`，不得因此阻塞 direct-entry
+- 已按 `core / review / release-systematic` execution profile 校验必需工件；未选择的展示层不得反向阻塞 core 机器交付
+- `search_run_manifest.json` 已记录输入哈希、实际输出、来源降级、checkpoint 和下一步
 
 ### Step 5：下载完成
 
@@ -93,6 +96,7 @@
 - `downloaded` 条目均通过 PDF verifier，manifest summary/readiness 与 checkpoint、attempt log 一致
 - 未把源站无法下载的文献自动转向另一数据源尝试绕过
 - direct-entry PDF 目录只能标为 `unlinked_pdf` 或 existing PDF pool，除非有下载日志/manifest 明确匹配，不得说来源链完整
+- 下载来源、来源优先级和阶段顺序保持既有合同；英文/中文/CDP 阶段必须串行，禁止并发复用浏览器会话
 
 ### Step 6：Zotero 已整理完成
 
@@ -128,6 +132,8 @@
 - 已保留或标注 artifact graph 中的证据链缺口
 - 弱证据、未链接证据或缺引用审计只被降级表达/风险提示/回退建议处理，未被升级为 confirmed
 - `论文润色稿.md` 已存在，`polish_fidelity_audit` 无硬失败；纯诊断状态 `ready_to_polish` 不得声明修订完成
+- `quick-polish` 只按局部润色稿、修改说明、protected spans 和风险提醒验收；`audited-polish` 才要求完整 ledger、对照表、术语报告、质量报告和请求范围内导出文件
+- 自动化使用 `run_step8_ai_trace.py --strict` 时，readiness blocked 必须返回非零；默认诊断模式可返回 0 以保留阻塞报告
 - 保真审计已覆盖标题、段落论证单元、claim/限定边界和待补证据标记；若提供 Step 7 结构化审计，其未关闭或过期风险已阻止定稿
 
 ---

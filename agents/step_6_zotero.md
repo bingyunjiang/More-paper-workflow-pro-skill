@@ -95,6 +95,20 @@
 
 ## 标准输出 (Standard Outputs)
 
+**执行档位：**
+
+| execution_profile | 允许动作 | 完成状态 |
+|---|---|---|
+| `plan-only` | 只读扫描、查重、生成集合/条目/附件计划，不修改 Zotero | `plan_ready` 或 `blocked` |
+| `write` | 在 `CP-ZOTERO-WRITE` 确认后执行计划并逐条回读验证 | `write_partial / write_complete / blocked` |
+| `repair` | 只处理既有计划中的失败、冲突、缺附件和可重试操作 | `write_partial / write_complete / blocked` |
+
+每个档位使用同一份 `文献-Zotero架构对照.json`、`plan_fingerprint` 和 operation journal。`plan-only` 是有效交付，不要求存在真实 Zotero 集合；`write_complete` 则必须有当前 fingerprint 下的逐记录成功证据。
+
+`execution_profile` 表达任务阶段（plan-only/write/repair）；既有 `execution_mode=local|cloud|skip|plan-only` 只表达 Zotero 连接/写入后端。两者正交：write/repair 必须选择 local 或 cloud，plan-only/skip 不得冒充 write。
+
+统一 run envelope 中，`plan_ready / write_partial / write_complete / blocked` 写入 `domain_state`；全局 readiness 分别映射为 `partial / partial / complete / blocked`。`plan_ready` 可以 `can_continue=true`，但不得改写成真实 Zotero 已完成。
+
 | 输出 | 格式 | 说明 |
 |------|------|------|
 | `zotero-架构.md` | Markdown | 基于论文大纲生成的 Zotero 集合结构 |
@@ -249,6 +263,8 @@ Agent 收到上述口令后，应默认执行：
 
 `scripts/build_zotero_plan.py` 是 plan-only 入口：可在缺少部分输入时继续生成 readiness、blocking_missing、nonblocking_missing、warnings、recommended_next_step。它不调用 Zotero MCP，不修改 Zotero 文库。
 
+计划转为真实写入时，Agent 必须按统一编排执行：读取并校验当前 `plan_fingerprint` → 输出 `CP-ZOTERO-WRITE` 范围 → 用户确认 → 按计划执行低风险 MCP 写操作 → 每个 operation 写入 `zotero_operation_journal.py` → 回读集合/条目/附件 → 运行 `validate_step6_output.py`。不得跳过 journal 直接把 state 文件改为 `write_complete`。
+
 ```bash
 # JSON / Zotero 只读扫描 direct-entry
 python3 scripts/build_zotero_plan.py --records-json zotero_readonly_scan.json
@@ -297,7 +313,7 @@ MinerU ZIP 通常与论文 PDF 挂在同一 Zotero item 下。`_llm_source.json`
 ```md
 ## CHECKPOINT W — CP-ZOTERO-WRITE
 
-entry_mode: normal_chain|direct_entry|resume|repair|partial_artifact
+route_mode: normal_chain|direct_entry|resume|repair|partial_artifact
 status: confirmed_by_workflow|satisfied_by_user_artifact|satisfied_by_agent_reconstruction
 blocks_next: actual Zotero write operations only
 must_confirm: true

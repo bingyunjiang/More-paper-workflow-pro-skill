@@ -38,6 +38,8 @@ related_skills:
 - Failure triage: `references/failure-triage.md`
 - Agent execution discipline: `references/agent-execution-discipline.md`
 - Step handoff: `references/step-handoff-contract.md`
+- Shared machine contract registry: `schemas/workflow-contract-registry.json`
+- Shared run state: `static/core/workflow-run-envelope.md` / `scripts/workflow_run_envelope.py`
 - Update reminders: `references/update-reminder-protocol.md`
 - Direct-entry artifact graph: `.skill-state/artifact_passport.json`（Artifact Passport 只负责 Step 4-8 的材料识别、readiness 和非锁定路由，不覆盖 Step 1-3 的前期构思合同。）
 - Artifact Passport keeps `route_mode` as non-locking route metadata for Step 4-8 direct-entry handoff.
@@ -65,6 +67,7 @@ related_skills:
 - `Checkpoint 是“当前 Step 的输入与风险确认协议”，不是线性流程锁`。
 - `不限制 Step 6/7 直接入口`。
 - `防截断原则`：机器工件禁止截断；Markdown/XLSX/PDF 仅作为展示层可截断，必须保留稳定回查 ID，且不得反向污染 JSON、BibTeX、Zotero 映射或下载 manifest。
+- `领域状态与全局状态分离`：每个 Step 保留自己的 `domain_state`，跨 Step 统一映射为 `readiness / can_continue / blocking / warnings / recommended_next_step`；`can_continue=true` 不等于当前 Step 已完整完成。
 
 ## Workflow map
 
@@ -74,6 +77,7 @@ related_skills:
 - Step 4: literature search, scoring, and reporting
 - Step 5: batch download routing
   - Stable artifacts: `download_manifest.json`, `download_attempts.jsonl`, `pdf-附件池索引.json`.
+  - Locked execution discipline: preserve the existing source order and phase order; all download/CDP phases remain serial, and deprecated parallel flags remain ignored.
   - Manual recovery: after user-provided PDFs, run `scripts/step5_reconcile_pdf_pool.py --output <dir>` to reconcile without changing filenames.
 - Step 6: Zotero organization and attachment consistency
 - Step 7: writing, evidence matrix, style learning, original-figure-first insertion, explicit quick/reproduction figure routing, citation audit

@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>more-paper-workflow 朋友圈八图</title>
+  <style>
+    :root {
+      --ink:#10211d;
+      --cream:#f7f3e9;
+      --blue:#3159e8;
+      --green:#18a77a;
+      --orange:#ff7947;
+      --muted:#64716c;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:#121411}
+    body{font-family:"Avenir Next","PingFang SC","Hiragino Sans GB",sans-serif;color:var(--ink)}
+    .story{position:relative;width:1080px;height:1440px;overflow:hidden;isolation:isolate;padding:58px 62px 52px;background:var(--cream)}
+    .story:after{content:"";position:absolute;inset:0;z-index:20;pointer-events:none;opacity:.026;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.88' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+    .top,.foot{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:2}
+    .brand{font-size:22px;font-weight:850;letter-spacing:-.045em}.brand span{color:var(--blue)}
+    .page{font-size:12px;letter-spacing:.16em;color:var(--muted)}
+    .foot{position:absolute;left:62px;right:62px;bottom:44px;padding-top:20px;border-top:1px solid rgba(16,33,29,.10);font-size:12px;color:var(--muted)}
+    .foot b{color:var(--blue);font-size:14px}
+    .eyebrow{display:inline-flex;align-items:center;gap:10px;padding:9px 14px;border-radius:999px;background:rgba(49,89,232,.09);color:var(--blue);font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+    .eyebrow:before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 0 5px color-mix(in srgb,currentColor 12%,transparent)}
+    h1,h2,h3,p{margin-top:0}
+    .serif{font-family:"Songti SC","STSong",serif}
+    .shell{padding:7px;border-radius:32px;background:rgba(16,33,29,.045);box-shadow:inset 0 0 0 1px rgba(16,33,29,.05)}
+    .core{height:100%;border-radius:25px;background:rgba(255,255,255,.78);box-shadow:inset 0 1px 0 rgba(255,255,255,.94),0 24px 64px rgba(16,33,29,.055)}
+    .micro{font-size:12px;letter-spacing:.13em;text-transform:uppercase;font-weight:800;color:var(--muted)}
+
+    /* 01 cover */
+    #social-01{color:#f2f7f5;background:radial-gradient(circle at 88% 11%,rgba(83,111,255,.35),transparent 25%),radial-gradient(circle at 12% 84%,rgba(29,191,139,.18),transparent 28%),linear-gradient(145deg,#06110e,#0a1d17 66%,#071510)}
+    #social-01 .brand{color:white}#social-01 .page{color:#71857d}#social-01 .eyebrow{background:rgba(111,140,255,.13);color:#a9b8ff}
+    .cover-copy{position:relative;z-index:2;margin-top:118px;width:870px}
+    .cover-copy h1{margin:32px 0 28px;font-family:"Songti SC",serif;font-size:106px;line-height:1.02;letter-spacing:-.07em}.cover-copy h1 em{font-style:normal;color:#6f8cff}
+    .cover-copy p{width:760px;color:#afbeb8;font-size:25px;line-height:1.65}
+    .cover-orbit{position:absolute;right:-110px;bottom:185px;width:600px;height:600px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.13);transform:rotate(-13deg)}
+    .cover-orbit:before{content:"8";position:absolute;inset:110px;display:grid;place-items:center;border-radius:50%;background:radial-gradient(circle at 35% 30%,#9caeff,#3159e8 65%,#213b9b);font-size:145px;font-weight:850;color:white;box-shadow:0 40px 120px rgba(49,89,232,.28)}
+    .cover-orbit:after{content:"";position:absolute;left:23px;top:245px;width:24px;height:24px;border-radius:50%;background:#20d39c;box-shadow:0 0 34px rgba(32,211,156,.65)}
+    .cover-pills{position:absolute;left:62px;bottom:210px;display:flex;gap:12px;z-index:3}.cover-pills span{padding:14px 18px;border-radius:999px;background:rgba(255,255,255,.055);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);color:#ccd7d2;font-size:14px}
+    #social-01 .foot{border-color:rgba(255,255,255,.08);color:#71857d}#social-01 .foot b{color:#6f8cff}
+
+    /* 02 pain */
+    #social-02{background:radial-gradient(circle at 90% 10%,rgba(255,121,71,.13),transparent 24%),linear-gradient(180deg,#faf6ed,#f3ede1)}
+    .pain-head{margin-top:78px;width:880px}.pain-head h1{margin:22px 0 18px;font-family:"Songti SC",serif;font-size:74px;line-height:1.12;letter-spacing:-.055em}.pain-head p{font-size:20px;color:var(--muted);line-height:1.65}
+    .pain-stack{display:grid;gap:15px;margin-top:48px}.pain{display:grid;grid-template-columns:108px 1fr;padding:7px;border-radius:31px;background:rgba(16,33,29,.045)}.pain>div{padding:30px;border-radius:24px;background:rgba(255,255,255,.79)}
+    .pain .num{display:grid;place-items:center;font-family:"Songti SC",serif;font-size:45px;color:var(--orange);background:#192d27}.pain h3{margin:0 0 9px;font-size:25px}.pain p{margin:0;color:var(--muted);font-size:16px;line-height:1.55}.pain:nth-child(2){transform:translateX(24px);width:932px}.pain:nth-child(3){width:900px}
+    .turn{margin-top:38px;padding:27px 31px;border-radius:26px;background:#3159e8;color:white;font-size:21px;line-height:1.5}.turn b{color:#dce5ff}
+
+    /* 03 map */
+    #social-03{color:#f3f7f5;background:radial-gradient(circle at 14% 14%,rgba(111,140,255,.24),transparent 24%),linear-gradient(150deg,#12251f,#0b1814)}
+    #social-03 .brand{color:white}#social-03 .page{color:#789087}#social-03 .eyebrow{background:rgba(111,140,255,.13);color:#aebdff}
+    .map-head{margin-top:70px}.map-head h1{margin:22px 0 14px;font-family:"Songti SC",serif;font-size:70px;letter-spacing:-.055em}.map-head p{color:#9fb0aa;font-size:18px}
+    .map-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:42px}.map-step{display:grid;grid-template-columns:70px 1fr;align-items:center;min-height:126px;padding:8px;border-radius:27px;background:rgba(255,255,255,.045);box-shadow:inset 0 0 0 1px rgba(255,255,255,.055)}.map-step i{display:grid;width:52px;height:52px;place-items:center;margin-left:9px;border-radius:50%;background:rgba(111,140,255,.15);color:#b4c1ff;font-style:normal;font-weight:850}.map-step h3{margin:0 0 5px;font-size:20px}.map-step p{margin:0;color:#82968e;font-size:13px}.map-step:nth-child(4),.map-step:nth-child(5){background:rgba(49,89,232,.23)}.map-step:nth-child(7),.map-step:nth-child(8){background:rgba(24,167,122,.14)}
+    .map-note{margin-top:33px;padding:28px;border-radius:26px;background:rgba(255,255,255,.055);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);color:#c3d0cb;font-size:17px;line-height:1.55}.map-note b{color:#6f8cff}
+    #social-03 .foot{border-color:rgba(255,255,255,.08);color:#789087}#social-03 .foot b{color:#6f8cff}
+
+    /* phase common */
+    .phase-head{margin-top:70px}.phase-head .big-no{font-size:132px;font-weight:850;line-height:.8;letter-spacing:-.08em;color:rgba(49,89,232,.12)}.phase-head h1{margin:-8px 0 18px;font-family:"Songti SC",serif;font-size:72px;line-height:1.1;letter-spacing:-.055em}.phase-head p{width:820px;color:var(--muted);font-size:19px;line-height:1.62}
+    .phase-cards{display:grid;gap:15px;margin-top:42px}.phase-card{display:grid;grid-template-columns:90px 1fr;min-height:180px;padding:7px;border-radius:30px;background:rgba(16,33,29,.045)}.phase-card .badge{display:grid;place-items:center;border-radius:24px;background:#17322a;color:white;font-size:22px;font-weight:850}.phase-card .inside{padding:27px 29px;border-radius:24px;background:rgba(255,255,255,.82)}.phase-card h3{margin:0 0 8px;font-size:25px}.phase-card p{margin:0;color:var(--muted);font-size:15px;line-height:1.55}.phase-card small{display:block;margin-top:13px;color:var(--blue);font-size:12px;font-weight:750}
+    .checkpoint{margin-top:26px;display:flex;align-items:center;justify-content:space-between;padding:25px 29px;border-radius:25px;background:#fffaf0;box-shadow:0 20px 55px rgba(16,33,29,.055),inset 0 0 0 1px rgba(16,33,29,.05)}.checkpoint b{color:var(--orange);font-size:15px;letter-spacing:.06em}.checkpoint span{font-size:15px;color:var(--muted)}
+    #social-04{background:radial-gradient(circle at 88% 9%,rgba(24,167,122,.12),transparent 24%),linear-gradient(180deg,#f8f5ec,#f1ecdf)}#social-04 .phase-head .big-no{color:rgba(24,167,122,.13)}#social-04 .phase-card .badge{background:#17322a}
+    #social-05{background:radial-gradient(circle at 13% 14%,rgba(49,89,232,.16),transparent 25%),linear-gradient(180deg,#f2f5ff,#edf0f7)}#social-05 .phase-card .badge{background:#3159e8}#social-05 .checkpoint{background:#3159e8;color:white}#social-05 .checkpoint b{color:#dce5ff}#social-05 .checkpoint span{color:#d4defe}
+
+    /* 06 write */
+    #social-06{color:white;background:radial-gradient(circle at 87% 16%,rgba(255,121,71,.28),transparent 25%),linear-gradient(150deg,#2a1510,#4a2318 66%,#22120e)}
+    #social-06 .brand{color:white}#social-06 .page{color:#b18d80}#social-06 .eyebrow{background:rgba(255,145,99,.12);color:#ffad88}
+    .write-head{margin-top:68px;width:850px}.write-head h1{margin:22px 0 17px;font-family:"Songti SC",serif;font-size:72px;line-height:1.1;letter-spacing:-.055em}.write-head p{color:#cdb8b0;font-size:19px;line-height:1.6}
+    .write-chain{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:36px}.write-card{min-height:188px;padding:28px;border-radius:28px;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}.write-card small{color:#ff9a70;font-weight:800}.write-card h3{margin:16px 0 9px;font-size:23px}.write-card p{margin:0;color:#bca69e;font-size:14px;line-height:1.5}.write-card:nth-child(3){grid-column:1/span 2;min-height:150px;background:rgba(255,121,71,.12)}
+    .figure-route{display:flex;gap:10px;margin-top:28px}.figure-route div{flex:1;padding:20px;border-radius:22px;background:rgba(255,255,255,.055);text-align:center}.figure-route b{display:block;margin-bottom:6px;font-size:14px}.figure-route span{color:#ad968e;font-size:11px}
+    .write-alert{margin-top:26px;padding:24px 28px;border-radius:24px;background:#fff6ed;color:#39221b;font-size:17px;line-height:1.5}.write-alert b{color:#c64f27}
+    #social-06 .foot{border-color:rgba(255,255,255,.08);color:#b18d80}#social-06 .foot b{color:#ff9a70}
+
+    /* 07 direct */
+    #social-07{background:radial-gradient(circle at 89% 12%,rgba(49,89,232,.18),transparent 24%),linear-gradient(180deg,#f8f5ec,#eef0e9)}
+    .direct-head{margin-top:74px}.direct-head h1{margin:22px 0 16px;font-family:"Songti SC",serif;font-size:76px;line-height:1.08;letter-spacing:-.06em}.direct-head p{color:var(--muted);font-size:19px;line-height:1.6}
+    .route-list{display:grid;gap:11px;margin-top:38px}.route{display:grid;grid-template-columns:1fr 98px;align-items:center;min-height:108px;padding:22px 18px 22px 27px;border-radius:25px;background:rgba(255,255,255,.80);box-shadow:0 18px 48px rgba(16,33,29,.04),inset 0 1px 0 white}.route b{display:block;margin-bottom:5px;font-size:19px}.route span{color:var(--muted);font-size:13px}.route i{display:grid;width:68px;height:68px;place-items:center;border-radius:50%;background:rgba(49,89,232,.10);color:var(--blue);font-style:normal;font-weight:850}.route:nth-child(3),.route:nth-child(4){transform:translateX(22px);width:934px}.direct-rule{margin-top:27px;padding:28px;border-radius:26px;background:#132720;color:white;font-size:18px;line-height:1.55}.direct-rule b{color:#62dcb0}
+
+    /* 08 close */
+    #social-08{color:white;background:radial-gradient(circle at 88% 10%,rgba(111,140,255,.34),transparent 24%),radial-gradient(circle at 12% 82%,rgba(24,167,122,.17),transparent 26%),linear-gradient(145deg,#07130f,#0d2019)}
+    #social-08 .brand{color:white}#social-08 .page{color:#779087}#social-08 .eyebrow{background:rgba(111,140,255,.13);color:#aebdff}
+    .close-head{margin-top:76px}.close-head h1{margin:24px 0 18px;font-family:"Songti SC",serif;font-size:74px;line-height:1.1;letter-spacing:-.06em}.close-head p{color:#a8bbb4;font-size:19px;line-height:1.6}
+    .gate-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:38px}.gate{min-height:174px;padding:27px;border-radius:27px;background:rgba(255,255,255,.055);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}.gate small{color:#ff9c72;font-weight:850}.gate h3{margin:16px 0 7px;font-size:23px}.gate p{margin:0;color:#8fa39b;font-size:13px;line-height:1.5}
+    .cta{margin-top:28px;padding:36px;border-radius:31px;background:#3159e8;color:white;box-shadow:0 28px 80px rgba(49,89,232,.24)}.cta small{color:#dce5ff;font-weight:800;letter-spacing:.08em}.cta p{margin:16px 0 20px;font-family:"SFMono-Regular","Menlo",monospace;font-size:15px;line-height:1.65;color:#f1f4ff}.cta-link{display:flex;align-items:center;justify-content:space-between;padding:15px 17px 15px 21px;border-radius:999px;background:white;color:#17305d;font-size:14px;font-weight:800}.cta-link i{display:grid;width:34px;height:34px;place-items:center;border-radius:50%;background:#e9eeff;color:var(--blue);font-style:normal}
+    #social-08 .foot{border-color:rgba(255,255,255,.08);color:#779087}#social-08 .foot b{color:#6f8cff}
+  </style>
+</head>
+<body>
+  <section class="story" id="social-01">
+    <div class="top"><div class="brand">more-paper-<span>workflow</span></div><div class="page">01 / 08 · COVER</div></div>
+    <div class="cover-copy"><span class="eyebrow">Academic workflow system</span><h1>从研究问题<br>到<em>可核验论文</em></h1><p>一套把定题、文献、全文证据、Zotero、写作、图表和终稿验证连成闭环的 AI 学术工作流。</p></div>
+    <div class="cover-orbit"></div><div class="cover-pills"><span>八步完整覆盖</span><span>任意 Step 直达</span><span>证据质量门</span></div>
+    <div class="foot"><b>滑动查看 8 步工作流 →</b><span>github.com/bingyunjiang/more-paper-workflow</span></div>
+  </section>
+
+  <section class="story" id="social-02">
+    <div class="top"><div class="brand">more-paper-<span>workflow</span></div><div class="page">02 / 08 · WHY</div></div>
+    <div class="pain-head"><span class="eyebrow">Why this workflow</span><h1>论文难的往往不是“写”，<br>而是证据链断了。</h1><p>工具很多，但研究过程仍然散落在搜索结果、PDF、文库、草稿和聊天记录之间。</p></div>
+    <div class="pain-stack">
+      <div class="pain"><div class="num">01</div><div><h3>检索结果与研究问题脱节</h3><p>关键词能搜到很多论文，却无法说明每篇文献具体支撑哪个章节和 claim。</p></div></div>
+      <div class="pain"><div class="num">02</div><div><h3>候选文献被误当成全文证据</h3><p>标题、元数据和摘要很容易被过度使用，最后形成参数、机理或结论错配。</p></div></div>
+      <div class="pain"><div class="num">03</div><div><h3>“生成完成”不等于“可以交付”</h3><p>缺少状态区分、引用审计、失败记录和修订台账，结果快，却无法复核。</p></div></div>
+    </div>
+    <div class="turn"><b>more-paper-workflow 的目标：</b>让 AI 不只生成内容，也管理证据、边界、风险和交付状态。</div>
+    <div class="foot"><b>02 · 为什么需要它</b><span>下一张：八步全景</span></div>
+  </section>
+
+  <section class="story" id="social-03">
+    <div class="top"><div class="brand">more-paper-<span>workflow</span></div><div class="page">03 / 08 · MAP</div></div>
+    <div class="map-head"><span class="eyebrow">The full map</span><h1>三阶段，八个可独立进入的 Step</h1><p>研究设计 → 证据获取与管理 → 证据化生产</p></div>
+    <div class="map-grid">
+      <div class="map-step"><i>01</i><div><h3>研究主题</h3><p>Topic · scope · RQ</p></div></div>
+      <div class="map-step"><i>02</i><div><h3>大纲关键词</h3><p>Outline · evidence needs</p></div></div>
+      <div class="map-step"><i>03</i><div><h3>检索方案</h3><p>Search tasks · pilot</p></div></div>
+      <div class="map-step"><i>04</i><div><h3>检索与评分</h3><p>Verify · dedupe · tier</p></div></div>
+      <div class="map-step"><i>05</i><div><h3>PDF 下载路由</h3><p>Manifest · verify · resume</p></div></div>
+      <div class="map-step"><i>06</i><div><h3>Zotero 对齐</h3><p>Collections · items · PDFs</p></div></div>
+      <div class="map-step"><i>07</i><div><h3>写作与引用审计</h3><p>Evidence · figures · citations</p></div></div>
+      <div class="map-step"><i>08</i><div><h3>保守润色与终验</h3><p>Diagnose · revise · verify</p></div></div>
+    </div>
+    <div class="map-note"><b>关键差异：</b>八步是一张能力地图，不是必须从 Step 1 线性跑到 Step 8 的流程锁。</div>
+    <div class="foot"><b>03 · 八步全景</b><span>下一张：研究设计</span></div>
+  </section>
+
+  <section class="story" id="social-04">
+    <div class="top"><div class="brand">more-paper-<span>workflow</span></div><div class="page">04 / 08 · PHASE A</div></div>
+    <div class="phase-head"><div class="big-no">A</div><h1>先把研究问题定义对。</h1><p>在搜索和写作之前，先明确对象、范围、评价指标、证据需求与可证伪条件。</p></div>
+    <div class="phase-cards">
+      <div class="phase-card"><div class="badge">01</div><div class="inside"><h3>确定研究主题</h3><p>研究阶段诊断、广度探索、预检索、深度聚焦与选题预审。</p><small>OUTPUT · 研究主题.md</small></div></div>
+      <div class="phase-card"><div class="badge">02</div><div class="inside"><h3>生成大纲与关键词</h3><p>把研究问题映射到章节、关键词、方法与章节证据需求。</p><small>OUTPUT · 大纲关键词.md</small></div></div>
+      <div class="phase-card"><div class="badge">03</div><div class="inside"><h3>设计可执行检索方案</h3><p>构造 search tasks、来源查询、pilot search 和检索 pre-flight。</p><small>OUTPUT · 检索方案.json</small></div></div>
+    </div>
+    <div class="checkpoint"><b>CHECKPOINT</b><span>CP-TOPIC → CP-OUTLINE → CP-SEARCH</span></div>
+    <div class="foot"><b>04 · PHASE A 研究设计</b><span>下一张：证据获取</span></div>
+  </section>
+
+  <section class="story" id="social-05">
+    <div class="top"><div class="brand">more-paper-<span>workflow</span></div><div class="page">05 / 08 · PHASE B</div></div>
+    <div class="phase-head"><div class="big-no">B</div><h1>让每篇文献进入可追溯证据链。</h1><p>搜索、筛选、全文下载和 Zotero 整理不再是四个孤立动作。</p></div>
+    <div class="phase-cards">
+      <div class="phase-card"><div class="badge">04</div><div class="inside"><h3>多源检索、验证与评分</h3><p>去重、可信度标记、五维评分、T1–T4 分层、引文扩展与覆盖审计。</p><small>OUTPUT · workflow_search_results.json</small></div></div>
+      <div class="phase-card"><div class="badge">05</div><div class="inside"><h3>统一 PDF 下载路由</h3><p>先生成 manifest 和 dry-run，再按访问条件执行、校验、记录和恢复。</p><small>OUTPUT · download_manifest.json</small></div></div>
+      <div class="phase-card"><div class="badge">06</div><div class="inside"><h3>Zotero 与附件对齐</h3><p>把集合、条目、BibTeX、PDF、重复项和缺附件状态放进同一映射。</p><small>OUTPUT · capability_index.json</small></div></div>
+    </div>
+    <div class="checkpoint"><b>快速但不黑箱</b><span>评分依据先确认 · 外部登录与写入先确认</span></div>
+    <div class="foot"><b>05 · PHASE B 证据获取</b><span>下一张：写作与终验</span></div>
+  </section>
+
+  <section class="story" id="social-06">
+    <div class="top"><div class="brand">more-paper-<span>workflow</span></div><div class="page">06 / 08 · PHASE C</div></div>
+    <div class="write-head"><span class="eyebrow">Evidence-to-writing</span><h1>先锁定论证和证据，<br>再让 AI 下笔。</h1><p>Step 7 负责证据化生产；Step 8 只做成稿级保守修订，不偷偷补入未经确认的新证据。</p></div>
+    <div class="write-chain">
+      <div class="write-card"><small>STEP 07 · PREPARE</small><h3>证据矩阵与章节蓝图</h3><p>明确每个 claim 需要什么证据、图表和回退策略。</p></div>
+      <div class="write-card"><small>STEP 07 · WRITE</small><h3>正文、图表与引用审计</h3><p>边写边检查引文支撑，区分摘要和全文证据。</p></div>
+      <div class="write-card"><small>STEP 08 · VERIFY</small><h3>诊断 → 局部修改 → 保真验证 → 修订台账</h3><p>不把语言优化变成观点漂移，也不把弱证据升级成强结论。</p></div>
+    </div>
+    <div class="figure-route"><div><b>已有原图</b><span>直接插入</span></div><div><b>可信数据新图</b><span>quick</span></div><div><b>重绘或数字化</b><span>source-locked</span></div></div>
+    <div class="write-alert"><b>底线：</b>metadata_only、abstract_only 和 full_text 证据不能混用；图形复现成功也不能替代引文证据审计。</div>
+    <div class="foot"><b>06 · PHASE C 证据化生产</b><span>下一张：任意直达</span></div>
+  </section>
+
+  <section class="story" id="social-07">
+    <div class="top"><div class="brand">more-paper-<span>workflow</span></div><div class="page">07 / 08 · DIRECT ENTRY</div></div>
+    <div class="direct-head"><span class="eyebrow">Start where you are</span><h1>不用从头重跑，<br>从现有材料直接开始。</h1><p>系统先判断“你想完成什么”，再识别材料状态并选择入口。</p></div>
+    <div class="route-list">
+      <div class="route"><div><b>只有研究方向</b><span>诊断、聚焦并形成研究主题</span></div><i>01</i></div>
+      <div class="route"><div><b>已有查询或文献表</b><span>直接检索、验证、筛选和评分</span></div><i>04</i></div>
+      <div class="route"><div><b>已有 DOI / URL / BibTeX</b><span>直接建立 PDF 下载 manifest</span></div><i>05</i></div>
+      <div class="route"><div><b>已有 Zotero / PDF 文件夹</b><span>直接整理文库、条目和附件</span></div><i>06</i></div>
+      <div class="route"><div><b>已有证据或章节草稿</b><span>直接写作、续写、评审或引用审计</span></div><i>07</i></div>
+      <div class="route"><div><b>已有待润色稿件</b><span>直接诊断并做保守修订</span></div><i>08</i></div>
+    </div>
+    <div class="direct-rule"><b>Direct-entry 不是质量旁路：</b>可以跳过等价的前序产物，但不能跳过当前 Step 的证据边界、Checkpoint 和 Completion Gate。</div>
+    <div class="foot"><b>07 · 任意 Step 直达</b><span>下一张：如何开始</span></div>
+  </section>
+
+  <section class="story" id="social-08">
+    <div class="top"><div class="brand">more-paper-<span>workflow</span></div><div class="page">08 / 08 · START</div></div>
+    <div class="close-head"><span class="eyebrow">Quality loop</span><h1>AI 可以更快，<br>但结论必须过门。</h1><p>每一步都要说明主产物、成功与失败状态、开放风险和下一步输入。</p></div>
+    <div class="gate-grid">
+      <div class="gate"><small>CHECKPOINT</small><h3>高风险动作先确认</h3><p>正式检索边界、筛选依据、登录和外部写入都显式确认。</p></div>
+      <div class="gate"><small>EVIDENCE LEVEL</small><h3>弱证据不撑强 claim</h3><p>候选、元数据、摘要和全文证据分级使用。</p></div>
+      <div class="gate"><small>COMPLETION GATE</small><h3>没有新鲜证据，不宣布完成</h3><p>脚本跑完不等于当前研究任务已经闭环。</p></div>
+      <div class="gate"><small>HANDOFF</small><h3>跨会话也能恢复</h3><p>确认输入、主产物、风险和推荐下一步均可回查。</p></div>
+    </div>
+    <div class="cta"><small>COPY THIS PROMPT · 复制后开始</small><p>使用 more-paper-workflow。我的当前目标是：[目标]；已有材料是：[方向 / DOI / PDF / Zotero / 草稿]。请判断应从哪个 Step 进入，并先说明输入边界、风险和最小交付物。</p><div class="cta-link">github.com/bingyunjiang/more-paper-workflow <i>↗</i></div></div>
+    <div class="foot"><b>08 · 现在开始</b><span>Dr. Jiang Bingyun · more series</span></div>
+  </section>
+</body>
+</html>

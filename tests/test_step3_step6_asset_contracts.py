@@ -120,7 +120,6 @@ class Step3Step6AssetContractsTest(unittest.TestCase):
     def test_step6_uses_outline_second_level_collection_contract(self):
         step6 = read_rel("agents/step_6_zotero.md")
         command = read_rel("commands/zotero.md")
-        readme = read_rel("README.md")
 
         for token in [
             "根集合为论文题目",
@@ -136,8 +135,6 @@ class Step3Step6AssetContractsTest(unittest.TestCase):
 
         self.assertIn("新建集合和子集合优先依据 Step 2 大纲二级章节", command)
         self.assertIn("入库集合路径应直接复用该映射", command)
-        self.assertIn("根集合是论文题目", readme)
-        self.assertIn("文献默认直接归入对应的大纲二级章节集合", readme)
 
     def test_organize_zotero_builds_second_level_outline_tree(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -286,7 +283,6 @@ class Step3Step6AssetContractsTest(unittest.TestCase):
     def test_step4_step6_heading_number_order_contract(self):
         step4 = read_rel("agents/step_4_search_score.md")
         step6 = read_rel("agents/step_6_zotero.md")
-        readme = read_rel("README.md")
 
         step4_order = [
             "### 4.1. 检索执行总览",
@@ -329,8 +325,6 @@ class Step3Step6AssetContractsTest(unittest.TestCase):
             pos = step6.index(token)
             self.assertGreater(pos, last, token)
             last = pos
-        self.assertIn("#### 6.6: 生成能力索引", readme)
-        self.assertIn("#### 6.6: Generate Capability Index", readme)
 
     def test_step4_step6_antitruncation_contract_exists(self):
         step4 = read_rel("agents/step_4_search_score.md")
@@ -433,13 +427,17 @@ class Step3Step6AssetContractsTest(unittest.TestCase):
         readme_current = readme.split("## 📋 版本历史", 1)[0]
         architecture = read_rel("docs/workflow-architecture.md")
 
-        for text in [skill, readme_current]:
-            self.assertIn("4.4 筛选依据", text)
-            self.assertIn("4.5 五维", text)
-            self.assertIn("4.6 T1-T4", text)
-            self.assertIn("4.7 引文扩展", text)
-            self.assertIn("4.8 饱和", text)
-            self.assertIn("4.9", text)
+        for token in [
+            "4.4 筛选依据",
+            "4.5 五维",
+            "4.6 T1-T4",
+            "4.7 引文扩展",
+            "4.8 饱和",
+            "4.9",
+        ]:
+            self.assertIn(token, skill)
+
+        self.assertIn("检索、核验、去重、评分与分层", readme_current)
 
         self.assertIn("核心交付", architecture)
         self.assertIn("条件交付", architecture)

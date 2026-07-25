@@ -1,0 +1,19 @@
+{
+  "schema": "more-paper-workflow.social-carousel.v1",
+  "source": "../social-carousel.html",
+  "dimensions": {
+    "width": 1080,
+    "height": 1440
+  },
+  "order": [
+    "social-01.png",
+    "social-02.png",
+    "social-03.png",
+    "social-04.png",
+    "social-05.png",
+    "social-06.png",
+    "social-07.png",
+    "social-08.png"
+  ],
+  "contact_sheet": "social-contact-sheet.png"
+}

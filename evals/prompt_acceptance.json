@@ -46,6 +46,182 @@
       ]
     },
     {
+      "id": "zh-step2-outline",
+      "language": "zh",
+      "prompt": "我已有明确研究主题和核心研究问题，请直接进入 Step 2 生成大纲、章节证据需求和不可变结构蓝图，不要执行正式检索。",
+      "expected_step": "step2-outline",
+      "required_all": [
+        "selected_step: step2-outline",
+        "entry_mode: direct-topic",
+        "section_blueprints.json",
+        "outline_state: outline_baseline",
+        "rq_ids",
+        "recommended_next_step"
+      ],
+      "required_any": [
+        ["章节证据需求", "evidence_needed"],
+        ["不可变", "immutable"]
+      ],
+      "forbidden": [
+        "正式检索已完成",
+        "证据已经闭环"
+      ]
+    },
+    {
+      "id": "en-step2-outline",
+      "language": "en",
+      "prompt": "I already have a focused topic and core research question. Enter Step 2 directly and produce the outline, section evidence needs, and immutable structural blueprint without executing the formal search.",
+      "expected_step": "step2-outline",
+      "required_all": [
+        "selected_step: step2-outline",
+        "entry_mode: direct-topic",
+        "section_blueprints.json",
+        "outline_state: outline_baseline",
+        "rq_ids",
+        "recommended_next_step"
+      ],
+      "required_any": [
+        ["section evidence", "evidence_needed"],
+        ["immutable", "structural baseline"]
+      ],
+      "forbidden": [
+        "the formal search is complete",
+        "the evidence is closed"
+      ]
+    },
+    {
+      "id": "zh-step3-search-plan",
+      "language": "zh",
+      "prompt": "请直接进入 Step 3，为中英文混合的系统综述生成一份可组合检索计划：基础方案、PRISMA-S、引文扩展和中文来源都要保留，但本轮不执行真实检索。",
+      "expected_step": "step3-search-plan",
+      "required_all": [
+        "selected_step: step3-search-plan",
+        "base_workflow: systematic",
+        "addons",
+        "plan_state: compiled",
+        "search_tasks",
+        "recommended_next_step"
+      ],
+      "required_any": [
+        ["prisma-s", "PRISMA-S"],
+        ["chinese-sources", "中文来源"]
+      ],
+      "forbidden": [
+        "pilot_verified",
+        "检索已经完成"
+      ]
+    },
+    {
+      "id": "en-step3-search-plan",
+      "language": "en",
+      "prompt": "Enter Step 3 directly and compile one mixed-language systematic-review search plan that combines the systematic base workflow with PRISMA-S, citation expansion, and Chinese-source addons. Do not run the real search yet.",
+      "expected_step": "step3-search-plan",
+      "required_all": [
+        "selected_step: step3-search-plan",
+        "base_workflow: systematic",
+        "addons",
+        "plan_state: compiled",
+        "search_tasks",
+        "recommended_next_step"
+      ],
+      "required_any": [
+        ["prisma-s", "PRISMA-S"],
+        ["chinese-sources", "Chinese sources"]
+      ],
+      "forbidden": [
+        "pilot_verified",
+        "the search is complete"
+      ]
+    },
+    {
+      "id": "zh-step4-search",
+      "language": "zh",
+      "prompt": "请直接进入 Step 4，用我给出的检索式执行 core 档检索。若单一公开 API 失败，要记录来源降级并继续可验证来源，不要把 core 档冒充完整发布报告。",
+      "expected_step": "step4-search-execute",
+      "required_all": [
+        "selected_step: step4-search-execute",
+        "entry_mode: direct-query",
+        "execution_profile: core",
+        "workflow_search_results.json",
+        "search_run_manifest.json",
+        "recommended_next_step"
+      ],
+      "required_any": [
+        ["degraded_source_coverage", "来源降级"],
+        ["readiness", "can_continue"]
+      ],
+      "forbidden": [
+        "完整发布报告已完成",
+        "所有来源均已成功"
+      ]
+    },
+    {
+      "id": "en-step4-search",
+      "language": "en",
+      "prompt": "Enter Step 4 directly and execute the supplied query using the core profile. If one public API fails, record degraded source coverage and continue with verifiable sources; do not claim that the full release report is complete.",
+      "expected_step": "step4-search-execute",
+      "required_all": [
+        "selected_step: step4-search-execute",
+        "entry_mode: direct-query",
+        "execution_profile: core",
+        "workflow_search_results.json",
+        "search_run_manifest.json",
+        "recommended_next_step"
+      ],
+      "required_any": [
+        ["degraded_source_coverage", "degraded source coverage"],
+        ["readiness", "can_continue"]
+      ],
+      "forbidden": [
+        "the full release report is complete",
+        "all sources succeeded"
+      ]
+    },
+    {
+      "id": "zh-step6-zotero",
+      "language": "zh",
+      "prompt": "我有 BibTeX 和 PDF 目录。请直接进入 Step 6，只生成 plan-only Zotero 整理计划、附件索引和缺口，不要修改 Zotero；说明真实写入前的确认条件。",
+      "expected_step": "step6-zotero",
+      "required_all": [
+        "selected_step: step6-zotero",
+        "execution_profile: plan-only",
+        "completion_state: plan_ready",
+        "pdf-附件池索引.json",
+        "CP-ZOTERO-WRITE",
+        "recommended_next_step"
+      ],
+      "required_any": [
+        ["plan_fingerprint", "计划指纹"],
+        ["未修改 Zotero", "不修改 Zotero"]
+      ],
+      "forbidden": [
+        "Zotero 已写入完成",
+        "write_complete"
+      ]
+    },
+    {
+      "id": "en-step6-zotero",
+      "language": "en",
+      "prompt": "I have a BibTeX file and a PDF directory. Enter Step 6 directly and create only a plan-only Zotero organization plan, attachment index, and gap report. Do not modify Zotero, and state the confirmation required before real writes.",
+      "expected_step": "step6-zotero",
+      "required_all": [
+        "selected_step: step6-zotero",
+        "execution_profile: plan-only",
+        "completion_state: plan_ready",
+        "pdf-附件池索引.json",
+        "CP-ZOTERO-WRITE",
+        "recommended_next_step"
+      ],
+      "required_any": [
+        ["plan_fingerprint", "plan fingerprint"],
+        ["does not modify Zotero", "Zotero remains unchanged"]
+      ],
+      "forbidden": [
+        "Zotero writes are complete",
+        "write_complete"
+      ]
+    },
+    {
       "id": "zh-step5-download",
       "language": "zh",
       "prompt": "请直接进入 Step 5，根据 DOI 10.1016/j.est.2024.113105 和 10.1109/ACCESS.2024.3399912 生成下载路由与清单，不要回跑 Step 1-4，也不要假装已完成机构登录。",
@@ -97,7 +273,7 @@
         "entry_mode: direct-draft",
         "mode: chapter-only",
         "operation: write",
-        "section_blueprints",
+        "writing_blueprints",
         "citation_risk_summary"
       ],
       "required_any": [
@@ -119,7 +295,7 @@
         "entry_mode: direct-draft",
         "mode: chapter-only",
         "operation: write",
-        "section_blueprints",
+        "writing_blueprints",
         "citation_risk_summary"
       ],
       "required_any": [
@@ -140,6 +316,8 @@
         "selected_step: step8-polishing",
         "entry_mode: direct-draft",
         "revision_scope: local-polish",
+        "output_mode: quick-polish",
+        "rewrite_scope: in-place",
         "revision_ledger",
         "diagnostic_summary"
       ],
@@ -161,6 +339,8 @@
         "selected_step: step8-polishing",
         "entry_mode: direct-draft",
         "revision_scope: local-polish",
+        "output_mode: quick-polish",
+        "rewrite_scope: in-place",
         "revision_ledger",
         "diagnostic_summary"
       ],

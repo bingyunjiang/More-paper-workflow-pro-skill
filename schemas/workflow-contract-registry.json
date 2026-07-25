@@ -1,0 +1,207 @@
+{
+  "schema_version": "morepaper.workflow-contracts.v1",
+  "global": {
+    "entry_modes": [
+      "conversational",
+      "direct-topic",
+      "direct-outline",
+      "direct-query",
+      "direct-bib",
+      "direct-zotero",
+      "direct-draft",
+      "direct-review-comments"
+    ],
+    "route_modes": [
+      "normal_chain",
+      "direct_entry",
+      "plan_only",
+      "repair",
+      "resume",
+      "partial_artifact"
+    ],
+    "readiness": [
+      "blocked",
+      "partial",
+      "complete"
+    ],
+    "run_envelope": "schemas/workflow-run-envelope.schema.json"
+  },
+  "step1": {
+    "canonical_handoff": {
+      "user_stage": "user_profile.stage",
+      "goal_type": "user_profile.target",
+      "topic_statement": "topic.focused_topic",
+      "core_research_question": "topic.primary_rq",
+      "application_context": "topic.application_scenario",
+      "method_route": "topic.method_route",
+      "evaluation_metrics": "topic.evaluation_metrics",
+      "innovation_candidates": "innovation",
+      "search_depth": "search_tier.tier",
+      "evidence_risk": "pre_review.fatal_risks"
+    },
+    "fatal_decision_axes": [
+      "feasibility",
+      "method_readiness"
+    ]
+  },
+  "step2": {
+    "baseline_artifact": "section_blueprints.json",
+    "baseline_states": [
+      "outline_baseline",
+      "search_calibrated",
+      "evidence_validated"
+    ],
+    "step7_derived_artifact": "writing_blueprints.json",
+    "derived_state": "writing_derived"
+  },
+  "step3": {
+    "base_workflow": [
+      "standard",
+      "systematic"
+    ],
+    "addons": [
+      "citation-expansion",
+      "prisma-s",
+      "chinese-sources"
+    ],
+    "plan_states": [
+      "compiled",
+      "pilot_verified",
+      "offline_unverified"
+    ],
+    "search_tier": [
+      "quick",
+      "standard",
+      "deep"
+    ],
+    "plan_mode": [
+      "standard",
+      "deep",
+      "systematic"
+    ]
+  },
+  "step4": {
+    "execution_profiles": [
+      "core",
+      "review",
+      "release-systematic"
+    ],
+    "machine_source_of_truth": "workflow_search_results.json",
+    "run_manifest": "search_run_manifest.json"
+  },
+  "step5": {
+    "stable_artifacts": [
+      "download_manifest.json",
+      "download_attempts.jsonl",
+      "pdf-附件池索引.json"
+    ],
+    "execution_policy": {
+      "concurrency": "serial",
+      "phase_order_locked": true,
+      "source_order_locked": true,
+      "cdp_session_isolation": true,
+      "parallel_downloads_allowed": false
+    }
+  },
+  "step6": {
+    "execution_profiles": [
+      "plan-only",
+      "write",
+      "repair"
+    ],
+    "domain_states": [
+      "plan_ready",
+      "write_partial",
+      "write_complete",
+      "blocked"
+    ]
+  },
+  "step7": {
+    "mode": [
+      "full-document",
+      "chapter-only",
+      "continue-existing",
+      "abstract-only",
+      "review-only",
+      "revision-only"
+    ],
+    "operation": [
+      "write",
+      "citation-audit",
+      "figure",
+      "pre-review"
+    ],
+    "target_genre": [
+      "thesis",
+      "journal",
+      "review",
+      "report",
+      "proposal",
+      "conference",
+      "course-paper"
+    ],
+    "figure_mode": [
+      "auto_insert",
+      "post_write",
+      "skip"
+    ],
+    "figure_backend": [
+      "auto",
+      "quick",
+      "reproduction",
+      "not_applicable"
+    ],
+    "figure_asset_action": [
+      "insert_original",
+      "generate_new",
+      "redraw",
+      "digitize"
+    ],
+    "domain_states": [
+      "draft_ready",
+      "evidence_closed",
+      "ready_for_step8"
+    ]
+  },
+  "step8": {
+    "revision_scope": [
+      "local-polish",
+      "section-revision",
+      "full-manuscript-pass"
+    ],
+    "language": [
+      "zh",
+      "en",
+      "bilingual"
+    ],
+    "target_genre": [
+      "thesis",
+      "journal",
+      "review",
+      "report",
+      "proposal",
+      "conference",
+      "course-paper"
+    ],
+    "output_mode": [
+      "quick-polish",
+      "audited-polish"
+    ],
+    "rewrite_scope": [
+      "in-place",
+      "bounded",
+      "structural"
+    ],
+    "rewrite_level": [
+      "minimal",
+      "standard",
+      "aggressive"
+    ],
+    "domain_states": [
+      "ready_to_polish",
+      "ready_with_warnings",
+      "not_ready_requires_rollback",
+      "ready_for_finalize"
+    ]
+  }
+}

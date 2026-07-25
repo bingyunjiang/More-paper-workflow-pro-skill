@@ -79,6 +79,9 @@
 |------|------|------|
 | 下载的 PDF | .pdf | 保存到 paper-temp/ |
 | 下载记录 | paper-temp/download_log.md | 逐篇追踪状态 |
+| `download_manifest.json` | JSON | 下载机器主状态：逐条路由、结果、readiness、checkpoint 和 run_id |
+| `download_attempts.jsonl` | JSONL | append-only 尝试历史；相同 attempt_id 幂等，新 run_id 保留新一轮事件 |
+| `pdf-附件池索引.json` | JSON | 已有/新下载 PDF、来源、匹配状态和完整路径，供 Step 6/7 继续消费 |
 | 英文登录恢复点 | paper-temp/login_checkpoint.json | 英文 CDP 登录未完成或宿主无法继续交互时生成，只包含待登录 DOI |
 | direct_download_manifest.md/json | .md/.json | 直达下载模式的临时归一化清单 |
 | unresolved_download_items.md | .md | 标题无法唯一解析、缺少 URL 或需要人工确认的条目 |
@@ -101,6 +104,8 @@ Step 5 可从 DOI 列表、BibTeX、检索表、失败清单、出版社 URL、�
 - resume/reconcile 后重新运行 `python3 scripts/validate_step5_output.py <output-dir>`；重复 identifier、损坏 checkpoint、checkpoint/manifest 状态冲突不得静默忽略。
 
 ## Step 5 execution discipline
+
+**已锁定的下载执行合同：** 下载来源、来源优先级和阶段顺序保持本版本既有定义，不由全局优化重新排序。英文 DOI、English CDP、CNKI、万方及其恢复流程继续串行运行；`--parallel-phase1` 仍为 deprecated/ignored。不得同时运行多个下载队列，也不得让不同队列并发复用 CDP。若需要隔离浏览器状态，只能在串行阶段边界切换独立端口/profile，并在前一阶段完全停止或 checkpoint 挂起后继续。
 
 - `交付定义`：本步交付的是 PDF、下载日志、manifest、失败分流和恢复点；不是 Zotero 入库、引用审计或全文证据判定。
 - `输入依赖`：真实下载至少需要 DOI、article_url、source_id、publisher URL 或已确认的 manifest 条目之一；标题只能先解析，不得直接下载。
@@ -280,7 +285,7 @@ Phase 3:
 - **CDP 启动和下载如果跨命令，必须在同一条 exec_command session 内完成**
 - 同一时间只允许一个 Step 5 真实下载进程使用 CDP 浏览器；另一个进程必须等待下载锁释放
 - `--parallel-phase1` 仅为旧命令兼容保留，运行时会提示已停用，不再并发启动中文下载
-- checkpoint 块的 `entry_mode` 可为 `normal_chain` 或 `direct_entry`；`status` 必须在用户明确“已登录，确认 CP-DOWNLOAD-LOGIN”或等价明确语义后才可视为 confirmed。
+- checkpoint 块的 `route_mode` 可为 `normal_chain` 或 `direct_entry`；`status` 必须在用户明确“已登录，确认 CP-DOWNLOAD-LOGIN”或等价明确语义后才可视为 confirmed。
 
 **命令示例：**
 

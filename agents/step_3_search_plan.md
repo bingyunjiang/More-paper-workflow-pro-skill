@@ -13,7 +13,7 @@
 - [ ] `references/search-query-frameworks.md` — 检索查询框架参考（概念块布尔模型 + PICO + 反模式清单）
 - [ ] `references/search-source-capability-evidence.md` — 各来源官方语法证据、endpoint 边界和降级规则
 - [ ] `config/search_source_capabilities.json` — 来源能力机器真相；未经查证的能力不得编译为 exact
-- [ ] `manifest.step3.yaml` — 🆕 Step 3 workflow 入口定义
+- [ ] `manifest.step3.yaml` — Step 3 `base_workflow + addons` 可组合入口定义
 - [ ] `references/workflows/search-plan-standard.md` — 🆕 常规检索方案
 - [ ] `references/workflows/search-plan-citation-expansion.md` — 🆕 引文扩展方案
 - [ ] `references/workflows/search-plan-prisma-s.md` — 🆕 PRISMA-S 透明度方案
@@ -60,7 +60,7 @@
 如果用户已有大纲、章节列表、开题报告、论文草稿或导师给定目录，可直接从 Step 3 开始，不要求回跑 Step 1/2。Agent 应在当前 Step 内完成：
 
 1. 从用户材料中抽取最小可用的章节结构、关键词和证据需求。
-2. 输出 soft `CHECKPOINT 2 — CP-OUTLINE`，设置 `entry_mode: direct_entry`，`status: satisfied_by_user_artifact` 或 `satisfied_by_agent_reconstruction`，记录“当前检索将基于哪份大纲/目录”。
+2. 输出 soft `CHECKPOINT 2 — CP-OUTLINE`，设置 `route_mode: direct_entry`，`status: satisfied_by_user_artifact` 或 `satisfied_by_agent_reconstruction`，记录“当前检索将基于哪份大纲/目录”。
 3. 大纲可用时直接生成 `search_tasks`；只有章节结构、主题对象或关键词缺失到无法安全生成检索方案时，才设为 `status: blocked` 并请用户补充。
 
 **Direct-entry input contract：**
@@ -148,6 +148,9 @@ Step 2 产出（大纲关键词.md）
 
 ```yaml
 plan_mode: standard|deep|systematic
+plan_state: compiled|pilot_verified|offline_unverified
+base_workflow: standard|systematic
+addons: [citation-expansion, prisma-s, chinese-sources]
 execution_context: step3_planning|step4_direct_entry
 retrieval_language: zh|en|mixed
 source_scope: [openalex, crossref, semantic_scholar_bulk]
@@ -216,6 +219,9 @@ retrieval_index_manifest:
 - `query_blocks` 优先使用关键词清单中的核心词、同义词/缩写、方法词、场景词、指标词
 - `exclusion_terms` 优先来自关键词清单的排除词
 - `review_protocol` 在 `plan_mode=systematic` 时强制填写；普通与 deep 模式可省略
+- `search_tier` 只决定 limit、策略数量和补充源；`plan_mode` 决定普通、深度或系统综述方法合同。
+- `base_workflow` 只能有一个；`addons` 可组合，最后仍编译为一份 `search_tasks`。
+- 计划生成后先标记 `plan_state=compiled`；试检索通过后提升为 `pilot_verified`；离线或来源不可用时使用 `offline_unverified`，不阻塞计划交付。
 - 每个来源必须保存 `compile_status=exact|degraded|manual_required|invalid`；`degraded` 必须带 `post_filter_required=true` 和丢失语义，`manual_required` 不得声称官方 API 精确编译
 - 关键词分层只用于检索表达层，不等于 Zotero 分类层；它服务于检索式构造、召回控制和路由，不负责文献归档。
 - `query_blocks` 默认保留核心词、同义词/缩写、方法词、场景词、指标词和排除词；上位词/下位词只在检索过窄、过散或需要扩召回时补入。
@@ -464,7 +470,7 @@ pilot 必须为每个 `search_task_id` 记录 `hit_count / title_abstract_precis
 ```md
 ## CHECKPOINT 3 — CP-SEARCH
 
-entry_mode: normal_chain|direct_entry|resume|repair|partial_artifact
+route_mode: normal_chain|direct_entry|resume|repair|partial_artifact
 status: confirmed_by_workflow|satisfied_by_user_artifact|satisfied_by_agent_reconstruction
 blocks_next: Step 4 multi-source search execution
 must_confirm: true

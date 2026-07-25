@@ -10,6 +10,19 @@
 
 ## v1.0.22-20260724 (2026-07-24)
 
+### 八步全局合同与跨步骤加固
+
+- 新增 `workflow-contract-registry.json`、`workflow-run-envelope.schema.json` 和原子写入 CLI，统一 Step 1-8 的轴、执行档位、领域状态与全局 readiness。
+- Step 1 交接统一为嵌套规范字段，增加 feasibility/method readiness/fatal risks 对总分的致命优先级。
+- Step 2 `section_blueprints.json` 固定为不可变结构基线；Step 7 改为派生带输入哈希和 RQ 血缘的 `writing_blueprints.json/md`。
+- Step 3 改为单一 `base_workflow` 叠加多个 addons，并区分资源投入 `search_tier`、方法合同 `plan_mode` 和 pilot 状态。
+- Step 4 增加 `core / review / release-systematic` 交付档位、来源能力仲裁和 `search_run_manifest.json`；中文检索认证规范化为 `CP-SOURCE-AUTH`，保留旧 checkpoint 兼容别名。
+- Step 5 稳定工件写入标准输出合同；按用户确认保留既定下载来源、来源顺序和阶段顺序，英文/中文/CDP 全程串行，不启用并行队列。
+- Step 6 明确 `plan-only / write / repair` 档位及统一 plan fingerprint、journal、回读验证编排。
+- Step 7 manifest 补齐 `figure_mode`、`figure_asset_action` 和 `course-paper`，并将 existing-draft 规范化为入口状态而非体裁。
+- Step 8 manifest 补齐 output/rewrite 轴和安全 references；AI trace 工件改为原子写入，并新增 blocked 状态非零退出的 `--strict` 模式。
+- 包校验器和回归测试扩展为跨 manifest、注册表、文档、蓝图血缘、Step 5 串行策略和 Step 8 严格状态校验。
+
 ### `more series` 品牌与 Skill 更名
 
 - 主名称由 `more-paper-workflow-pro-skill` 缩短为 `more-paper-workflow`，并在 README 中加入全小写系列品牌 `more series`。

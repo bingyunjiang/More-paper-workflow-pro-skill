@@ -16,13 +16,13 @@
 
 | Step | 标准输入 | 标准产物 | 机器接口 |
 | --- | --- | --- | --- |
-| Step 1 主题 | 用户研究意图、约束、材料 | `研究主题.md` | 主题、范围、限制条件 |
-| Step 2 大纲 | 主题或已有目录 | `大纲关键词.md`、`章节证据需求表` | 章节、关键词、证据需求 |
-| Step 3 检索方案 | 大纲、关键词、证据需求 | `检索方案.md`、`retrieval_index_manifest.json` | `search_tasks`、轻量检索索引复用清单 |
-| Step 4 检索评分 | `search_tasks` 或等价查询 | 核心交付：`workflow_search_results.json`、`检索文献表.md/.xlsx`、`检索报告.md/.pdf`、`文献库.bib`、`retrieval_index_manifest.json`；条件交付：`saturation_snapshot.json`、`中文论文元数据.json` | `workflow-contracts.v1` search results JSON |
+| Step 1 主题 | 用户研究意图、约束、材料 | `研究主题.md` | 规范嵌套主题字段、范围、限制条件 |
+| Step 2 大纲 | 主题或已有目录 | `大纲关键词.md`、`章节证据需求表`、不可变 `section_blueprints.json` | 章节、关键词、RQ 与证据需求 |
+| Step 3 检索方案 | 大纲、关键词、证据需求 | `检索方案.md/json`、`retrieval_index_manifest.json` | `base_workflow + addons` 编译后的单一 `search_tasks` |
+| Step 4 检索评分 | `search_tasks` 或等价查询 | 按 `core / review / release-systematic` 交付；核心交付为 `workflow_search_results.json` 和 `search_run_manifest.json`，条件交付为 review/release 展示与发布工件 | `workflow-contracts.v1` search results JSON + run envelope |
 | Step 5 下载 | DOI、中文 article URL、publisher URL、workflow search results | PDF 池、下载日志、下载 manifest | `DownloadManifestItem` / `DownloadResult` |
 | Step 6 Zotero | 文献库、PDF 池、中文元数据、Zotero 架构 | `zotero-架构.md/json`、`文献-Zotero架构对照.md/json`、`pdf-附件池索引.json`、`capability_index.json/md` | plan-only Zotero plan JSON、资产能力索引 |
-| Step 7 写作 | Zotero/证据矩阵、PDF 附件池、写作蓝图 | `论文初稿.md`、指定章节、引用审计报告、`retrieval_candidates.json` | `ReportInputs`、证据矩阵、章节级候选证据层、图表意图链 |
+| Step 7 写作 | Zotero/证据矩阵、PDF 附件池、Step 2 结构基线 | `writing_blueprints.json/md`、`论文初稿.md`、指定章节、引用审计报告、`retrieval_candidates.json` | 带 source lineage 的写作派生蓝图、证据矩阵、章节级候选证据层、图表意图链 |
 | Step 8 润色与保守修订 | 初稿、术语表、审计结果 | `论文润色稿.md/.docx`、`revision_ledger.json/md` | 风险标记、术语终验结果、问题闭环、轻量含义审计 |
 
 Step 7/8 的边界：Step 7 是写作生产层，负责主体写作与主论证展开，可以在生成过程中做基础可读性整形，并在 `argument_plan` 之后插入章节级候选证据层（弱 RAG，仅定位候选、按章节确认、结果回写 `argument_plan`）；图表链只记录图表意图、证据依据、候选规格、人工选择和风险，不预设固定图表风格。Step 8 是成稿级精修与保守修订层，不接管主体写作，不补外部证据，不替代完整引用审计，但承担受约束补写、局部修订、轻量含义审计与修订后验证。Step 8 必要时可读取候选层做提醒，但不得把候选层当作证据。
@@ -35,6 +35,7 @@ Step 7/8 的边界：Step 7 是写作生产层，负责主体写作与主论证�
 | 下载 | `scripts/unified_download_router.py` | 统一 DOI、中文 article URL、publisher URL、workflow JSON 到 provider/strategy |
 | Zotero plan | `scripts/build_zotero_plan.py` | 只生成计划和索引，不写 Zotero |
 | 检索报告 | `scripts/generate_search_report.py`、`scripts/generate_retrieval_report.py` | 消费检索表或标准 workflow JSON |
+| Workflow run state | `scripts/workflow_run_envelope.py` | 原子生成/校验 Step 1-8 统一运行状态；可输出 `search_run_manifest.json` 等 Step 特定文件名 |
 
 下载 provider 脚本如 `generic_publisher_downloader.py`、`sd_download.py`、`download_via_scihub.py`、`download_via_ieee.py` 保留为 strategy/provider 能力，不应重新成为工作流主入口。
 
@@ -52,9 +53,12 @@ Step 7/8 的边界：Step 7 是写作生产层，负责主体写作与主论证�
 
 - 任意 Step 都可以直接进入。checkpoint 记录当前输入依据和风险，不作为线性流程锁。
 - `.skill-state/artifact_passport.json` 是材料索引和路由说明，不是上游产物替代品，也不是新的流程锁。
+- `schemas/workflow-contract-registry.json` 是八步轴、档位、稳定工件和领域状态的统一注册表；manifest 和 Step 文档不得各自维护冲突枚举。
+- 每个 Step 的机器交接使用 `morepaper.workflow-run.v1` envelope。`domain_state` 保留领域语义，跨步只通过 `readiness / can_continue / blocking / warnings / recommended_next_step` 判断。
 - 全局 `route_mode` 只描述当前进入方式；Step 7 `mode`、Step 8 `revision_scope / target_genre` 等 Step 内部轴保持独立。
 - Step 4 的核心交付物必须保持兼容；`workflow_search_results.json` 是机器主输出，Markdown/Excel/PDF/BibTeX 是审阅、报告和交接层。
 - CNKI/Wanfang 保留 `--language zh`、长 CDP 会话和串行可靠性优先的运行策略。
+- Step 5 下载来源、优先级和阶段顺序保持既有合同；所有 English/Chinese/CDP 阶段串行，不并发复用浏览器会话。
 - `build_zotero_plan.py` 必须保持 plan-only，不调用 Zotero MCP，不修改外部文库。
 - 所有 Zotero 写入动作必须经过 `CP-ZOTERO-WRITE`，只读、规划、dry-run 不应被该 checkpoint 阻塞。
 - `.skill-state/` 属于项目运行态；不要把运行日志或 checkpoint 写入 `references/templates/`。

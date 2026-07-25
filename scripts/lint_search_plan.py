@@ -117,11 +117,19 @@ def lint_and_compile(plan: dict, pilot_results: object | None = None) -> dict:
     all_errors = 0
     for task in tasks:
         task_id = str(task.get("id") or "")
-        entry_mode = str(task.get("entry_mode") or plan.get("entry_mode") or "normal_chain")
+        # `entry_mode` used to carry lifecycle routing values in early plans.
+        # Prefer the global `route_mode` axis while accepting that legacy alias.
+        route_mode = str(
+            task.get("route_mode")
+            or plan.get("route_mode")
+            or task.get("entry_mode")
+            or plan.get("entry_mode")
+            or "normal_chain"
+        )
         execution_context = str(task.get("execution_context") or plan.get("execution_context") or "step3_planning")
         basis_origin = str(task.get("basis_origin") or plan.get("basis_origin") or (
             "step4_reconstructed" if execution_context == "step4_direct_entry"
-            else "step3_reconstructed" if entry_mode in {"direct_entry", "partial_artifact", "repair"}
+            else "step3_reconstructed" if route_mode in {"direct_entry", "partial_artifact", "repair"}
             else "step2_handoff"
         ))
         blocks = task.get("query_blocks", []) if isinstance(task.get("query_blocks"), list) else []
@@ -194,6 +202,7 @@ def lint_and_compile(plan: dict, pilot_results: object | None = None) -> dict:
         outputs.append({
             "search_task_id": task_id,
             "execution_context": execution_context,
+            "route_mode": route_mode,
             "basis_origin": basis_origin,
             "compiled_queries": compiled,
             "source_compilation": source_compilation,

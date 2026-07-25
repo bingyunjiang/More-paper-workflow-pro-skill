@@ -19,6 +19,7 @@ axes:
       - conversational
       - direct-topic
       - direct-outline
+      - direct-query
       - direct-bib
       - direct-zotero
       - direct-draft
@@ -35,6 +36,7 @@ always_load:
   - static/core/entry-routing.md
   - static/core/state-contract.md
   - static/core/output-contract.md
+  - static/core/workflow-run-envelope.md
 
 step_routes:
   step1-topic: agents/step_1_entry.md

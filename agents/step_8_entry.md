@@ -16,6 +16,12 @@
 - `section-revision`：章节级修订
 - `full-manuscript-pass`：全稿一轮保守精修
 
+## output_mode / language / target_genre
+
+- `output_mode=quick-polish|audited-polish`：局部低风险任务默认 quick；章节/全文、投稿前或触及 claim/结构时使用 audited。
+- `language=zh|en|bilingual`：只决定语言诊断和交付语言，不改变证据边界。
+- `target_genre=thesis|journal|review|report|proposal|conference|course-paper`：继承 Step 7 或由当前文稿/用户目标确认；不由 prestige 推断。
+
 ## rewrite_scope / rewrite_level
 
 - `rewrite_scope` 控制能不能动结构：`in-place / bounded / structural`，默认 `bounded`。
@@ -54,12 +60,13 @@ Step 8 若存在 `$CWD/.skill-state/ai_trace_diagnostics.json`，应把它视为
 
 1. `manifest.step8.yaml`
 2. `static/core/output-contract.md`
-3. `references/polish-modes.md`
-4. `references/step8-rewrite-scope.md`
-5. `references/protected-spans.md`
-6. `references/academic-ai-trace-index.md`
-7. `references/ai-trace-taxonomy.md`
-8. `agents/step_8_polishing.md`
+3. `static/core/workflow-run-envelope.md`
+4. `references/polish-modes.md`
+5. `references/step8-rewrite-scope.md`
+6. `references/protected-spans.md`
+7. `references/academic-ai-trace-index.md`
+8. `references/ai-trace-taxonomy.md`
+9. `agents/step_8_polishing.md`
 
 ## 输出要求
 

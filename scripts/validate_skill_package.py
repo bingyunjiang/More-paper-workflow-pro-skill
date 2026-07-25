@@ -30,6 +30,11 @@ PUBLIC_STEP7_MODES = {
     "revision-only",
 }
 STEP7_OPERATIONS = {"write", "citation-audit", "figure", "pre-review"}
+STEP7_TARGET_GENRES = {"thesis", "journal", "review", "report", "proposal", "conference", "course-paper"}
+STEP7_FIGURE_MODES = {"auto_insert", "post_write", "skip"}
+STEP8_OUTPUT_MODES = {"quick-polish", "audited-polish"}
+STEP8_REWRITE_SCOPES = {"in-place", "bounded", "structural"}
+STEP8_REWRITE_LEVELS = {"minimal", "standard", "aggressive"}
 LEGACY_NAME_ALLOWLIST = {
     "SKILL.md",
     "README.md",
@@ -46,7 +51,12 @@ REQUIRED_ROOT_PATHS = {
     "skills/more-paper-workflow/SKILL.md",
     "SKILL.md",
     "manifest.yaml",
+    "manifest.step3.yaml",
     "manifest.step7.yaml",
+    "manifest.step8.yaml",
+    "schemas/workflow-contract-registry.json",
+    "schemas/workflow-run-envelope.schema.json",
+    "static/core/workflow-run-envelope.md",
 }
 
 
@@ -157,10 +167,74 @@ def validate_repository_structure(root: Path, failures: list[dict[str, str]]) ->
         )
     validate_route_targets(root, step_routes, failures, main_manifest_path)
 
+    registry_path = root / "schemas" / "workflow-contract-registry.json"
+    registry = read_json(registry_path, failures) if registry_path.is_file() else {}
+    if registry.get("schema_version") != "morepaper.workflow-contracts.v1":
+        add_failure(
+            failures,
+            "workflow_registry_schema_mismatch",
+            "schemas/workflow-contract-registry.json",
+        )
+    global_contract = registry.get("global") if isinstance(registry.get("global"), dict) else {}
+    if set(yaml_axis_allowed(main_text, "entry_mode")) != set(global_contract.get("entry_modes", [])):
+        add_failure(
+            failures,
+            "manifest_entry_mode_registry_mismatch",
+            "manifest.yaml",
+        )
+    envelope_schema_path = root / "schemas" / "workflow-run-envelope.schema.json"
+    envelope_schema = read_json(envelope_schema_path, failures) if envelope_schema_path.is_file() else {}
+    envelope_properties = envelope_schema.get("properties") if isinstance(envelope_schema.get("properties"), dict) else {}
+    schema_version_property = envelope_properties.get("schema_version") if isinstance(envelope_properties.get("schema_version"), dict) else {}
+    if schema_version_property.get("const") != "morepaper.workflow-run.v1":
+        add_failure(
+            failures,
+            "workflow_envelope_schema_mismatch",
+            "schemas/workflow-run-envelope.schema.json",
+        )
+    for property_name, registry_name in (
+        ("entry_mode", "entry_modes"),
+        ("route_mode", "route_modes"),
+        ("readiness", "readiness"),
+    ):
+        property_contract = envelope_properties.get(property_name) if isinstance(envelope_properties.get(property_name), dict) else {}
+        if set(property_contract.get("enum", [])) != set(global_contract.get(registry_name, [])):
+            add_failure(
+                failures,
+                "workflow_envelope_registry_mismatch",
+                "schemas/workflow-run-envelope.schema.json",
+                field=property_name,
+            )
+
+    step3_path = root / "manifest.step3.yaml"
+    step3_text = step3_path.read_text(encoding="utf-8")
+    step3_contract = registry.get("step3") if isinstance(registry.get("step3"), dict) else {}
+    base_workflows = set(yaml_axis_allowed(step3_text, "base_workflow"))
+    addons = set(yaml_axis_allowed(step3_text, "addons"))
+    base_routes = yaml_mapping(step3_text, "base_workflow_routes")
+    addon_routes = yaml_mapping(step3_text, "addon_routes")
+    if base_workflows != set(step3_contract.get("base_workflow", [])) or base_workflows != set(base_routes):
+        add_failure(failures, "step3_base_workflow_mismatch", "manifest.step3.yaml")
+    if addons != set(step3_contract.get("addons", [])) or addons != set(addon_routes):
+        add_failure(failures, "step3_addon_mismatch", "manifest.step3.yaml")
+    validate_route_targets(root, base_routes, failures, step3_path)
+    validate_route_targets(root, addon_routes, failures, step3_path)
+    step3_docs = (
+        (root / "agents" / "step_3_entry.md").read_text(encoding="utf-8")
+        + (root / "agents" / "step_3_search_plan.md").read_text(encoding="utf-8")
+    )
+    for value in sorted(base_workflows | addons):
+        if value not in step3_docs:
+            add_failure(failures, "step3_axis_undocumented", "agents/step_3_entry.md", value=value)
+
     step7_path = root / "manifest.step7.yaml"
     step7_text = step7_path.read_text(encoding="utf-8")
     modes = set(yaml_axis_allowed(step7_text, "mode"))
     operations = set(yaml_axis_allowed(step7_text, "operation"))
+    target_genres = set(yaml_axis_allowed(step7_text, "target_genre"))
+    figure_modes = set(yaml_axis_allowed(step7_text, "figure_mode"))
+    figure_backends = set(yaml_axis_allowed(step7_text, "figure_backend"))
+    figure_asset_actions = set(yaml_axis_allowed(step7_text, "figure_asset_action"))
     mode_routes = yaml_mapping(step7_text, "mode_routes")
     operation_routes = yaml_mapping(step7_text, "operation_routes")
     if modes != PUBLIC_STEP7_MODES or modes != set(mode_routes):
@@ -179,8 +253,125 @@ def validate_repository_structure(root: Path, failures: list[dict[str, str]]) ->
             allowed=",".join(sorted(operations)),
             routes=",".join(sorted(operation_routes)),
         )
+    step7_contract = registry.get("step7") if isinstance(registry.get("step7"), dict) else {}
+    for axis, values in {
+        "mode": modes,
+        "operation": operations,
+        "target_genre": target_genres,
+        "figure_mode": figure_modes,
+        "figure_backend": figure_backends,
+        "figure_asset_action": figure_asset_actions,
+    }.items():
+        if values != set(step7_contract.get(axis, [])):
+            add_failure(
+                failures,
+                "step7_registry_axis_mismatch",
+                "manifest.step7.yaml",
+                axis=axis,
+            )
+    if target_genres != STEP7_TARGET_GENRES:
+        add_failure(failures, "step7_target_genre_mismatch", "manifest.step7.yaml")
+    if figure_modes != STEP7_FIGURE_MODES:
+        add_failure(failures, "step7_figure_mode_mismatch", "manifest.step7.yaml")
     validate_route_targets(root, mode_routes, failures, step7_path)
     validate_route_targets(root, operation_routes, failures, step7_path)
+    step7_docs = (
+        (root / "agents" / "step_7_entry.md").read_text(encoding="utf-8")
+        + (root / "agents" / "step_7_writing.md").read_text(encoding="utf-8")
+        + (root / "references" / "writing-modes.md").read_text(encoding="utf-8")
+        + (root / "references" / "genre-style-axis.md").read_text(encoding="utf-8")
+    )
+    for value in sorted(modes | operations | target_genres | figure_modes | figure_backends | figure_asset_actions):
+        if value not in step7_docs:
+            add_failure(failures, "step7_axis_undocumented", "agents/step_7_entry.md", value=value)
+
+    step8_path = root / "manifest.step8.yaml"
+    step8_text = step8_path.read_text(encoding="utf-8")
+    step8_contract = registry.get("step8") if isinstance(registry.get("step8"), dict) else {}
+    for axis in ("revision_scope", "language", "target_genre", "output_mode", "rewrite_scope", "rewrite_level"):
+        values = set(yaml_axis_allowed(step8_text, axis))
+        if values != set(step8_contract.get(axis, [])):
+            add_failure(
+                failures,
+                "step8_registry_axis_mismatch",
+                "manifest.step8.yaml",
+                axis=axis,
+            )
+    if set(yaml_axis_allowed(step8_text, "output_mode")) != STEP8_OUTPUT_MODES:
+        add_failure(failures, "step8_output_mode_mismatch", "manifest.step8.yaml")
+    if set(yaml_axis_allowed(step8_text, "rewrite_scope")) != STEP8_REWRITE_SCOPES:
+        add_failure(failures, "step8_rewrite_scope_mismatch", "manifest.step8.yaml")
+    if set(yaml_axis_allowed(step8_text, "rewrite_level")) != STEP8_REWRITE_LEVELS:
+        add_failure(failures, "step8_rewrite_level_mismatch", "manifest.step8.yaml")
+    for required_reference in (
+        "references/step8-rewrite-scope.md",
+        "references/protected-spans.md",
+        "references/academic-ai-trace-index.md",
+        "static/core/workflow-run-envelope.md",
+    ):
+        if f"- {required_reference}" not in step8_text:
+            add_failure(
+                failures,
+                "step8_required_reference_missing",
+                "manifest.step8.yaml",
+                target=required_reference,
+            )
+    step8_docs = (
+        (root / "agents" / "step_8_entry.md").read_text(encoding="utf-8")
+        + (root / "agents" / "step_8_polishing.md").read_text(encoding="utf-8")
+        + (root / "references" / "polish-modes.md").read_text(encoding="utf-8")
+        + (root / "references" / "step8-rewrite-scope.md").read_text(encoding="utf-8")
+    )
+    step8_values: set[str] = set()
+    for axis in ("revision_scope", "language", "target_genre", "output_mode", "rewrite_scope", "rewrite_level"):
+        step8_values.update(yaml_axis_allowed(step8_text, axis))
+    for value in sorted(step8_values):
+        if value not in step8_docs:
+            add_failure(failures, "step8_axis_undocumented", "agents/step_8_entry.md", value=value)
+
+    step4_text = (root / "agents" / "step_4_search_score.md").read_text(encoding="utf-8")
+    step4_contract = registry.get("step4") if isinstance(registry.get("step4"), dict) else {}
+    for profile in step4_contract.get("execution_profiles", []):
+        if f"`{profile}`" not in step4_text:
+            add_failure(failures, "step4_profile_undocumented", "agents/step_4_search_score.md", profile=profile)
+
+    step6_text = (root / "agents" / "step_6_zotero.md").read_text(encoding="utf-8")
+    step6_contract = registry.get("step6") if isinstance(registry.get("step6"), dict) else {}
+    for profile in step6_contract.get("execution_profiles", []):
+        if f"`{profile}`" not in step6_text:
+            add_failure(failures, "step6_profile_undocumented", "agents/step_6_zotero.md", profile=profile)
+
+    step1_handoff = (root / "references" / "step1-handoff-schema.md").read_text(encoding="utf-8")
+    for path in (registry.get("step1", {}).get("canonical_handoff", {}) if isinstance(registry.get("step1"), dict) else {}).values():
+        if f"`{path}`" not in step1_handoff:
+            add_failure(
+                failures,
+                "step1_handoff_registry_mismatch",
+                "references/step1-handoff-schema.md",
+                field=str(path),
+            )
+
+    step5_text = (root / "agents" / "step_5_download.md").read_text(encoding="utf-8")
+    step5_contract = registry.get("step5") if isinstance(registry.get("step5"), dict) else {}
+    for artifact in step5_contract.get("stable_artifacts", []):
+        if f"`{artifact}`" not in step5_text:
+            add_failure(failures, "step5_stable_artifact_missing", "agents/step_5_download.md", artifact=artifact)
+    execution_policy = step5_contract.get("execution_policy", {})
+    if (
+        not isinstance(execution_policy, dict)
+        or execution_policy.get("concurrency") != "serial"
+        or execution_policy.get("parallel_downloads_allowed") is not False
+        or "不得同时运行多个下载队列" not in step5_text
+    ):
+        add_failure(failures, "step5_serial_policy_mismatch", "agents/step_5_download.md")
+
+    generator_text = (root / "scripts" / "generate_section_blueprints.py").read_text(encoding="utf-8")
+    if "writing_blueprints.json" not in generator_text or "source_lineage" not in generator_text:
+        add_failure(failures, "step2_step7_blueprint_lineage_missing", "scripts/generate_section_blueprints.py")
+
+    step8_runner = (root / "scripts" / "run_step8_ai_trace.py").read_text(encoding="utf-8")
+    if "--strict" not in step8_runner or "_atomic_write_text" not in step8_runner:
+        add_failure(failures, "step8_strict_atomic_contract_missing", "scripts/run_step8_ai_trace.py")
 
     skill_text = (root / "SKILL.md").read_text(encoding="utf-8")
     skill_name_match = re.search(r"^name:\s*(\S+)", skill_text, re.MULTILINE)

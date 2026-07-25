@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "morepaper.workflow-run-envelope.v1",
+  "title": "More Paper Workflow Run Envelope",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "step",
+    "entry_mode",
+    "route_mode",
+    "execution_profile",
+    "input_hashes",
+    "outputs",
+    "domain_state",
+    "readiness",
+    "can_continue",
+    "blocking",
+    "warnings",
+    "checkpoint_state",
+    "recommended_next_step"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "morepaper.workflow-run.v1"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "step": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8
+    },
+    "entry_mode": {
+      "enum": [
+        "conversational",
+        "direct-topic",
+        "direct-outline",
+        "direct-query",
+        "direct-bib",
+        "direct-zotero",
+        "direct-draft",
+        "direct-review-comments"
+      ]
+    },
+    "route_mode": {
+      "enum": [
+        "normal_chain",
+        "direct_entry",
+        "plan_only",
+        "repair",
+        "resume",
+        "partial_artifact"
+      ]
+    },
+    "execution_profile": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input_hashes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "domain_state": {
+      "type": "string",
+      "minLength": 1
+    },
+    "readiness": {
+      "enum": [
+        "blocked",
+        "partial",
+        "complete"
+      ]
+    },
+    "can_continue": {
+      "type": "boolean"
+    },
+    "blocking": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "checkpoint_state": {
+      "type": "object"
+    },
+    "recommended_next_step": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

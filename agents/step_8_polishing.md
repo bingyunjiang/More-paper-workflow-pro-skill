@@ -119,6 +119,8 @@ Step 8 可以补局部内容，但仅限可由现有正文、Step 7 三工件、
 |------|----------|----------|--------|
 | `quick-polish` | 单段、局部章节、低风险语言润色，且不触及 claim、引用落点或章节功能 | 润色稿 + 3-5 条修改说明；必要时附“引用安全未审计”提醒 | 不生成新证据、不声称完成全文审计、不重排章节主论证 |
 | `audited-polish` | 全文章节、投稿/送审前终稿、触及 claim 强度/引用/结构的问题 | `diagnostic_summary.md`、`revision_ledger.json/md`、修改对照表、术语一致性报告、润色质量报告 | 不替代 Step 7 引用审计，不新增外部证据 |
+
+完成门按输出模式判定：`quick-polish` 只要求实际润色文本、3-5 条修改说明、protected spans 边界和必要的风险提醒；不得因为缺少 audited 工件判定失败。`audited-polish` 才要求完整 ledger、对照表、术语报告、质量报告和请求范围内的导出文件。
 | `review-style-polish` | 用户要求审稿式修订、投稿前 final pass、导师意见收口，或 Step 7 预审后进入修订 | 严重性分级摘要、top fixes、`revision_ledger.json/md`、润色质量报告 | 不做编辑决定预测、不新增外部证据、不把预审意见伪装成真实审稿意见 |
 
 若 `quick-polish` 过程中发现 `evidence_gap / structure_drift / citation_misalignment / contribution_overclaim`，必须升级为 `audited-polish` 或回退 Step 7，不能继续把结构或证据问题包装成句子润色。
@@ -164,7 +166,7 @@ Step 8 的默认输出顺序固定为：
 若同时存在 Step 7 的统一工件：
 
 1. `style_profile.json`
-2. `section_blueprints.json`
+2. `writing_blueprints.json`（旧项目兼容读取 `section_blueprints.json`）
 3. `writing_rationale_matrix.json`
 
 则 Step 8 在判断 `target_genre`、章节功能、风险来源时应默认以这些 JSON 为**约束源**，不是仅作参考；对应 `.md` 只作为人工解释和展示层。  
@@ -172,7 +174,7 @@ JSON 缺失时，可降级读取 `.md`，但需在质量报告中标记“基于
 
 **三工件默认约束关系：**
 - `style_profile.json`：约束句长、语域、引用密度、标题层级
-- `section_blueprints.json`：约束章节功能、信息顺序、图表位置
+- `writing_blueprints.json`：约束章节功能、信息顺序、图表位置，并通过 `source_lineage` 回查 Step 2 不可变结构基线
 - `writing_rationale_matrix.json`：约束保留的论证顺序、不可删改的证据链、保守改写边界
 
 ### PDF 提取结果的使用限制
@@ -218,6 +220,8 @@ Step 8 不允许：
 - `润色质量报告.md` 必须包含 `AI 味检查结果` 区块：已处理的高频机械表达、保留未改的风格性项、建议作者人工复核的章节。
 - 若需要机器层中间结果，优先使用 `scripts/deterministic_writing_diagnostics.py` 生成结构化 issue，再并入 `revision_ledger.json`。
 - 若需要一个可直接运行的 Step 8 局部入口，优先使用 `scripts/run_step8_ai_trace.py`，默认文件名为：`论文初稿.md` 输入，`.skill-state/ai_trace_diagnostics.json`、`diagnostic_summary.md`、`revision_ledger.json`、`revision_ledger.md` 输出。
+- 自动化/CI 可增加 `--strict`；全局 readiness 为 blocked 时返回非零。默认诊断模式仍允许写出阻塞报告并返回 0，便于 direct-entry 读取结果。
+- Step 8 JSON/Markdown 状态工件必须使用同目录临时文件、flush/fsync 和原子替换；中断时不得暴露半截 ledger 或 diagnostics。
 
 ---
 

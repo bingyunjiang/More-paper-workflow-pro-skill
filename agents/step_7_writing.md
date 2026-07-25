@@ -24,7 +24,7 @@
 - [ ] `references/literature-review-matrix-schema.md` — 综述矩阵 schema
 - [ ] `references/journal-style-learning-guide.md` — 目标体裁/文档风格学习方法论（期刊、学位论文、会议论文、既有草稿均可适配）
 - [ ] `references/gbt7714-2015-citation-format.md` — 引用格式规范
-- [ ] `references/genre-style-axis.md` — 🆕 target_genre 轴：thesis / journal / review / report / proposal / conference
+- [ ] `references/genre-style-axis.md` — target_genre 轴：thesis / journal / review / report / proposal / conference / course-paper
 - [ ] `references/section-function-matrix.md` — 🆕 章节-功能-证据需求矩阵
 - [ ] `references/section-blueprint-workflow.md` — 🆕 章节蓝图工作流
 - [ ] `references/section-blueprint-template.md` — 章节蓝图字段规范，含 `claim_strength / required_evidence / evidence_anchor`
@@ -112,7 +112,7 @@
 | 综述矩阵 | Step 7.1 | .csv/.md | 写作前生成 |
 | 目标体裁/文档风格画像 | Step 7.2 | `.md` / `.json` | 🆕 |
 | 章节蓝图 | Step 7.2 | `.md` / `.json` | 🆕 |
-| `section_blueprints` | Step 2 / Step 7.2 | `.md` / `.json` | 推荐；承载章节功能矩阵 + 章节蓝图 |
+| `section_blueprints.json` / `writing_blueprints` | Step 2 / Step 7.2 | `.json` / `.md` | 前者是可选不可变结构基线；后者是保留 lineage 的写作派生层，direct-entry 可独立生成 |
 | MinerU 图文资产 | Zotero 附件 / 用户提供 | `LLM-for-Zotero-MinerU-cache-*.zip` 或等价图文资产包 | `auto_insert_figures=true` 时必选 |
 
 > Step 7 不再直接把 `paper-temp/*.pdf` 当作唯一知识库。PDF 可以来自 Step 5、原有文件、后续补下载、手动整理目录、Zotero 条目附件或用户证据包。若 `pdf-附件池索引.json` 不存在，但 Zotero 条目已带 PDF 附件，则以 Zotero MCP 的 `zotero_get_item_children` / `zotero_get_attachment_path` / `zotero_get_item_fulltext` 为准，必要时再生成临时 `pdf-附件池索引.json` 供审计复用。
@@ -121,7 +121,7 @@
 
 Step 7 先识别证据入口，再构造最小证据映射。场景只决定读取路径，证据等级决定能写多强。
 
-| entry_mode | 适用场景 | 默认处理 |
+| evidence_entry_mode | 适用场景 | 默认处理 |
 |------------|----------|----------|
 | `zotero_full` | 有 Zotero 条目、PDF、notes/annotations | 读取 Zotero 元数据、notes、annotations、fulltext，构造 claim 证据映射 |
 | `zotero_mineru` | Zotero 条目下有 MinerU ZIP | 在 `zotero_full` 外读取 ZIP 的 `full.md`、`manifest.json`、`images/` 作为图文增强层 |
@@ -201,7 +201,7 @@ Step 7 的成功标准是完成当前写作任务的最小证据闭环，不是�
 从本版开始，Step 7 对统一写作工件采用：
 
 1. `style_profile.json`
-2. `section_blueprints.json`
+2. `writing_blueprints.json`（Step 7 派生；旧项目可兼容读取 `section_blueprints.json`）
 3. `writing_rationale_matrix.json`
 4. `workflow_search_results.json` / `文献-Zotero架构对照.json` 中的 `paper_card`，以及 Zotero `More-Paper Evidence Card` child note 辅助线索
 
@@ -245,7 +245,7 @@ Step 7 可以借用“导师式预审”的组织方式，但必须服务于本�
 | 输出 | 格式 | 说明 |
 |------|------|------|
 | 综述矩阵 | CSV/Markdown | 13 列证据矩阵 |
-| research_dossier/ | 目录 | 样本状态 + `style_profile` + `section_blueprints` + `writing_rationale_matrix` |
+| research_dossier/ | 目录 | 样本状态 + `style_profile` + `writing_blueprints` + `writing_rationale_matrix`；Step 2 `section_blueprints.json` 保持不可变 |
 | `retrieval_index_manifest.json` | .json | 🆕 内部索引清单：记录轻量索引 / PDF chunk 索引的来源与规模 |
 | `retrieval_candidates.json` | .json | 🆕 章节级 claim 候选证据包：按章节→claim 组织候选片段；仅候选，不是最终证据 |
 | `figure_index.json` | .json | 🆕 图号/表号索引：页码、图注、正文引用位置、来源层级 |
@@ -267,9 +267,9 @@ Step 7 可以借用“导师式预审”的组织方式，但必须服务于本�
 | 评审报告 + rebuttal-预演 | .md → .pdf | 7.11 质量门产出 |
 | 图表 | SVG/PDF/TIFF/JPG/PNG | 7.14 产出或从 MinerU ZIP/证据包复制，保存到 `figures/` |
 | 引用审计报告 | .md → .pdf | 7.16 产出 |
-| 状态卡 | .md block / 对话块 | 当前 Step、entry_mode、输入依据、证据风险、下一步推荐 |
+| 状态卡 | .md block / 对话块 | 当前 Step、entry_mode、route_mode、输入依据、证据风险、下一步推荐 |
 
-> 其中 `style_profile.json`、`section_blueprints.json`、`writing_rationale_matrix.json` 是机器工件；对应 `.md` 是展示层与审阅层。
+> 其中 `style_profile.json`、`writing_blueprints.json`、`writing_rationale_matrix.json` 是 Step 7 机器工件；对应 `.md` 是展示层与审阅层。旧项目的 `section_blueprints.json` 仅作兼容输入；若它来自 Step 2，则不得覆盖。
 > `retrieval_index_manifest.json`、`retrieval_candidates.json` 是内部加速层工件，只用于“找哪里可能有证据”，不直接进入正文、综述矩阵或审计结论。第一版 `retrieval_candidates.json` 只覆盖文字证据，不并入图表证据子链。
 > `figure_index.json`、`figure_evidence_report.md/json` 是图表证据子链工件，用于“图表定位、图注绑定、图表 claim 确认”，不替代文字证据主链。
 > 图文联合模式下，正文和图表必须共用同一份 `argument_plan`；没有 MinerU ZIP 但本地 PDF 可读时，允许用 PyMuPDF 直接抽取 `pdf_direct` 候选图，但必须标记为低置信、无 caption、待人工确认；不得据此自动写“图中可见”“证明”等强视觉判断。若 PDF 也不可读，才只保留正文图位占位或降级为 `figure_mode=skip`。`post_write` 与 `auto_insert` 只是执行顺序不同，证据链要求相同。
@@ -356,7 +356,7 @@ Step 7 是写作生产层。它可以在正文生成过程中完成基础可读�
 | 子步骤 | 核心功能 | 主要输入 | 主要输出 |
 |--------|----------|----------|----------|
 | 7.1 | 生成文献证据矩阵 | Zotero 条目/笔记/标注、PDF 附件、对照 JSON | `综述矩阵.csv/.md` |
-| 7.2 | 学习目标体裁/文档风格并生成统一写作工件 | 目标样本文献/学位论文规范/已有草稿、Step 2 大纲、综述矩阵 | `style_profile.md/json` + `section_blueprints.md/json` + `writing_rationale_matrix.md/json` |
+| 7.2 | 学习目标体裁/文档风格并生成统一写作工件 | 目标样本文献/学位论文规范/已有草稿、Step 2 大纲、综述矩阵 | `style_profile.md/json` + `writing_blueprints.md/json` + `writing_rationale_matrix.md/json` |
 | 7.3 | 写作反模式闸门 | 已有草稿、写作蓝图、证据矩阵 | 反模式风险与回退要求 |
 | 7.4 | 论文类型、目标体裁与语言识别 | 研究主题、大纲、投稿/毕业/课程目标 | paper_type + target_genre + language |
 | 7.5 | 写作范围识别 | 写作范围、已有草稿、用户任务 | full-document / chapter-only / continue-existing / abstract-only / review-only / revision-only |
@@ -403,7 +403,7 @@ Step 7 进入正文前，必须先明确三件事：
 
 - `target_genre` 决定默认结构深度和语气，不由期刊 prestige 反向主导。
 - `writing_mode` 决定本轮输出范围，不因“能写更多”而擅自扩写。
-- `writing_axes` 只用于当前小节的写作路由和段落任务判定，不替代 `target_genre / writing_mode / entry_mode`，也不新增用户可见模式。
+- `writing_axes` 只用于当前小节的写作路由和段落任务判定，不替代 `target_genre / writing_mode / evidence_entry_mode`，也不新增用户可见模式。
 - `style_target` 可以借鉴 Nature / Nature Communications 等范文风格，但不得把 Nature 风格设为默认目标；没有明确投稿目标时，优先服从 `target_genre` 和用户已有文本风格。
 - 未确认 `target_genre` 时，默认按用户当前任务选择最稳妥的通用体裁：
   - 学位任务 -> `thesis`
@@ -432,8 +432,8 @@ Step 7 的默认输出顺序固定为：
 
 **写作顺序要求：**
 
-1. 先生成 `section_blueprints.json/md`，再写正文。
-2. `section_blueprints` 先定义每节的 `section_function / expected_length / key_claims / evidence_needed / do_not_write / transition_from / transition_to / risk_flags`。
+1. 先从 Step 2 不可变 `section_blueprints.json` 派生 `writing_blueprints.json/md`，再写正文；direct-entry 没有 Step 2 基线时直接生成带 `source_lineage` 的写作蓝图。
+2. `writing_blueprints` 先定义每节的 `section_function / expected_length / key_claims / evidence_needed / do_not_write / transition_from / transition_to / risk_flags`，并保留上游 `rq_ids`。
 3. 任何正文单元都必须先回到对应蓝图，不得跳过蓝图直接生成成段正文。
 4. 证据矩阵的职责是锁定可写范围，不是把候选材料自动升级成强 claim。
 
@@ -461,7 +461,7 @@ Step 7 的默认输出顺序固定为：
 
 - Step 7 默认按“大纲片段 -> Zotero 子集合/条目映射”读取证据，不扫整个 Zotero 文库。
 - 当本轮任务是 `chapter-only` 或用户明确指定 `1.1 / 1.1.1 / 2.3` 等节号时，只读取当前节号对应的集合、子集合、条目和附件。
-- 若 `section_blueprints.json`、`argument_plan.json`、`文献-Zotero架构对照.json` 同时存在，应先用它们确定当前小节的 `collection / item_key / pdf_path` 范围，再开始读笔记、标注或 PDF。
+- 若 `writing_blueprints.json`（或兼容的 `section_blueprints.json`）、`argument_plan.json`、`文献-Zotero架构对照.json` 同时存在，应先用它们确定当前小节的 `collection / item_key / pdf_path` 范围，再开始读笔记、标注或 PDF。
 - 仅当当前小节证据不足以支撑必要论点时，才允许向同章相邻小节映射的集合作有限扩展，并在输出中标记扩展依据。
 - 不得因为“文库里还有很多相关文献”就提前读取后续小节集合，更不得把后续节的论证提前写入当前节。
 - 如果用户已经给出等价的章节-集合映射，直接使用该映射，不要求回跑 Step 6。
@@ -639,7 +639,7 @@ style_profile / section_blueprints / writing_rationale_matrix 是当前落点。
 | `thesis` | 硕士/博士学位论文 | 学校论文规范、学院模板、已有章节、大纲结构 |
 | `conference` | 会议论文 | 会议模板、页数限制、领域样文 |
 | `course-paper` | 课程论文/阶段报告 | 课程要求、教师给定格式、已有材料 |
-| `existing-draft` | 已有部分内容，只续写/改写一部分 | 用户已有草稿的术语、语气、标题层级、引用格式 |
+| `existing-draft`（兼容入口标签） | 已有部分内容，只续写/改写一部分 | 规范化为 `mode=continue-existing|revision-only`，体裁仍从正式 `target_genre` 中选择 |
 
 **写作范围：**
 - `full-document`：从大纲开始撰写完整论文。
@@ -653,7 +653,7 @@ style_profile / section_blueprints / writing_rationale_matrix 是当前落点。
 ```
 Step 7.2-0: 样本盘点      → style_sample_status.md/json (样本来源、数量、缺口、回退策略；辅助元数据)
 Step 7.2-1: 风格剖析      → style_profile.md/json         (统一风格画像 schema)
-Step 7.2-2: 章节蓝图      → section_blueprints.md/json    (统一章节蓝图 schema，内含章节功能矩阵字段)
+Step 7.2-2: 写作蓝图      → writing_blueprints.md/json    (从 Step 2 基线派生，保留 lineage 与章节功能矩阵字段)
 Step 7.2-3: 写作逻辑矩阵  → writing_rationale_matrix.md/json (统一单元级理由 schema)
 Step 7.2-4: LaTeX 校验    → latex_check.md（可选）
 ```
@@ -727,7 +727,7 @@ Step 7.2-4: LaTeX 校验    → latex_check.md（可选）
 若命中以上问题：
 
 - 轻度问题：继续写，但写入 `draft_risk_summary.md`
-- 中度问题：先补 `section_blueprints.md` 或 `章节功能矩阵`
+- 中度问题：先补 `writing_blueprints.md` 或 `章节功能矩阵`
 - 重度问题：回退 Step 2、Step 4 或 Step 6 补结构/补证据
 
 **两种分析深度：**
@@ -740,8 +740,8 @@ Step 7.2-4: LaTeX 校验    → latex_check.md（可选）
 ```bash
 python3 scripts/learn_journal_style.py --target-type journal --target-name "Applied Thermal Engineering" --sample-source zotero --collection "目标期刊样本" --mode flash
 python3 scripts/learn_journal_style.py --target-type thesis --target-name "硕士学位论文" --sample-source draft --draft 论文已有草稿.md --mode flash
-python3 scripts/generate_section_blueprints.py research_dossier/style_profile.md 大纲关键词.md --evidence 综述矩阵.csv --output research_dossier/
-python3 scripts/generate_writing_rationale.py research_dossier/section_blueprints.md --style-profile research_dossier/style_profile.md --output research_dossier/writing_rationale_matrix.md
+python3 scripts/generate_section_blueprints.py research_dossier/style_profile.md 大纲关键词.md --evidence 综述矩阵.csv --baseline section_blueprints.json --output research_dossier/
+python3 scripts/generate_writing_rationale.py research_dossier/writing_blueprints.md --style-profile research_dossier/style_profile.md --output research_dossier/writing_rationale_matrix.md
 ```
 
 > 目标样本是“风格学习语料”，不等同于 Step 4 的主题文献库。样本可来自目标期刊近期代表作、学位论文模板、学校格式规范、用户指定 PDF 目录、Zotero 样本集合或已有草稿；不得默认使用 `paper-temp/` 中的全部研究文献作为目标风格样本。
@@ -1077,7 +1077,7 @@ Step 7 在正文生成前，必须先确定本轮写作模式，并为目标章�
 
 ### 7.8. 内部写作流水线（用户不可见）
 
-Step 7 的正文生产按以下内部顺序执行；这是 agent 执行纪律，不是用户可见模式，也不新增入口词。
+Step 7 的正文生产按以下内部顺序执行；这是 agent 执行纪律，不是用户可见模式，也不新增入口词。内部实现按六个子合同维护：`blueprint_style / drafting / citation_audit / figure_asset / pre_review / completion_validation`；它们共享同一份 `step7_execution_card.md`、稿件哈希和 run envelope，不得各自产生平行入口或互相覆盖状态；用户仍只看到一个 Step 7。
 
 | 内部阶段 | 职责 | 允许修改 | 禁止越界 |
 |----------|------|----------|----------|
@@ -1537,7 +1537,7 @@ python3 scripts/citation_audit.py 论文初稿.md \
 
 > Crossref / Semantic Scholar 摘要只能作为补充核验，不能替代 Zotero 条目和 PDF 原文。CNKI/万方中文文献尤其必须以本地元数据、详情页 URL、PDF 原文和 Zotero Extra/source_id 为审计依据。
 
-**Step 7 分层完成状态：** `draft_ready / evidence_closed / ready_for_step8` 的稿件哈希、claim 审计、图表门和校验命令统一见 `references/claim-evidence-readiness.md`。分层状态只约束当前写作范围，不要求补跑 Step 1-6；自动摘要筛查不得关闭强 claim。
+**Step 7 分层完成状态：** `draft_ready / evidence_closed / ready_for_step8` 的稿件哈希、claim 审计、图表门和校验命令统一见 `references/claim-evidence-readiness.md`。分层状态只约束当前写作范围，不要求补跑 Step 1-6；自动摘要筛查不得关闭强 claim。写入统一 run envelope 时，上述值进入 `domain_state`；跨 Step readiness 映射为：`draft_ready -> partial`、`evidence_closed -> partial|complete`（取决于当前请求范围）、`ready_for_step8 -> complete`。图形复现状态与 claim evidence 状态继续分别记录，不得用其中一个替代另一个。
 
 #### 7.16.1. 写作质量与审稿缺陷审计
 
@@ -1583,7 +1583,7 @@ python3 scripts/audit_engineering_claims.py 论文初稿.md \
 ```md
 CHECKPOINT W — CP-CITATION-WARN
 
-entry_mode: normal_chain|direct_entry|resume|repair|partial_artifact
+route_mode: normal_chain|direct_entry|resume|repair|partial_artifact
 status: blocked
 blocks_next: using risky evidence in key claims
 must_confirm: true

@@ -25,6 +25,8 @@ except Exception:
 import argparse
 import hashlib
 import json
+import os
+import tempfile
 from pathlib import Path
 
 from deterministic_writing_diagnostics import (
@@ -68,6 +70,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--polished-draft", default="论文润色稿.md", help="Polished draft to verify when it exists.")
     parser.add_argument("--fidelity-json", default="polish_fidelity_audit.json")
     parser.add_argument("--fidelity-md", default="polish_fidelity_audit.md")
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Return exit code 2 when the final shared readiness is blocked.",
+    )
     return parser.parse_args()
 
 
@@ -76,6 +83,22 @@ def _resolve(project_root: Path, candidate: str) -> Path:
     if path.is_absolute():
         return path
     return project_root / path
+
+
+def _atomic_write_text(path: Path, text: str) -> None:
+    """Write Step 8 state in-place and atomically replace the destination."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temp_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temp_path = Path(temp_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp_path, path)
+    finally:
+        if temp_path.exists():
+            temp_path.unlink()
 
 
 def _replace_or_append_section(existing: str, heading: str, section_body: str) -> str:
@@ -472,8 +495,8 @@ def main() -> int:
         polished_payload = diagnose_text(polished_text, lang=args.lang)
         fidelity_payload = audit_fidelity(text, polished_text)
         step8_decision = _compute_verified_decision(payload, polished_payload, fidelity_payload, step8_decision)
-        fidelity_json.write_text(json.dumps(fidelity_payload, ensure_ascii=False, indent=2), encoding="utf-8")
-        fidelity_md.write_text(render_fidelity_markdown(fidelity_payload), encoding="utf-8")
+        _atomic_write_text(fidelity_json, json.dumps(fidelity_payload, ensure_ascii=False, indent=2) + "\n")
+        _atomic_write_text(fidelity_md, render_fidelity_markdown(fidelity_payload))
     step8_decision = _apply_step7_evidence_gate(step8_decision, step7_evidence_gate)
     status_contract = _compute_status_contract(payload, step8_decision)
 
@@ -484,7 +507,7 @@ def main() -> int:
     diagnostics_payload["step7_evidence_gate"] = step7_evidence_gate
     if fidelity_payload:
         diagnostics_payload["polish_fidelity"] = fidelity_payload["summary"]
-    diagnostics_json.write_text(json.dumps(diagnostics_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    _atomic_write_text(diagnostics_json, json.dumps(diagnostics_payload, ensure_ascii=False, indent=2) + "\n")
 
     summary_block = render_diagnostic_summary_section(payload)
     summary_block += (
@@ -511,7 +534,7 @@ def main() -> int:
     else:
         current = "# diagnostic_summary\n"
     updated_summary = _replace_or_append_section(current, "## AI 味确定性检查摘要", summary_block)
-    diagnostic_summary.write_text(updated_summary, encoding="utf-8")
+    _atomic_write_text(diagnostic_summary, updated_summary)
 
     if revision_ledger.exists():
         existing_ledger = json.loads(revision_ledger.read_text(encoding="utf-8"))
@@ -524,8 +547,8 @@ def main() -> int:
     merged_ledger["ai_trace_diagnostics"]["step7_evidence_gate"] = step7_evidence_gate
     if fidelity_payload:
         merged_ledger["ai_trace_diagnostics"]["polish_fidelity"] = fidelity_payload["summary"]
-    revision_ledger.write_text(json.dumps(merged_ledger, ensure_ascii=False, indent=2), encoding="utf-8")
-    revision_ledger_md.write_text(_render_revision_ledger_md(merged_ledger), encoding="utf-8")
+    _atomic_write_text(revision_ledger, json.dumps(merged_ledger, ensure_ascii=False, indent=2) + "\n")
+    _atomic_write_text(revision_ledger_md, _render_revision_ledger_md(merged_ledger))
 
     polish_block = _render_polish_quality_report_section(
         payload, step8_decision, status_contract, fidelity_payload, step7_evidence_gate
@@ -535,7 +558,7 @@ def main() -> int:
     else:
         current_report = "# 润色质量报告\n"
     updated_report = _replace_or_append_section(current_report, "## AI 味检查结果", polish_block)
-    polish_quality_report.write_text(updated_report, encoding="utf-8")
+    _atomic_write_text(polish_quality_report, updated_report)
 
     print(f"draft: {draft_path}")
     print(f"diagnostics_json: {diagnostics_json}")
@@ -546,6 +569,9 @@ def main() -> int:
     if fidelity_payload:
         print(f"fidelity_json: {fidelity_json}")
         print(f"fidelity_md: {fidelity_md}")
+    if args.strict and status_contract["readiness"] == "blocked":
+        print("strict_status: blocked")
+        return 2
     return 0
 
 

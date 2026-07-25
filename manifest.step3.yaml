@@ -3,21 +3,27 @@ name: step3-search-plan
 description: Router manifest for Step 3 structured literature search planning.
 
 axes:
-  workflow:
+  base_workflow:
     allowed:
       - standard
+      - systematic
+    default: standard
+  addons:
+    allowed:
       - citation-expansion
       - prisma-s
       - chinese-sources
-    default: standard
+    default: []
 
 always_load:
   - static/core/output-contract.md
   - references/evidence-tier-policy.md
   - references/claim-evidence-readiness.md
 
-workflow_routes:
+base_workflow_routes:
   standard: references/workflows/search-plan-standard.md
+  systematic: references/workflows/search-plan-prisma-s.md
+addon_routes:
   citation-expansion: references/workflows/search-plan-citation-expansion.md
   prisma-s: references/workflows/search-plan-prisma-s.md
   chinese-sources: references/direct-api-search-fallback.md

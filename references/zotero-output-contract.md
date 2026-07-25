@@ -41,6 +41,10 @@ Step 6 每次整理至少应产出“双工件”。
 
 `plan_ready` 只表示整理计划可审阅，不冒充真实 Zotero 写入。Step 6 可从 Zotero 只读扫描、BibTeX、CSL/workflow JSON、既有对照表或 PDF-only 直接进入；这些入口互为替代，不要求 Step 5 已执行。
 
+执行档位固定为 `plan-only / write / repair`。档位决定必需工件和允许动作，但不改变同一 `plan_fingerprint`、operation journal 和回读验证合同。
+
+兼容字段 `execution_mode=local|cloud|skip|plan-only` 继续表示连接/后端模式；`execution_profile` 表示生命周期阶段。`validate_step6_output.py --profile` 同时检查两者是否冲突。
+
 真实写入应把事件追加到 `zotero_write_operations.jsonl`，并维护 `zotero_execution_state.json`。相同 `operation_id` 的成功操作必须幂等跳过。
 
 完成声明前运行：

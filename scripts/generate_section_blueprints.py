@@ -24,7 +24,10 @@ import json
 import sys
 import os
 import re
+import hashlib
+import tempfile
 from dataclasses import dataclass, field
+from pathlib import Path
 
 # ── Data Models ──────────────────────────────────────────────────────────────
 
@@ -102,6 +105,81 @@ def generate_blueprints(
         blueprints.append(bp)
 
     return blueprints
+
+
+def _sha256(path: Path | None) -> str:
+    if path is None or not path.is_file():
+        return ""
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _atomic_write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temp_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temp_path = Path(temp_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp_path, path)
+    finally:
+        if temp_path.exists():
+            temp_path.unlink()
+
+
+def build_writing_blueprint_payload(
+    blueprints: list[SectionBlueprint],
+    *,
+    outline_path: Path,
+    style_profile_path: Path,
+    evidence_path: Path | None = None,
+    baseline_path: Path | None = None,
+) -> dict:
+    """Build a Step 7 derivative without replacing the Step 2 baseline."""
+    baseline: dict = {}
+    if baseline_path and baseline_path.is_file():
+        loaded = json.loads(baseline_path.read_text(encoding="utf-8"))
+        if not isinstance(loaded, dict) or not isinstance(loaded.get("sections"), list):
+            raise ValueError("Step 2 baseline must be an object containing sections")
+        baseline = loaded
+    baseline_sections = {
+        str(section.get("section_id")): section
+        for section in baseline.get("sections", [])
+        if isinstance(section, dict) and section.get("section_id") is not None
+    }
+    sections = []
+    for blueprint in blueprints:
+        generated = blueprint.to_schema_dict()
+        original = baseline_sections.get(str(blueprint.section_id), {})
+        merged = dict(original)
+        merged.update(generated)
+        if original.get("rq_ids"):
+            merged["rq_ids"] = original["rq_ids"]
+        sections.append(merged)
+    return {
+        "schema_version": "section-blueprints.v2",
+        "blueprint_state": "writing_derived",
+        "outline_state": baseline.get("outline_state", "not_provided"),
+        "core_research_question_ids": baseline.get("core_research_question_ids", []),
+        "evidence_calibration": baseline.get("evidence_calibration"),
+        "keyword_audit": baseline.get("keyword_audit", []),
+        "source_lineage": {
+            "baseline_path": str(baseline_path) if baseline_path else "",
+            "baseline_sha256": _sha256(baseline_path),
+            "outline_path": str(outline_path),
+            "outline_sha256": _sha256(outline_path),
+            "style_profile_path": str(style_profile_path),
+            "style_profile_sha256": _sha256(style_profile_path),
+            "evidence_path": str(evidence_path) if evidence_path else "",
+            "evidence_sha256": _sha256(evidence_path),
+        },
+        "sections": sections,
+    }
 
 
 # ── Rendering ────────────────────────────────────────────────────────────────
@@ -644,6 +722,10 @@ def main():
     parser.add_argument("--output", "-o", default="research_dossier/",
                         help="Output directory (default: research_dossier/)")
     parser.add_argument("--journal", help="Target journal name for report header")
+    parser.add_argument(
+        "--baseline",
+        help="Optional immutable Step 2 section_blueprints.json used to preserve RQ and calibration lineage.",
+    )
 
     args = parser.parse_args()
 
@@ -656,16 +738,30 @@ def main():
 
     os.makedirs(args.output, exist_ok=True)
 
-    # Section blueprints
-    bp_path = os.path.join(args.output, "section_blueprints.md")
+    output_dir = Path(args.output)
+    outline_path = Path(args.outline).expanduser().resolve()
+    style_profile_path = Path(args.style_profile).expanduser().resolve()
+    evidence_path = Path(args.evidence).expanduser().resolve() if args.evidence else None
+    baseline_path = Path(args.baseline).expanduser().resolve() if args.baseline else None
+    if baseline_path is None:
+        candidate = output_dir / "section_blueprints.json"
+        baseline_path = candidate.resolve() if candidate.is_file() else None
+
+    # Step 7 derivative; the Step 2 section_blueprints.json baseline remains immutable.
+    bp_path = output_dir / "writing_blueprints.md"
     md = render_blueprints_md(blueprints, args.journal or "")
-    with open(bp_path, 'w', encoding='utf-8') as f:
-        f.write(md)
+    _atomic_write(bp_path, md)
     print(f"✅ 章节蓝图: {bp_path}")
 
-    bp_json_path = os.path.join(args.output, "section_blueprints.json")
-    with open(bp_json_path, 'w', encoding='utf-8') as f:
-        json.dump([bp.to_schema_dict() for bp in blueprints], f, ensure_ascii=False, indent=2)
+    payload = build_writing_blueprint_payload(
+        blueprints,
+        outline_path=outline_path,
+        style_profile_path=style_profile_path,
+        evidence_path=evidence_path,
+        baseline_path=baseline_path,
+    )
+    bp_json_path = output_dir / "writing_blueprints.json"
+    _atomic_write(bp_json_path, json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
     print(f"✅ 章节蓝图JSON: {bp_json_path}")
 
     # Print summary

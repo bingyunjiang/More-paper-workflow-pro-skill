@@ -1030,6 +1030,7 @@ def main() -> int:
         "artifact_type": "zotero_plan",
         "workflow_contract_schema": WORKFLOW_CONTRACT_SCHEMA,
         "plan_only": True,
+        "execution_profile": "plan-only",
         "execution_mode": "plan-only",
         "completion_state": completion_state,
         "direct_entry": bool(args.records_json or (args.pdf_dir and not args.bib)),

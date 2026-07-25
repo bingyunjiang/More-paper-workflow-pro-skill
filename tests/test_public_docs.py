@@ -65,12 +65,15 @@ class PublicDocsTest(unittest.TestCase):
             self.assertIn(token, skill)
 
         for token in [
-            "不新增公开入口",
-            "先做任务定义，再做实现选择",
-            "双向校准、最小对比和反模式命名",
             "现有 8 步",
+            "快速通道不跳质量门",
+            "任意 Step 直达",
+            "docs/assets/marketing/more-paper-workflow-slide-16x9.png",
         ]:
             self.assertIn(token, readme)
+
+        self.assertNotIn("运行契约兼容索引", readme)
+        self.assertNotIn("## 宣传视觉与流程图", readme)
 
         self.assertIn("Public routing remains Step 1-8 only", routing)
         self.assertIn("Direct-entry is a fast path, not a quality bypass", routing)

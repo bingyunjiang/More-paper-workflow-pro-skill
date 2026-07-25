@@ -9,6 +9,8 @@ This index groups the reference files by function so the workflow contracts are 
 
 ## Runtime contracts
 
+- `../static/core/workflow-run-envelope.md`：Step 1-8 统一 `domain_state + readiness` 机器交接外壳。
+- `../schemas/workflow-contract-registry.json`：八步轴、档位、稳定工件和状态的机器可读注册表。
 - `completion-gates.md`
 - `step-handoff-contract.md`
 - `download-routing-contract.md`

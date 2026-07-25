@@ -27,7 +27,14 @@ axes:
       - report
       - proposal
       - conference
+      - course-paper
     default: thesis
+  figure_mode:
+    allowed:
+      - auto_insert
+      - post_write
+      - skip
+    default: post_write
   figure_backend:
     allowed:
       - auto
@@ -45,6 +52,7 @@ axes:
 
 always_load:
   - static/core/output-contract.md
+  - static/core/workflow-run-envelope.md
   - references/genre-style-axis.md
   - references/writing-modes.md
 

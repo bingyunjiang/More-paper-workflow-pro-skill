@@ -25,17 +25,25 @@ def _read_json(path: Path) -> object | None:
         return None
 
 
-def validate(root: Path, mode: str = "auto") -> tuple[list[Finding], dict[str, object]]:
+def validate(root: Path, mode: str = "auto", profile: str = "auto") -> tuple[list[Finding], dict[str, object]]:
     findings: list[Finding] = []
     plan_path = root / "文献-Zotero架构对照.json"
     plan = _read_json(plan_path)
     if not isinstance(plan, dict) or plan.get("artifact_type") != "zotero_plan":
         findings.append(Finding("fail", "invalid_zotero_plan", "文献-Zotero架构对照.json is missing or invalid"))
-        return findings, {"root": str(root), "status": "fail", "mode": mode}
+        return findings, {"root": str(root), "status": "fail", "mode": mode, "execution_profile": profile}
 
     effective_mode = plan.get("execution_mode", "plan-only") if mode == "auto" else mode
+    inferred_profile = "plan-only" if effective_mode in {"plan-only", "skip"} else "write"
+    effective_profile = plan.get("execution_profile", inferred_profile) if profile == "auto" else profile
     if effective_mode not in {"plan-only", "local", "cloud", "skip"}:
         findings.append(Finding("fail", "invalid_execution_mode", f"unsupported execution mode: {effective_mode}"))
+    if effective_profile not in {"plan-only", "write", "repair"}:
+        findings.append(Finding("fail", "invalid_execution_profile", f"unsupported execution profile: {effective_profile}"))
+    if effective_profile == "plan-only" and effective_mode not in {"plan-only", "skip"}:
+        findings.append(Finding("fail", "profile_mode_conflict", "plan-only profile cannot use a write execution mode"))
+    if effective_profile in {"write", "repair"} and effective_mode in {"plan-only", "skip"}:
+        findings.append(Finding("fail", "profile_mode_conflict", f"{effective_profile} profile requires local or cloud execution mode"))
     records = plan.get("records") if isinstance(plan.get("records"), list) else []
     for index, record in enumerate(records, 1):
         if not isinstance(record, dict):
@@ -56,7 +64,7 @@ def validate(root: Path, mode: str = "auto") -> tuple[list[Finding], dict[str, o
     if state_counts.get("items") != expected_item_counts or state_counts.get("attachments") != expected_attachment_counts:
         findings.append(Finding("fail", "state_count_mismatch", "state_counts do not match records"))
 
-    if effective_mode in {"plan-only", "skip"}:
+    if effective_profile == "plan-only":
         if plan.get("blocking_missing") or not plan.get("can_continue") or plan.get("completion_state") != "plan_ready":
             findings.append(Finding("fail", "plan_not_ready", "plan-only output is not ready for review"))
     else:
@@ -121,6 +129,7 @@ def validate(root: Path, mode: str = "auto") -> tuple[list[Finding], dict[str, o
         "root": str(root),
         "status": status,
         "mode": effective_mode,
+        "execution_profile": effective_profile,
         "completion_state": plan.get("completion_state", ""),
         "record_count": len(records),
         "direct_entry": bool(plan.get("direct_entry")),
@@ -131,9 +140,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Validate Step 6 Zotero artifacts.")
     parser.add_argument("output_dir")
     parser.add_argument("--mode", choices=("auto", "plan-only", "local", "cloud", "skip"), default="auto")
+    parser.add_argument("--profile", choices=("auto", "plan-only", "write", "repair"), default="auto")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
-    findings, summary = validate(Path(args.output_dir).expanduser().resolve(), args.mode)
+    findings, summary = validate(Path(args.output_dir).expanduser().resolve(), args.mode, args.profile)
     if args.json:
         print(json.dumps({"summary": summary, "findings": [asdict(item) for item in findings]}, ensure_ascii=False, indent=2))
     else:

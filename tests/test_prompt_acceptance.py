@@ -20,9 +20,9 @@ class PromptAcceptanceTest(unittest.TestCase):
     def setUp(self):
         self.payload = prompt_eval.load_cases(CASES)
 
-    def test_case_file_has_bilingual_step_1_5_7_8_coverage(self):
+    def test_case_file_has_bilingual_step_1_to_8_coverage(self):
         self.assertEqual(prompt_eval.validate_case_file(self.payload), [])
-        self.assertEqual(len(self.payload["cases"]), 8)
+        self.assertEqual(len(self.payload["cases"]), 16)
         coverage = {
             (case["language"], case["expected_step"])
             for case in self.payload["cases"]
@@ -32,7 +32,16 @@ class PromptAcceptanceTest(unittest.TestCase):
             {
                 (language, step)
                 for language in {"zh", "en"}
-                for step in {"step1-topic", "step5-download", "step7-writing", "step8-polishing"}
+                for step in {
+                    "step1-topic",
+                    "step2-outline",
+                    "step3-search-plan",
+                    "step4-search-execute",
+                    "step5-download",
+                    "step6-zotero",
+                    "step7-writing",
+                    "step8-polishing",
+                }
             },
         )
 

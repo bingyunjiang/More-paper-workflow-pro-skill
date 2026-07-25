@@ -299,7 +299,8 @@ Step 8 不只输出润色后的正文，还会记录本轮处理依据、风险�
 
 ```markdown
 - 当前 Step：8
-- entry_mode：direct_entry
+- entry_mode：direct-draft
+- route_mode：direct_entry
 - 输入依据：用户提供初稿 + Step 7 引用审计报告
 - 证据风险：存在 2 条 `citation safety reminder`
 - 下一步推荐：回到 Step 7.15 修复高风险引用后再定稿

@@ -2,16 +2,20 @@
 
 ## 目标
 
-使用同一组真实提示词比较 Codex、Claude、Hermes 对 Step 1、5、7、8 的
+使用同一组真实提示词比较 Codex、Claude、Hermes 对 Step 1-8 的
 路由、工件和完成门执行情况。自动化 judge 是确定性的，不调用外部模型；
 宿主回答由测试者在各宿主中生成并保存。
 
 ## 用例
 
-用例定义位于 `evals/prompt_acceptance.json`。每种语言覆盖四个入口：
+用例定义位于 `evals/prompt_acceptance.json`。每种语言覆盖八个入口：
 
 - Step 1：模糊方向进入选题澄清
+- Step 2：主题直入不可变结构蓝图
+- Step 3：base workflow + addons 可组合检索计划
+- Step 4：core 检索、来源降级和 run manifest
 - Step 5：DOI 直达下载路由
+- Step 6：BibTeX/PDF 直入 plan-only Zotero 计划
 - Step 7：已有 Zotero/PDF/草稿的章节级写作
 - Step 8：不新增证据的保守润色
 
@@ -44,7 +48,7 @@ SHA-256、逐轮失败原因、通过率和一致性。
 
 ## 通过标准
 
-- 八个用例在每个宿主至少执行三次。
+- 十六个用例在每个宿主至少执行三次。
 - `selected_step`、`entry_mode`、Step 内模式/操作与预期一致。
 - 回答列出最低必需工件、风险字段和下一步。
 - 不把未登录、未下载、未核验引用或缺证据状态表述成已完成。

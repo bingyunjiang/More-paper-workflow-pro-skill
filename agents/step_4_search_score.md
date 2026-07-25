@@ -55,7 +55,7 @@
 如果用户已有检索方案、检索式、关键词组合、数据库清单、文献表或 BibTeX，可直接从 Step 4 开始，不要求回跑 Step 3。Agent 应在当前 Step 内完成：
 
 1. 将用户材料整理为最小 `search_tasks` 或 direct scoring/import plan。
-2. 输出 `CHECKPOINT 3 — CP-SEARCH`，设置 `entry_mode: direct_entry` 或 `partial_artifact`，`status: satisfied_by_user_artifact` 或 `satisfied_by_agent_reconstruction`。
+2. 输出 `CHECKPOINT 3 — CP-SEARCH`，设置 `route_mode: direct_entry` 或 `partial_artifact`，`status: satisfied_by_user_artifact` 或 `satisfied_by_agent_reconstruction`。
 3. 用户明确“确认 CP-SEARCH”后，才执行真实多源检索命令；生成 dry-run 摘要、评分用户已有文献表、格式转换或报告生成不需要补跑完整 Step 3。
 
 **Direct-entry input contract：**
@@ -106,9 +106,19 @@ Step 4 direct-entry 发现 `zero-result / suspected_query_drift / too-broad / �
 
 ## 标准输出 (Standard Outputs)
 
-> 标准 Step 4 完成时，必须生成核心交付物；条件性交付物按触发条件生成或明确标注跳过原因。所有最终导出的文献表和 BibTeX 仅含 **T1-T3 论文**（T4 已在 4.6 剔除或单独进入排除说明）。
+> Step 4 完成时，必须生成所选 execution profile 的核心交付物；更高档位的派生交付物按触发条件生成或明确标注跳过原因。所有最终导出的文献表和 BibTeX 仅含 **T1-T3 论文**（T4 已在 4.6 剔除或单独进入排除说明）。
 
-**核心交付物：**
+**执行档位：**
+
+| execution_profile | 必需交付 | 使用场景 |
+|---|---|---|
+| `core` | `workflow_search_results.json`、`retrieval_index_manifest.json`、`research_traceability_matrix.json`、`stratified_search_audit.json`、`search_run_manifest.json` | direct-entry、增量检索、下游机器消费 |
+| `review` | `core` + Markdown/XLSX/Dashboard/BibTeX | 导师审阅、下载准备、Zotero 整理 |
+| `release-systematic` | `review` + PDF 报告、PRISMA-S、饱和度及完整对账材料 | 系统综述、送审或发布验收 |
+
+档位只控制派生交付物，不降低筛选、证据分级、机器字段完整性和完成门。没有生成的条件性展示工件必须记录跳过原因，不得列入 `outputs`。
+
+**核心交付物与派生交付物目录（按 execution_profile 选择）：**
 
 | # | 输出 | 格式 | 生成工具 | 说明 |
 |---|------|------|---------|------|
@@ -124,13 +134,14 @@ Step 4 direct-entry 发现 `zero-result / suspected_query_drift / too-broad / �
 | 10 | 研究追溯覆盖矩阵 | .json/.md | `build_research_coverage_matrix.py` | RQ→章节→证据类型→search task→文献覆盖，逐任务显示 verified/T1-T2/反例与缺口 |
 | 11 | 分层检索审计 | .json/.md | `audit_search_coverage.py` | 按任务、证据类型、来源、语言、年份和期刊检查饱和度与检索偏差 |
 | 12 | Step 2 检索对账报告 | .json/.md | `reconcile_step2_after_search.py` | 有 Step 2 结构基线且完成标准检索时，输出关键词动作、章节覆盖、证据缺口和需用户确认的高影响修改 |
+| 13 | Step 4 run manifest | .json | `workflow_run_envelope.py` | 记录档位、输入哈希、实际输出、来源警告、checkpoint 与下一步；推荐文件名 `search_run_manifest.json` |
 
 **条件性交付物：**
 
 | # | 输出 | 格式 | 触发条件 | 说明 |
 |---|------|------|----------|------|
-| 13 | 饱和度曲线快照 | .json | T1-T3 文献数 ≥ 30 | 文献覆盖率估算，含置信区间；不足 30 篇时标注跳过 |
-| 14 | 中文论文元数据 JSON | .json | 存在 source=cnki/wanfang 的行 | 供 Step 5 下载与 Step 6 Zotero 中文条目入库使用 |
+| 14 | 饱和度曲线快照 | .json | T1-T3 文献数 ≥ 30 | 文献覆盖率估算，含置信区间；不足 30 篇时标注跳过 |
+| 15 | 中文论文元数据 JSON | .json | 存在 source=cnki/wanfang 的行 | 供 Step 5 下载与 Step 6 Zotero 中文条目入库使用 |
 
 **统一文件命名规范：**
 
@@ -147,6 +158,7 @@ Step 4 direct-entry 发现 `zero-result / suspected_query_drift / too-broad / �
 | 中文论文元数据 | `中文论文元数据.json` |
 | workflow search results JSON | `workflow_search_results.json` |
 | retrieval index manifest | `retrieval_index_manifest.json` |
+| Step 4 run manifest | `search_run_manifest.json` |
 | Step 4 可视化 Dashboard | `step4-dashboard/` |
 | 研究追溯覆盖矩阵 | `research_traceability_matrix.json/.md` |
 | 分层检索审计 | `stratified_search_audit.json/.md` |
@@ -208,13 +220,13 @@ Step 4 允许为了人工阅读压缩展示层，但机器主工件禁止截断�
 
 | 数据源 | Deep tier | Standard tier | Quick tier | 遇错行为 |
 |--------|-----------|---------------|-----------|---------|
-| **OpenAlex** | ✅ 必跑 | ✅ 必跑 | ✅ 必跑 | FAIL → ❌ 中止（唯一不可跳过） |
+| **OpenAlex** | ✅ 首选 | ✅ 首选 | ✅ 首选 | FAIL → 切换独立来源并标记降级，不因单一供应方中止 |
 | **Crossref** | ✅ **必跑** | ⚠️ OpenAlex < 30 或 SemSch 429 → 必跑 | ⬜ 跳过 | FAIL → 报告标注缺失 |
 | **Semantic Scholar** | ✅ 跑 | ✅ 跑 | ⬜ 跳过 | 429 → ⬜ 跳过不阻塞 |
 | **arXiv** | ✅ 仅 CS/AI 信号 | 同左 | ⬜ 跳过 | FAIL → 跳过 |
 | **PubMed** | ✅ 仅医工交叉 | 同左 | ⬜ 跳过 | FAIL → 跳过 |
 
-> **规则：** OpenAlex 唯一不可跳过；Crossref deep tier 必跑；Semantic Scholar 429 不阻塞。
+> **来源能力仲裁：** 不把任何单一供应方设为全局入口锁。Quick 至少需要 1 个可验证来源或用户提供语料；Standard/Deep 至少需要 2 个独立来源，或 1 个可靠来源加用户提供的可追溯语料。Systematic 还必须记录所有计划来源的成功、失败和替代原因。能力不足时使用 `degraded_source_coverage` 并降低 readiness，不得静默冒充完整覆盖。Crossref deep tier 仍为默认必跑来源；Semantic Scholar 429 不阻塞。
 
 ---
 
@@ -260,7 +272,9 @@ python3 scripts/search_by_topic.py "<中文检索词>" --source wanfang --langua
 
 若缺少 `--language zh`，视为未满足中文源默认执行规范。
 
-**中文源认证流程（CDP/CARSI 时——CHECKPOINT W — CP-DOWNLOAD-LOGIN）：**
+**中文源认证流程（CDP/CARSI 时——CHECKPOINT W — CP-SOURCE-AUTH）：**
+
+`CP-SOURCE-AUTH` 只约束 Step 4 中文检索认证。旧宿主若仍传入 `CP-DOWNLOAD-LOGIN`，作为兼容别名读取并在状态记录中规范化为 `CP-SOURCE-AUTH`；Step 5 的下载登录门仍保持原名和既定语义。
 
 > **交互兼容性规则：**
 > - 若当前智能体/宿主环境支持弹窗、表单、结构化选项卡片或 `request_user_input`，优先使用结构化交互。
@@ -347,7 +361,7 @@ python3 scripts/search_by_topic.py "<中文检索词>" --source wanfang --langua
    > Agent 应输出 `status=paused_by_login_checkpoint`，并停止后续真实检索命令。
 ```
 
-> 该认证 checkpoint 的 `entry_mode` 可为 `normal_chain` 或 `direct_entry`。用户明确完成登录并确认 `CP-DOWNLOAD-LOGIN` 后，Agent 才能继续中文源检索；英文公开 API 检索不受该 checkpoint 阻塞。
+> 该认证 checkpoint 的 `route_mode` 可为 `normal_chain` 或 `direct_entry`。用户明确完成登录并确认 `CP-SOURCE-AUTH`（或旧兼容别名 `CP-DOWNLOAD-LOGIN`）后，Agent 才能继续中文源检索；英文公开 API 检索不受该 checkpoint 阻塞。
 
 **queries.json 模板（Agent 动态生成）：**
 ```json
@@ -532,7 +546,7 @@ Crossref/API 暂时不可用时标为 `WARN + doi_verification_unavailable`，�
 ```md
 ## CHECKPOINT W — CP-CITATION-WARN
 
-entry_mode: normal_chain|direct_entry|repair|partial_artifact
+route_mode: normal_chain|direct_entry|repair|partial_artifact
 status: blocked
 blocks_next: final T1-T3 library and downstream citation use
 must_confirm: true
@@ -628,7 +642,7 @@ required_confirmation:
 ```md
 ## CHECKPOINT 4.4 - CP-SCREENING-BASIS
 
-entry_mode: normal_chain|direct_entry|partial_artifact
+route_mode: normal_chain|direct_entry|partial_artifact
 status: waiting_user_confirmation
 must_confirm: true
 blocks_next: scoring, Tier grading, final T1-T3 export
@@ -1032,20 +1046,17 @@ python3 scripts/reconcile_step2_after_search.py \
 >   3. 文献与大纲初始对照状态 + 下一步推荐入口。
 > - 若宿主支持结构化交互，优先把这些收尾信息组织为一个连续的 finish summary + cleanup checkpoint，而不是零散散落在多条短消息中。
 
-核心交付物必须存在：
+所有 execution profile 的机器核心必须存在：
 
 | # | 文件 | 若缺失 |
 |---|------|--------|
 | 1 | `workflow_search_results.json` | 回到检索结果标准化 |
-| 2 | `检索文献表.md` | 回到 4.9.1 |
-| 3 | `检索文献表.xlsx` | 回到 4.9.3 |
-| 4 | `检索报告.md` | 回到 4.9.3 |
-| 5 | `检索报告.pdf` | 回到 4.9.3 |
-| 6 | `文献库.bib` | 回到 4.9.3 |
-| 7 | `retrieval_index_manifest.json` | 回到 4.9.4 |
-| 8 | `step4-dashboard/index.html` | 回到 4.9.4a，除非用户明确跳过 |
-| 9 | `research_traceability_matrix.json/.md` | 回到覆盖矩阵生成；不得用总量替代逐任务覆盖 |
-| 10 | `stratified_search_audit.json/.md` | 回到分层饱和度与偏差审计 |
+| 2 | `retrieval_index_manifest.json` | 回到 4.9.4 |
+| 3 | `research_traceability_matrix.json` | 回到覆盖矩阵生成；不得用总量替代逐任务覆盖 |
+| 4 | `stratified_search_audit.json` | 回到分层饱和度与偏差审计 |
+| 5 | `search_run_manifest.json` | 运行 `workflow_run_envelope.py create` 并登记当前实际输出 |
+
+`review` 档还必须存在：`检索文献表.md/.xlsx`、`检索报告.md`、`文献库.bib`、`step4-dashboard/index.html`、`research_traceability_matrix.md`、`stratified_search_audit.md`。`release-systematic` 档在 review 基础上还必须存在 `检索报告.pdf` 及系统综述/发布所需工件。`core` 不因缺少这些展示层失败。
 
 条件性交付物必须存在或有跳过说明：
 
@@ -1055,12 +1066,26 @@ python3 scripts/reconcile_step2_after_search.py \
 | `中文论文元数据.json` | 存在 CNKI/Wanfang 论文 | 回到 4.9.2 |
 | `Step2-检索对账报告.json` + `大纲关键词-证据校准版.md` | 存在 Step 2 基线且执行标准 Step 4 | 回到 4.9.4b；direct-entry/局部任务必须记录不适用原因 |
 
-4.9 汇报时必须向用户展示：交付物路径、T1/T2/T3 数量、T4 排除数量、WARN/REJECT 数量、筛选依据确认状态、饱和度状态、下一步推荐入口。
+4.9 汇报时必须向用户展示：execution profile、实际交付物路径、T1/T2/T3 数量、T4 排除数量、WARN/REJECT 数量、筛选依据确认状态、饱和度状态、下一步推荐入口。
+
+生成统一 run manifest 的示例：
+
+```bash
+python3 scripts/workflow_run_envelope.py create \
+  --project-root . --output search_run_manifest.json --step 4 \
+  --entry-mode direct-query --route-mode direct_entry --execution-profile core \
+  --input 检索方案.json --artifact workflow_search_results.json \
+  --artifact retrieval_index_manifest.json \
+  --artifact research_traceability_matrix.json \
+  --artifact stratified_search_audit.json \
+  --domain-state search_complete --readiness partial --can-continue \
+  --recommended-next-step "Step 5"
+```
 
 **用户提示要求（Step 4 完成时必须显式说明）：**
 
 - Agent 必须明确告诉用户：`文献与大纲初始对照已生成`；若存在 Step 2 基线，还要说明 `大纲与关键词证据校准版已生成` 及其状态。
-- Agent 必须明确告诉用户：`Step 4 可视化看板已生成`，并给出 `step4-dashboard/index.html` 路径；用户无需事先知道该功能名。
+- `review / release-systematic` 档必须明确告诉用户：`Step 4 可视化看板已生成`，并给出 `step4-dashboard/index.html` 路径；`core` 档只说明本轮未生成展示层，不冒充看板已完成。
 - 若本轮已导出 `文献-大纲对照.md/.json`，应显式点名该交付物；若当前只在 `workflow_search_results.json` 中内嵌保存，也必须说明“初始对照已写入 workflow JSON，可供 Step 6/7 回查”。
 - Agent 不得只说“检索完成”或“可进入下一步”，必须同时说明：
   1. 文献与大纲章节/检索任务的初始挂接状态；
@@ -1161,8 +1186,8 @@ C. 归档
 - [ ] 4.6 Tier 分级已完成——T4 已剔除或进入排除说明
 - [ ] 4.7 引文网络扩展已完成（若有 T1 触发）——新论文已评分+分级
 - [ ] 4.8 饱和度曲线已生成（若 ≥ 30 篇）或已标注跳过原因
-- [ ] 4.9 核心交付物已生成——含 `workflow_search_results.json`、`检索文献表.md/.xlsx`、`检索报告.md/.pdf`、`文献库.bib`、`retrieval_index_manifest.json`
-- [ ] `检索文献表.md` 和 `检索报告.md` 均包含筛选依据、纳入规则、排除规则和 Tier 阈值
+- [ ] 4.9 所选档位核心交付物已生成；所有档位均含 `workflow_search_results.json`、`retrieval_index_manifest.json`、两项 JSON 审计和 `search_run_manifest.json`
+- [ ] `review / release-systematic` 档的 `检索文献表.md` 和 `检索报告.md` 均包含筛选依据、纳入规则、排除规则和 Tier 阈值；`core` 不因缺展示层失败
 - [ ] `workflow_search_results.json`、`文献库.bib`、`中文论文元数据.json`、`retrieval_index_manifest.json` 作为机器主工件或交接层均禁止截断
 - [ ] 展示层若截断长字段，必须保留 `record_id` 和 `citekey/source_id/DOI/article_url/source_url` 中至少一个回查字段
 - [ ] `文献库.bib` 不得从已截断的 Markdown/XLSX/PDF 展示层生成

@@ -153,6 +153,7 @@ class Step6QualityUpgradeTest(unittest.TestCase):
             findings, summary = validate(root)
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         self.assertTrue(plan["direct_entry"])
+        self.assertEqual(plan["execution_profile"], "plan-only")
         self.assertEqual(plan["completion_state"], "plan_ready")
         self.assertEqual(summary["status"], "pass", findings)
 

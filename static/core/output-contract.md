@@ -20,6 +20,7 @@
 ## 2. 建议补充字段
 
 - `entry_mode`
+- `route_mode`
 - `input_basis`
 - `evidence_risk`
 - `output_artifacts`
@@ -57,6 +58,7 @@ warnings:
   - 目标期刊尚未确认，写作体裁先按 thesis 处理
 recommended_next_step: Step 4
 entry_mode: direct-outline
+route_mode: direct_entry
 input_basis:
   - 用户提供目录草稿
   - 已存在章节关键词清单

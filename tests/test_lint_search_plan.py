@@ -48,7 +48,7 @@ class LintSearchPlanTest(unittest.TestCase):
         self.assertFalse(repair["requires_prior_step_rerun"])
 
     def test_step3_direct_entry_repairs_inside_step3(self):
-        plan = {"entry_mode": "direct_entry", "search_tasks": [{
+        plan = {"route_mode": "direct_entry", "search_tasks": [{
             "id": "S1", "route": {"l1": ["openalex"]},
             "query_blocks": [{"name": "object", "terms": ["battery", "energy storage"]}],
         }]}
@@ -58,7 +58,7 @@ class LintSearchPlanTest(unittest.TestCase):
         self.assertEqual(task["repair"]["repair_location"], "step3")
 
     def test_step4_direct_entry_repairs_inside_step4(self):
-        plan = {"execution_context": "step4_direct_entry", "entry_mode": "direct_entry", "search_tasks": [{
+        plan = {"execution_context": "step4_direct_entry", "route_mode": "direct_entry", "search_tasks": [{
             "id": "S1", "route": {"l1": ["openalex"]},
             "query_blocks": [{"name": "object", "terms": ["battery", "energy storage"]}],
         }]}

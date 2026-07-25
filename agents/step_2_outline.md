@@ -257,6 +257,7 @@ main_innovation_claim: ""
 
 ## section_blueprints（机器执行源）
 > `section_blueprints.json` 是 Step 2 交给 Step 7 的机器执行源；`section_blueprints.md` 是人工审阅版。
+> 该 JSON 是不可变结构基线。Step 4 通过带哈希的 calibrated 副本记录检索对账；Step 7 必须派生 `writing_blueprints.json`，不得用写作蓝图覆盖本文件。派生文件必须保留 `rq_ids`、核心 RQ、校准状态和 `source_lineage`。
 
 ```json
 {
@@ -535,7 +536,7 @@ Step 2 的标准完成状态是 `outline_baseline`，不要求提前完成 Step 
 ```md
 ## CHECKPOINT 2.5 — CP-ENGINEERING-CONTEXT
 
-entry_mode: direct_entry|normal_chain
+route_mode: direct_entry|normal_chain
 status: satisfied_by_user_artifact|satisfied_by_agent_reconstruction|needs_user_confirmation|blocked
 blocks_next: only when engineering boundary, confidentiality, data availability, or target paper type is insufficient for safe outline injection
 must_confirm: false unless status is blocked
@@ -686,7 +687,7 @@ optional_confirmation:
 ```md
 ## CHECKPOINT 2 — CP-OUTLINE
 
-entry_mode: normal_chain
+route_mode: normal_chain
 status: confirmed_by_workflow
 blocks_next: none unless outline basis is insufficient
 must_confirm: false

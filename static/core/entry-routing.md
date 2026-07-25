@@ -35,6 +35,7 @@
 - `conversational`：普通对话式进入
 - `direct-topic`：用户直接给研究方向
 - `direct-outline`：用户直接给大纲/目录
+- `direct-query`：用户直接给检索式、数据库任务或待执行查询
 - `direct-bib`：用户直接给 BibTeX / 文献库
 - `direct-zotero`：用户已有 Zotero 文库
 - `direct-draft`：用户直接给初稿

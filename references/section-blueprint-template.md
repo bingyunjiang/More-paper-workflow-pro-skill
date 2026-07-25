@@ -1,6 +1,6 @@
 # 章节蓝图模板规范
 
-> 面向 `generate_section_blueprints.py` 和 Step 7.2 的参考文档。定义章节蓝图的标准格式、claim-evidence 映射规则、图表放置规范。
+> 面向 `generate_section_blueprints.py` 和 Step 7.2 的参考文档。定义 `writing_blueprints.json/md` 的标准格式、claim-evidence 映射规则、图表放置规范；Step 2 `section_blueprints.json` 是不可变结构基线。
 
 ## 章节蓝图标准格式
 
@@ -88,7 +88,7 @@
 
 在 Step 7 写作时，每开始一章：
 
-1. 打开 `section_blueprints.md`，找到对应章节
+1. 打开 `writing_blueprints.md`，找到对应章节；需要追溯 RQ 时通过 `source_lineage` 回查 Step 2 基线
 2. 确认"关键声明"列表——这就是这章要传达的核心信息
 3. 按"证据映射"列逐一检查——每条声明是否都有证据？
 4. 参照"期刊风格提示"调整句长/语态/段落结构
