@@ -37,6 +37,15 @@
 - PDF/MinerU 论文原图改为默认直接插入；重绘或数字化必须记录用户明确授权。
   原图插入后固定提醒一次可选的重绘、曲线数字化、可编辑 SVG/PDF 和严格
   QA 能力，但提醒本身不触发绘图。
+- MinerU 图文资产统一使用共享解析层，候选顺序为
+  `manifest.json → full.md 图片引用 → images/ 扫描 → PDF direct`；优先按
+  Zotero `parentItemKey / attachmentKey` 精确匹配，并只物化正文实际选中的原图。
+- 新增 `build_figure_asset_check.py`，自动生成 `figure_asset_check.json/md`；
+  原图插入记录 ZIP、源图和物化文件哈希，Step 7 校验器拒绝空索引、缺失图片
+  和不可解码图片。
+- reproduction CLI 新增强制 `explicit_user_request` 授权参数；原生数字化候选
+  路线扩展到紧凑实心散点、竖向纯色柱状图和直方图，并继续执行两阶段 overlay
+  复核。
 
 ## v1.0.21-20260712 (2026-07-12)
 

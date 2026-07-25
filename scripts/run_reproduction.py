@@ -444,6 +444,12 @@ def main() -> int:
     parser.add_argument("--script", type=Path, help="Renderer command that accepts --spec/--out-dir/--script. It is copied into the bundle.")
     parser.add_argument("--qa-profile", choices=["semantic", "visual", "trace"], default="semantic")
     parser.add_argument("--require-strict", action="store_true")
+    parser.add_argument(
+        "--transform-authorization",
+        choices=["explicit_user_request"],
+        required=True,
+        help="Required evidence that the user explicitly requested redraw or digitization.",
+    )
     parser.add_argument("--project-root", type=Path, help="Deprecated in v2.2; out-dir is the portable project root.")
     args = parser.parse_args()
     if args.require_strict and args.source is None:
@@ -458,6 +464,7 @@ def main() -> int:
         "schema": "scientificfigure.reproduction_run.v2",
         "status": "failed",
         "project_root": ".",
+        "figure_transform_authorization": args.transform_authorization,
         "steps": {},
     }
 
@@ -488,6 +495,7 @@ def main() -> int:
             print(json.dumps(report, ensure_ascii=False, indent=2))
         return 2
     final_report = json.loads((project_root / "run_report.json").read_text(encoding="utf-8-sig"))
+    final_report["figure_transform_authorization"] = args.transform_authorization
     final_report.setdefault("steps", {})["input_preflight"] = preflight
     final_report["steps"]["outer_reproduce"] = reproduce
     write_json(project_root / "run_report.json", final_report)

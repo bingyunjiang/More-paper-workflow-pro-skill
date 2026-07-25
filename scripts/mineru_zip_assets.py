@@ -12,10 +12,7 @@ except Exception:
 
 import argparse
 import json
-import re
-import shutil
 import sys
-import zipfile
 from pathlib import Path
 from typing import Any
 
@@ -23,37 +20,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from workflow_contracts import FigureIndexRecord, inspect_mineru_zip, write_figure_index  # noqa: E402
-
-
-def _read_zip_json(zf: zipfile.ZipFile, name: str) -> dict[str, Any]:
-    try:
-        return json.loads(zf.read(name).decode("utf-8"))
-    except KeyError:
-        return {}
-
-
-def _slug(value: str, fallback: str) -> str:
-    text = re.sub(r"[^\w.-]+", "-", value.strip(), flags=re.UNICODE).strip("-")
-    return text[:80] or fallback
-
-
-def _iter_manifest_figures(manifest: dict[str, Any]) -> list[dict[str, Any]]:
-    figures: list[dict[str, Any]] = []
-    for section_index, section in enumerate(manifest.get("sections") or [], start=1):
-        section_heading = str(section.get("heading") or "")
-        section_id = f"section-{section_index:02d}"
-        for fig in section.get("figures") or []:
-            if not isinstance(fig, dict):
-                continue
-            figures.append({
-                "section_id": section_id,
-                "section_heading": section_heading,
-                **fig,
-            })
-    for fig in manifest.get("allFigures") or []:
-        if isinstance(fig, dict):
-            figures.append({"section_id": "", "section_heading": "", **fig})
-    return figures
+from mineru_assets import enumerate_mineru_assets, materialize_mineru_asset  # noqa: E402
 
 
 def scan_mineru_zip(zip_path: Path, output: Path, figures_dir: Path | None, copy_images: bool) -> int:
@@ -72,47 +39,38 @@ def scan_mineru_zip(zip_path: Path, output: Path, figures_dir: Path | None, copy
 
     records: list[FigureIndexRecord] = []
     copied: list[str] = []
-    with zipfile.ZipFile(zip_path) as zf:
-        manifest = _read_zip_json(zf, "manifest.json")
-        figures = _iter_manifest_figures(manifest)
+    assets = enumerate_mineru_assets(zip_path)
+    for index, asset in enumerate(assets, start=1):
+        source_image_path = str(asset.get("source_image_path") or "")
+        label = str(asset.get("figure_id") or f"image-{index}")
+        local_image_path = ""
+        if copy_images and figures_dir and source_image_path:
+            try:
+                materialized = materialize_mineru_asset(
+                    source_image_path,
+                    figures_dir,
+                    label=label,
+                )
+                local_image_path = materialized["local_path"]
+                copied.append(local_image_path)
+            except (FileNotFoundError, KeyError, OSError, ValueError):
+                local_image_path = ""
 
-        for index, fig in enumerate(figures, start=1):
-            image_path = str(fig.get("path") or "")
-            if not image_path:
-                continue
-            label = str(fig.get("label") or f"image-{index}")
-            page = str(fig.get("page") if fig.get("page") is not None else "")
-            caption = str(fig.get("caption") or "")
-            local_image_path = ""
-            if copy_images and figures_dir:
-                suffix = Path(image_path).suffix or ".jpg"
-                filename = f"{_slug(label, f'fig-{index:03d}')}{suffix}"
-                target = figures_dir / filename
-                figures_dir.mkdir(parents=True, exist_ok=True)
-                try:
-                    with zf.open(image_path) as src, target.open("wb") as dst:
-                        shutil.copyfileobj(src, dst)
-                    local_image_path = target.as_posix()
-                    copied.append(local_image_path)
-                except KeyError:
-                    local_image_path = ""
-
-            source_type = "caption_plus_text" if caption else "visual_pending"
-            records.append(FigureIndexRecord(
-                item_key=summary.parent_item_key,
-                figure_id=label,
-                figure_type="figure",
-                page=page,
-                caption=caption,
-                mentions_in_text=[],
-                source_type=source_type,
-                source_item_key=summary.parent_item_key,
-                source_attachment_key=summary.attachment_key,
-                source_image_path=image_path,
-                local_image_path=local_image_path,
-                section_id=str(fig.get("section_id") or ""),
-                claim_binding="",
-            ))
+        records.append(FigureIndexRecord(
+            item_key=summary.parent_item_key,
+            figure_id=label,
+            figure_type=str(asset.get("figure_type") or "figure"),
+            page=str(asset.get("page") or ""),
+            caption=str(asset.get("caption") or ""),
+            mentions_in_text=[],
+            source_type=str(asset.get("source_type") or "visual_pending"),
+            source_item_key=summary.parent_item_key,
+            source_attachment_key=summary.attachment_key,
+            source_image_path=source_image_path,
+            local_image_path=local_image_path,
+            section_id=str(asset.get("section_id") or ""),
+            claim_binding="",
+        ))
 
     metadata = {
         "source_zip": zip_path.as_posix(),
@@ -121,6 +79,7 @@ def scan_mineru_zip(zip_path: Path, output: Path, figures_dir: Path | None, copy
         "auto_insert_figures": bool(records),
         "notes": [
             "MinerU images are candidates only until bound to a claim.",
+            "Candidate order is manifest.json, full.md image references, then images/ scan.",
             "PDF remains the truth source for captions, tables, equations, and strong claims.",
         ],
     }

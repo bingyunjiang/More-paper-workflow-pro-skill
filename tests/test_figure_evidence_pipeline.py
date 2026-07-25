@@ -19,7 +19,9 @@ if str(ROOT / "scripts") not in sys.path:
 
 from scripts.figure_evidence_pipeline import (
     FigureEvidenceError,
+    extract_color_bars,
     extract_color_lines,
+    extract_color_scatter,
     inspect_source,
     main,
     validate_project,
@@ -35,6 +37,21 @@ class FigureEvidencePipelineTest(unittest.TestCase):
             y = int(round(65 - 0.4 * (x - 10)))
             draw.point((x, y), fill="#cc2244")
             draw.point((x, y + 1), fill="#cc2244")
+        image.save(path)
+
+    def _make_scatter_image(self, path: Path) -> None:
+        image = Image.new("RGB", (120, 80), "white")
+        draw = ImageDraw.Draw(image)
+        for x, y in [(25, 55), (55, 40), (90, 25)]:
+            draw.ellipse((x - 2, y - 2, x + 2, y + 2), fill="#2266cc")
+        image.save(path)
+
+    def _make_bar_image(self, path: Path) -> None:
+        image = Image.new("RGB", (120, 80), "white")
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((20, 45, 32, 70), fill="#22aa66")
+        draw.rectangle((50, 30, 62, 70), fill="#22aa66")
+        draw.rectangle((80, 18, 92, 70), fill="#22aa66")
         image.save(path)
 
     def test_inspect_without_chart_type_fails_closed(self) -> None:
@@ -150,6 +167,92 @@ class FigureEvidencePipelineTest(unittest.TestCase):
                     x_anchors=[(10, 0), (110, 10)],
                     y_anchors=[(65, 0), (25, 4)],
                     series=[("response", "#cc2244")],
+                )
+
+    def test_scatter_extraction_requires_overlay_acceptance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "scatter.png"
+            project = root / "project.json"
+            output = root / "evidence"
+            self._make_scatter_image(source)
+            inspect_source(source, "scatter", project)
+
+            pending = extract_color_scatter(
+                project,
+                output,
+                plot_bounds=(10, 10, 110, 70),
+                x_anchors=[(10, 0), (110, 10)],
+                y_anchors=[(70, 0), (10, 6)],
+                series=[("samples", "#2266cc")],
+            )
+            accepted = extract_color_scatter(
+                project,
+                output,
+                plot_bounds=(10, 10, 110, 70),
+                x_anchors=[(10, 0), (110, 10)],
+                y_anchors=[(70, 0), (10, 6)],
+                series=[("samples", "#2266cc")],
+                overlay_review_status="accepted",
+            )
+
+            visualspec = json.loads(
+                (output / "visualspec.json").read_text(encoding="utf-8")
+            )
+
+        self.assertEqual("needs_review", pending["extraction_status"])
+        self.assertFalse(pending["value_delivery_authorized"])
+        self.assertEqual("authorized_candidate", accepted["extraction_status"])
+        self.assertTrue(accepted["value_delivery_authorized"])
+        self.assertEqual([], validate_visualspec(visualspec))
+
+    def test_bar_and_histogram_route_extracts_visible_rectangles(self) -> None:
+        for chart_type in ("simple_bar", "grouped_bar", "histogram"):
+            with self.subTest(chart_type=chart_type), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                source = root / "bars.png"
+                project = root / "project.json"
+                output = root / "evidence"
+                self._make_bar_image(source)
+                inspect_source(source, chart_type, project)
+
+                report = extract_color_bars(
+                    project,
+                    output,
+                    plot_bounds=(10, 10, 110, 70),
+                    x_anchors=[(10, 0), (110, 10)],
+                    y_anchors=[(70, 0), (10, 6)],
+                    series=[("bars", "#22aa66")],
+                    baseline_pixel=70,
+                    overlay_review_status="accepted",
+                )
+                visualspec = json.loads(
+                    (output / "visualspec.json").read_text(encoding="utf-8")
+                )
+                rows = (output / "digitized_bars.csv").read_text(
+                    encoding="utf-8"
+                ).splitlines()
+
+            self.assertTrue(report["value_delivery_authorized"])
+            self.assertEqual(4, len(rows))
+            self.assertEqual([], validate_visualspec(visualspec))
+
+    def test_bar_route_refuses_nonzero_baseline(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "bars.png"
+            project = root / "project.json"
+            self._make_bar_image(source)
+            inspect_source(source, "simple_bar", project)
+            with self.assertRaises(FigureEvidenceError):
+                extract_color_bars(
+                    project,
+                    root / "evidence",
+                    plot_bounds=(10, 10, 110, 70),
+                    x_anchors=[(10, 0), (110, 10)],
+                    y_anchors=[(70, 5), (10, 11)],
+                    series=[("bars", "#22aa66")],
+                    baseline_pixel=70,
                 )
 
     def test_cli_runs_two_stage_review_gate(self) -> None:

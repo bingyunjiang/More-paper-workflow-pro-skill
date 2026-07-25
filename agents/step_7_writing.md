@@ -372,7 +372,7 @@ Step 7 是写作生产层。它可以在正文生成过程中完成基础可读�
 | 7.15 | 图表意图与证据约束 | 初稿、图文资产、图表意图、MinerU ZIP / `deep_read_cards` | `figure_index.json` + `figure_evidence_report.md/json` + 带引出句的正文段落；执行 `scripts/resolve_figure_refs.py` 解析标记 |
 | 7.16 | 写后引用审计 | 初稿、Zotero 条目、PDF/笔记/标注证据 | `引用审计报告.md` |
 | 7.16.1 | 写作质量与审稿缺陷审计 | 初稿、argument_plan、图表/证据审计结果 | `scientific_writing_quality_audit.*`、`engineering_claim_audit.*`、`reviewer_defect_report.md` |
-| 7.17 | 图文联合插图 | 初稿、图文资产、图表意图、MinerU ZIP / `deep_read_cards` | `figure_index.json` + `figure_evidence_report.md/json` + 带引出句的正文段落；执行 `scripts/resolve_figure_refs.py` 解析标记 |
+| 7.15.1 | 图文联合插图 | 初稿、图文资产、图表意图、MinerU ZIP / `deep_read_cards` | `figure_index.json` + `figure_evidence_report.md/json` + 带引出句的正文段落；执行 `scripts/resolve_figure_refs.py` 解析标记 |
 
 ### 7.1. 入口判定：target_genre、writing_mode 与 writing_axes
 
@@ -1375,71 +1375,34 @@ Step 7 可以根据 `section_blueprints`、`argument_plan`、`target_genre` 和�
 如需更细的反方挑战、review 话术或 rebuttal 提示，应查 `references/reviewer-protocol.md`，而不在主协议中强行预设用户的论证路线。
 
 ### 7.15. 图表意图与证据约束
+本阶段记录 `figure_intent / evidence_basis / candidate_specs /
+human_selected_candidate / figure_risk_note`，并把每张图绑定到 `figure_id /
+caption / claim_binding / section_id`。详细接口统一读取
+`references/figure-writing-interface.md`。
 
-Step 7.15 的主目标不是追求某种固定图表风格，而是把“为什么需要这张图、它支撑哪个 claim、哪些证据可用、哪些风险必须标记”记录清楚。生成脚本可以作为可选执行工具，但图表是否进入正文由 claim 绑定和证据状态决定。
-
-论文 PDF、MinerU ZIP 或本地证据包已有原图时，默认保留并直接插入原图，
-记录 `figure_asset_action=insert_original`、
-`figure_backend=not_applicable` 和
-`figure_transform_authorization=not_required`。不得因为检测到曲线、参考图片
-或 VisualSpec 就自动重绘。只有用户明确提出重绘、数字化或生成可编辑版本，
-才记录 `figure_transform_authorization=explicit_user_request` 并启动相应绘图链。
-
+论文 PDF、MinerU ZIP 或本地已有原图默认使用
+`figure_asset_action=insert_original`、`figure_backend=not_applicable` 和
+`figure_transform_authorization=not_required`。只有用户明确要求重绘、数字化或
+可编辑版本时，才记录 `explicit_user_request` 并进入 reproduction；参考图片、
+曲线或 VisualSpec 的存在不构成授权。
 原图插入完成后的交付说明必须提醒一次可选能力：
 
 > 已按论文原图插入。本 skill 也支持图表重绘、曲线数字化、可编辑
 > SVG/PDF 和严格 QA；如需启用，请明确指定要重绘的图及目标。
 
 该提醒只说明能力，不是确认问题或重绘授权；不得因为已提醒而运行绘图代码。
+#### 7.15.1. 图文联合插图
+先运行 `scripts/build_figure_asset_check.py`。MinerU 候选按
+`manifest.json → full.md 图片引用 → images/ 扫描 → PDF direct` 降级；
+`resolve_figure_refs.py` 只物化正文选中的原图，并生成
+`figure_resolution_report.json` 与原图 `figure_evidence_report.json`。
 
-```bash
-python3 scripts/generate_figures.py 论文初稿.md --data data/ --output figures/
-```
-
-只有用户明确要求从论文图片/PDF恢复曲线数值时，才执行数字化证据链：
-
-```bash
-python3 scripts/figure_evidence_pipeline.py inspect \
-  --input source.png \
-  --chart-type line \
-  --output-project figure-project.json
-
-python3 scripts/figure_evidence_pipeline.py extract-line \
-  --project figure-project.json \
-  --plot-bounds LEFT,TOP,RIGHT,BOTTOM \
-  --x-anchor XPIXEL1,XVALUE1 --x-anchor XPIXEL2,XVALUE2 \
-  --y-anchor YPIXEL1,YVALUE1 --y-anchor YPIXEL2,YVALUE2 \
-  --series response=#cc2244 \
-  --output-dir digitized
-```
-
-第一次提取保持 `needs_review`。在原始分辨率检查
-`digitized/digitization_overlay.png` 后，用完全相同的参数追加
-`--overlay-review accepted` 重跑；只有此时才允许生成 VisualSpec 并进入
-`generate_figures.py --backend reproduction`。若只按参考图做视觉重绘而不恢复
-数值，则直接进入 reproduction，不运行数字化提取器。
-
-**图表链最小流程：**
-1. `figure_intent`：说明这张图要回答什么问题、服务哪个章节或 claim。
-2. `evidence_basis`：列出数据文件、已有图/表、PDF 原文、note / annotation 或作者输入等依据。
-3. `candidate_specs`：给出 1-3 个候选图表规格，只记录可选方案，不替用户决定最终表达。
-4. `human_selected_candidate`：记录作者选择或确认的候选规格。
-5. `figure_risk_note`：记录数据不足、图文不一致、过度解释、视觉确认缺失等风险。
-
-**图表与论证绑定要求：**
-- 新生成图表应可回写到 `figure_index.json`
-- 每个图表至少应绑定：
-  - `figure_id`
-  - `caption`
-  - `claim_binding`
-  - `section_id`
-- 图表证据确认还应记录：
-  - `figure_intent`
-  - `evidence_basis`
-  - `candidate_specs`
-  - `human_selected_candidate`
-  - `figure_risk_note`
-- 图表清单只记录“生成了什么”；图表是否支撑 claim 由 `figure_evidence_report.md/json` 决定
+只有明确要求恢复数值时才按 `references/DIGITIZATION_WORKFLOW.md` 执行
+`inspect` 和对应提取器；首次输出保持 `needs_review`，原始分辨率 overlay
+确认后才能追加 `--overlay-review accepted`。只有授权候选值才能进入
+VisualSpec。重绘、严格 QA 和 bundle 命令按
+`references/scientific-figure-reproduction.md` 执行，并强制携带
+`--transform-authorization explicit_user_request`。
 
 ### 7.16. 写后引用审计
 

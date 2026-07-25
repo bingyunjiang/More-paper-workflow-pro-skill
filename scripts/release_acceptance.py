@@ -113,7 +113,7 @@ def main() -> int:
             ("build_zip", [sys.executable, str(SCRIPTS / "build_skill_package.py"), "--root", str(ROOT), "--out", str(zip_path)]),
             ("zip_package", [sys.executable, str(SCRIPTS / "validate_skill_package.py"), "--root", str(ROOT), "--zip", str(zip_path)]),
             ("render_baseline", [sys.executable, str(SCRIPTS / "render_matplotlib.py"), "--spec", str(spec), "--out-dir", str(baseline)]),
-            ("run_reproduction", [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec), "--source", str(baseline / "render.png"), "--out-dir", str(bundle), "--require-strict"]),
+            ("run_reproduction", [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec), "--source", str(baseline / "render.png"), "--out-dir", str(bundle), "--require-strict", "--transform-authorization", "explicit_user_request"]),
             ("bundle_verify", [sys.executable, str(bundle / "verify.py")]),
             ("portability", [sys.executable, str(SCRIPTS / "validate_portability.py"), "--root", str(bundle)]),
         ]

@@ -38,7 +38,8 @@ python scripts/generate_figures.py \
   --source source.png \
   --output bundle \
   --qa-profile semantic \
-  --require-strict
+  --require-strict \
+  --transform-authorization explicit_user_request
 ```
 
 6. 交付 PNG、SVG、PDF、`render_semantics.json`、视觉与 panel 评分、语义审计、矢量检查、环境记录、manifest、bundle lock、run attestation 和 checksums。

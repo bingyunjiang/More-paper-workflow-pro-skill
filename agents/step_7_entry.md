@@ -89,6 +89,7 @@ Artifact graph 只负责登记当前可用材料和可确认关系，不强制�
 
 ## 图文联合规则
 
+- Step 7 开始图文处理前运行 `scripts/build_figure_asset_check.py`，将已发现的 MinerU ZIP、`figure_index.json`、本地图片目录和 PDF 写入 `figure_asset_check.json/md`；不得仅靠口头判断资产状态。
 - `auto_insert_figures=true` 时，条目必须具备 `LLM-for-Zotero-MinerU-cache-*.zip` 或等价图文资产包。
 - 没有 MinerU ZIP 但本地 PDF 可读时，允许先进入 `post_write`，用 PyMuPDF 生成 `pdf_direct` 低置信候选图；没有可读 PDF 或无候选图时，才只能放图位占位，不自动选图。
 - `post_write` 用于正文先完成、后按章补图；`auto_insert` 用于写作中同步扫图位。

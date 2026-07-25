@@ -50,7 +50,14 @@ class GenerateFiguresBackendTest(unittest.TestCase):
         )
 
     def test_missing_dependencies_fail_without_fallback(self) -> None:
-        args = type("Args", (), {"spec": "visualspec.json"})()
+        args = type(
+            "Args",
+            (),
+            {
+                "spec": "visualspec.json",
+                "transform_authorization": "explicit_user_request",
+            },
+        )()
         with patch.object(generate_figures, "missing_reproduction_dependencies", return_value=["scikit-image"]):
             with patch.object(generate_figures.subprocess, "call") as call:
                 self.assertEqual(2, generate_figures.run_reproduction_backend(args))
@@ -67,6 +74,7 @@ class GenerateFiguresBackendTest(unittest.TestCase):
                 "source": "source.png",
                 "custom_renderer": "renderer.py",
                 "require_strict": True,
+                "transform_authorization": "explicit_user_request",
             },
         )()
         with patch.object(generate_figures, "missing_reproduction_dependencies", return_value=[]):
@@ -77,6 +85,20 @@ class GenerateFiguresBackendTest(unittest.TestCase):
         self.assertIn("--source", command)
         self.assertIn("--script", command)
         self.assertIn("--require-strict", command)
+        self.assertIn("--transform-authorization", command)
+
+    def test_reproduction_requires_explicit_transform_authorization(self) -> None:
+        args = type(
+            "Args",
+            (),
+            {
+                "spec": "visualspec.json",
+                "transform_authorization": None,
+            },
+        )()
+        with patch.object(generate_figures.subprocess, "call") as call:
+            self.assertEqual(2, generate_figures.run_reproduction_backend(args))
+            call.assert_not_called()
 
 
 if __name__ == "__main__":

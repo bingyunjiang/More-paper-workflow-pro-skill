@@ -168,6 +168,12 @@ def run_reproduction_backend(args) -> int:
     if not args.spec:
         print("ERROR: reproduction backend requires --spec with a VisualSpec JSON file.", file=sys.stderr)
         return 2
+    if getattr(args, "transform_authorization", None) != "explicit_user_request":
+        print(
+            "ERROR: reproduction requires --transform-authorization explicit_user_request.",
+            file=sys.stderr,
+        )
+        return 2
     missing = missing_reproduction_dependencies()
     if missing:
         requirements = Path(__file__).resolve().parents[1] / "requirements-figures.txt"
@@ -190,6 +196,8 @@ def run_reproduction_backend(args) -> int:
         str(args.output),
         "--qa-profile",
         args.qa_profile,
+        "--transform-authorization",
+        "explicit_user_request",
     ]
     if args.source:
         command.extend(["--source", str(args.source)])
@@ -532,6 +540,11 @@ def main() -> int:
     parser.add_argument(
         "--custom-renderer",
         help="Custom renderer accepting --spec/--out-dir/--script for complex figures.",
+    )
+    parser.add_argument(
+        "--transform-authorization",
+        choices=["explicit_user_request"],
+        help="Required for reproduction; records that the user explicitly requested redraw or digitization.",
     )
 
     args = parser.parse_args()

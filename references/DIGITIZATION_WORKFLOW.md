@@ -27,10 +27,13 @@ evidence contract, and three independent states:
 - `render_status`: whether a figure was rendered and checked;
 - `delivery_status`: whether the complete evidence/delivery package passed.
 
-## Candidate color-line baseline
+## Native candidate extractors
 
-The first native extractor is deliberately narrow: a color-distinct line in a
-verified raster plot rectangle with explicit axis anchors.
+All native extractors require a verified raster plot rectangle, explicit axis
+anchors, source identity verification, and an original-resolution overlay
+review.
+
+### Color-distinct line
 
 ```bash
 python scripts/figure_evidence_pipeline.py extract-line \
@@ -66,6 +69,44 @@ source-identity, calibration, coverage, and explicit overlay-review gates. It
 is not evidence of author raw observations, hidden parameters, causal
 mechanisms, or publication readiness.
 
+### Compact filled scatter
+
+```bash
+python scripts/figure_evidence_pipeline.py extract-scatter \
+  --project figure-project.json \
+  --plot-bounds 40,20,620,420 \
+  --x-anchor 40,0 --x-anchor 620,100 \
+  --y-anchor 420,0 --y-anchor 20,1 \
+  --series samples=#2266cc \
+  --output-dir digitized
+```
+
+This route accepts only compact, filled, color-separable connected components.
+Touching, hollow, bubble-sized, occluded, elongated, or ambiguous components
+must be rejected or handled by a separately tested project extractor.
+
+### Vertical bars and histogram bins
+
+```bash
+python scripts/figure_evidence_pipeline.py extract-bars \
+  --project figure-project.json \
+  --plot-bounds 40,20,620,420 \
+  --x-anchor 40,0 --x-anchor 620,100 \
+  --y-anchor 420,0 --y-anchor 20,1 \
+  --series bars=#22aa66 \
+  --baseline-pixel 420 \
+  --output-dir digitized
+```
+
+The declared baseline must be visibly verified as zero and lie inside the plot
+rectangle. This route accepts vertical solid-color rectangles only. Gradients, 3D effects, horizontal
+bars, stacked segments, touching bars, and legend swatches are outside the
+native contract.
+
+Both routes use the same two-stage overlay gate as line extraction. Add
+`--overlay-review accepted` only after inspecting the generated overlay at
+original resolution.
+
 ## Binding evidence rules
 
 1. Measure the exact source file recorded by SHA-256 and dimensions.
@@ -88,11 +129,13 @@ Document any visual calibration, such as using a labeled peak or plateau when a 
 | Grammar | Native status |
 |---|---|
 | Color-distinct raster line | `candidate` |
-| Scatter, simple/grouped/stacked bars | `planned` |
-| Histogram and boxplot | `planned` |
+| Compact filled color scatter | `candidate` |
+| Vertical simple/grouped color bars | `candidate` |
+| Vertical solid-color histogram bins | `candidate` |
+| Stacked bars and boxplot | `planned` |
 | Heatmap, labelled pie/donut, aligned lattice | `planned` |
 | Direct PDF vector recovery | preflight only; project-level assisted implementation required |
 
-Do not route an unsupported grammar to the line extractor. A recognized but
+Do not route an unsupported grammar to a native extractor. A recognized but
 unimplemented route must remain `not_extracted` or use an independently tested
 project-level extractor with the same source and evidence contract.

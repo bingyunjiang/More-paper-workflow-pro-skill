@@ -30,6 +30,7 @@ related_skills:
 - Platform-specific launch hints live in thin adapter files such as `agents/openai.yaml` and `.claude-plugin/marketplace.json`.
 - Step-specific runtime contracts remain in `agents/step_*.md` and `references/*.md`.
 - Raster/PDF numeric recovery starts with `scripts/figure_evidence_pipeline.py inspect`; source identity, chart grammar, coordinate model, and extraction authorization must be established before recovered values enter VisualSpec or manuscript claims.
+- Step 7 figure work starts with `scripts/build_figure_asset_check.py`; MinerU candidates degrade through `manifest.json -> full.md -> images/ -> PDF direct`, and only selected original assets are materialized into the project.
 
 ## Runtime rules
 
@@ -43,6 +44,7 @@ related_skills:
 - Require a dedicated runnable script for every reproduced figure, or a documented per-figure function when a batch runner is the stable entrypoint; record every path in manifest `per_figure_scripts`.
 - Keep `extraction_status`, `render_status`, and `delivery_status` independent. A successful render never authorizes an extraction, and an authorized candidate extraction never implies publication-ready delivery.
 - For raster measurement, bind the exact input SHA-256 and original dimensions. Never measure a preview, resized copy, overlay, or recreation; enlargement is review-only.
+- Native candidate digitization covers color-distinct lines, compact filled scatter markers, and vertical solid-color bars/histogram bins; all require explicit calibration and accepted original-resolution overlay review.
 - Official XLSX/CSV values may validate an immutable image-derived extraction but must not fill occluded or missing image values.
 
 ## Global discipline

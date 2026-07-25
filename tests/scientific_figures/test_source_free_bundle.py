@@ -11,7 +11,7 @@ class SourceFreeBundleTests(ScientificFigureReproductionTestBase):
             spec_path.write_text(json.dumps(self._line_spec()), encoding="utf-8")
             out_dir = root / "out"
             completed = subprocess.run(
-                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--out-dir", str(out_dir)],
+                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--out-dir", str(out_dir), "--transform-authorization", "explicit_user_request"],
                 text=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -41,7 +41,7 @@ class SourceFreeBundleTests(ScientificFigureReproductionTestBase):
             spec_path = root / "visualspec.json"
             spec_path.write_text(json.dumps(self._line_spec()), encoding="utf-8")
             completed = subprocess.run(
-                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--out-dir", str(root / "out"), "--require-strict"],
+                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--out-dir", str(root / "out"), "--require-strict", "--transform-authorization", "explicit_user_request"],
                 text=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,

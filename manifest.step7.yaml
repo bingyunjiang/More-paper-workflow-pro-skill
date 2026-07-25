@@ -34,7 +34,14 @@ axes:
       - quick
       - reproduction
       - not_applicable
-    default: auto
+    default: not_applicable
+  figure_asset_action:
+    allowed:
+      - insert_original
+      - generate_new
+      - redraw
+      - digitize
+    default: insert_original
 
 always_load:
   - static/core/output-contract.md

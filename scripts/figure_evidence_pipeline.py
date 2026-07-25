@@ -8,6 +8,7 @@ import math
 import os
 import re
 import sys
+from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -22,11 +23,11 @@ SCHEMA_VALIDATION = "morepaper.figure_project_validation.v1"
 RASTER_SUFFIXES = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"}
 CHART_ROUTES: dict[str, dict[str, str]] = {
     "line": {"support": "candidate", "extractor": "native_color_line_v1"},
-    "scatter": {"support": "planned", "extractor": "not_implemented"},
-    "simple_bar": {"support": "planned", "extractor": "not_implemented"},
-    "grouped_bar": {"support": "planned", "extractor": "not_implemented"},
+    "scatter": {"support": "candidate", "extractor": "native_color_scatter_v1"},
+    "simple_bar": {"support": "candidate", "extractor": "native_color_bar_v1"},
+    "grouped_bar": {"support": "candidate", "extractor": "native_color_bar_v1"},
     "stacked_bar": {"support": "planned", "extractor": "not_implemented"},
-    "histogram": {"support": "planned", "extractor": "not_implemented"},
+    "histogram": {"support": "candidate", "extractor": "native_color_bar_v1"},
     "boxplot": {"support": "planned", "extractor": "not_implemented"},
     "heatmap": {"support": "planned", "extractor": "not_implemented"},
     "labelled_pie": {"support": "planned", "extractor": "not_implemented"},
@@ -386,6 +387,72 @@ def _line_points_for_color(
     return accepted, counts
 
 
+def _color_mask(
+    rgb: np.ndarray,
+    bounds: tuple[int, int, int, int],
+    target_rgb: tuple[int, int, int],
+    tolerance: float,
+) -> np.ndarray:
+    left, top, right, bottom = bounds
+    crop = rgb[top : bottom + 1, left : right + 1].astype(np.int32)
+    target = np.asarray(target_rgb, dtype=np.int32)
+    distances = np.sqrt(np.sum((crop - target) ** 2, axis=2))
+    return distances <= tolerance
+
+
+def _connected_components(
+    mask: np.ndarray,
+    *,
+    left: int,
+    top: int,
+) -> list[dict[str, Any]]:
+    height, width = mask.shape
+    visited = np.zeros_like(mask, dtype=bool)
+    components: list[dict[str, Any]] = []
+    for y0 in range(height):
+        for x0 in range(width):
+            if not mask[y0, x0] or visited[y0, x0]:
+                continue
+            queue: deque[tuple[int, int]] = deque([(x0, y0)])
+            visited[y0, x0] = True
+            pixels: list[tuple[int, int]] = []
+            while queue:
+                x, y = queue.popleft()
+                pixels.append((x + left, y + top))
+                for dy in (-1, 0, 1):
+                    for dx in (-1, 0, 1):
+                        if dx == 0 and dy == 0:
+                            continue
+                        nx, ny = x + dx, y + dy
+                        if (
+                            0 <= nx < width
+                            and 0 <= ny < height
+                            and mask[ny, nx]
+                            and not visited[ny, nx]
+                        ):
+                            visited[ny, nx] = True
+                            queue.append((nx, ny))
+            xs = [pixel[0] for pixel in pixels]
+            ys = [pixel[1] for pixel in pixels]
+            min_x, max_x = min(xs), max(xs)
+            min_y, max_y = min(ys), max(ys)
+            box_width = max_x - min_x + 1
+            box_height = max_y - min_y + 1
+            components.append(
+                {
+                    "pixels": pixels,
+                    "area_px": len(pixels),
+                    "bbox_px": [min_x, min_y, max_x, max_y],
+                    "width_px": box_width,
+                    "height_px": box_height,
+                    "fill_ratio": len(pixels) / (box_width * box_height),
+                    "centroid_x_px": float(np.mean(xs)),
+                    "centroid_y_px": float(np.mean(ys)),
+                }
+            )
+    return components
+
+
 def _pixel_uncertainty(axis: AxisCalibration, pixel: float) -> float:
     center = axis.map_pixel(pixel)
     return max(
@@ -416,6 +483,105 @@ def _visualspec_from_series(
             }
         )
 
+    x_values = [anchor[1] for anchor in x_axis.anchors]
+    y_values = [anchor[1] for anchor in y_axis.anchors]
+    return {
+        "schema": "scientificfigure.visualspec.v2",
+        "figure": {
+            "size_mm": [100.0, round(100.0 * height / width, 3)],
+            "dpi": 300,
+            "crop_mode": "fixed_canvas",
+            "background": "white",
+        },
+        "theme": {
+            "font": {
+                "family_candidates": ["Arial", "Liberation Sans", "DejaVu Sans"],
+                "size_pt": 8,
+            }
+        },
+        "panels": [
+            {
+                "id": "digitized_panel",
+                "bbox_normalized": [0.16, 0.16, 0.78, 0.74],
+                "source_strategy": "digitized_raster",
+                "representation": "semantic_vector",
+                "axes": {
+                    "x": {
+                        "scale": "log" if x_axis.scale == "log10" else "linear",
+                        "limits": [min(x_values), max(x_values)],
+                    },
+                    "y": {
+                        "scale": "log" if y_axis.scale == "log10" else "linear",
+                        "limits": [min(y_values), max(y_values)],
+                    },
+                },
+                "plots": plots,
+                "annotations": [],
+            }
+        ],
+    }
+
+
+def _visualspec_from_points(
+    width: int,
+    height: int,
+    x_axis: AxisCalibration,
+    y_axis: AxisCalibration,
+    series_rows: dict[str, list[dict[str, Any]]],
+    colors: dict[str, str],
+) -> dict[str, Any]:
+    plots = [
+        {
+            "type": "scatter",
+            "label": name,
+            "data": {
+                "x": [row["x"] for row in rows],
+                "y": [row["y"] for row in rows],
+            },
+            "style": {"color": colors[name], "marker_size_pt2": 18},
+        }
+        for name, rows in series_rows.items()
+    ]
+    return _visualspec_base(width, height, x_axis, y_axis, plots)
+
+
+def _visualspec_from_bars(
+    width: int,
+    height: int,
+    x_axis: AxisCalibration,
+    y_axis: AxisCalibration,
+    series_rows: dict[str, list[dict[str, Any]]],
+    colors: dict[str, str],
+) -> dict[str, Any]:
+    plots: list[dict[str, Any]] = []
+    for name, rows in series_rows.items():
+        plots.append(
+            {
+                "type": "grouped_bar",
+                "label": name,
+                "data": {
+                    "x": [row["x"] for row in rows],
+                    "groups": [
+                        {
+                            "label": name,
+                            "color": colors[name],
+                            "y": [row["y"] - row["baseline_y"] for row in rows],
+                        }
+                    ],
+                },
+                "style": {"bar_width": 0.6},
+            }
+        )
+    return _visualspec_base(width, height, x_axis, y_axis, plots)
+
+
+def _visualspec_base(
+    width: int,
+    height: int,
+    x_axis: AxisCalibration,
+    y_axis: AxisCalibration,
+    plots: list[dict[str, Any]],
+) -> dict[str, Any]:
     x_values = [anchor[1] for anchor in x_axis.anchors]
     y_values = [anchor[1] for anchor in y_axis.anchors]
     return {
@@ -660,6 +826,476 @@ def extract_color_lines(
     return report
 
 
+def _load_raster_project(
+    project_path: Path,
+    *,
+    allowed_chart_types: set[str],
+    extractor_id: str,
+    plot_bounds: tuple[int, int, int, int],
+    x_anchors: Iterable[tuple[float, float]],
+    y_anchors: Iterable[tuple[float, float]],
+    x_scale: str,
+    y_scale: str,
+) -> tuple[dict[str, Any], Image.Image, np.ndarray, AxisCalibration, AxisCalibration]:
+    project = _load_json(project_path)
+    validation = validate_project(project_path, verify_source=True)
+    if validation["status"] != "pass":
+        raise FigureEvidenceError("; ".join(validation["errors"]))
+    chart_type = project.get("chart", {}).get("chart_type")
+    if chart_type not in allowed_chart_types:
+        raise FigureEvidenceError(
+            f"{extractor_id} requires chart.chart_type in {sorted(allowed_chart_types)}"
+        )
+    if project.get("input", {}).get("media_type") != "raster_image":
+        raise FigureEvidenceError(f"{extractor_id} requires a raster image")
+    source = resolve_project_source(project_path, project)
+    with Image.open(source) as original:
+        image = original.convert("RGB")
+    _validate_bounds(plot_bounds, image.width, image.height)
+    x_axis = fit_axis(x_anchors, x_scale)
+    y_axis = fit_axis(y_anchors, y_scale)
+    return project, image, np.asarray(image), x_axis, y_axis
+
+
+def _extraction_state(
+    *,
+    calibration_pass: bool,
+    grammar_pass: bool,
+    any_rows: bool,
+    overlay_review_status: str,
+) -> tuple[bool, str]:
+    candidate_gates_pass = calibration_pass and grammar_pass and any_rows
+    authorized = candidate_gates_pass and overlay_review_status == "accepted"
+    if authorized:
+        return True, "authorized_candidate"
+    if candidate_gates_pass:
+        return False, "needs_review"
+    if any_rows:
+        return False, "partial_visible"
+    return False, "not_extracted"
+
+
+def _write_component_result(
+    *,
+    project_path: Path,
+    project: dict[str, Any],
+    output_dir: Path,
+    report: dict[str, Any],
+    csv_name: str,
+    fieldnames: list[str],
+    rows_by_series: dict[str, list[dict[str, Any]]],
+    series_order: list[str],
+    overlay: Image.Image,
+    visualspec: dict[str, Any] | None,
+) -> dict[str, Any]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = output_dir / csv_name
+    with csv_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for name in series_order:
+            writer.writerows(rows_by_series[name])
+    overlay_path = output_dir / "digitization_overlay.png"
+    overlay.save(overlay_path)
+    visualspec_path: Path | None = None
+    if visualspec is not None:
+        visualspec_path = output_dir / "visualspec.json"
+        _write_json(visualspec_path, visualspec)
+
+    report["artifacts"] = {
+        "csv": csv_path.name,
+        "overlay": overlay_path.name,
+        "visualspec": visualspec_path.name if visualspec_path else None,
+    }
+    report_path = output_dir / "extraction_report.json"
+    _write_json(report_path, report)
+    result_project = dict(project)
+    result_project["extraction_status"] = report["extraction_status"]
+    result_project["render_status"] = "not_run"
+    result_project["delivery_status"] = "working"
+    result_project["routing"] = dict(project["routing"])
+    result_project["routing"]["value_delivery_authorized"] = report[
+        "value_delivery_authorized"
+    ]
+    result_project["artifacts"] = {
+        "extraction_report": report_path.name,
+        "digitized_csv": csv_path.name,
+        "overlay": overlay_path.name,
+        "visualspec": visualspec_path.name if visualspec_path else None,
+    }
+    _write_json(output_dir / "figure_project.result.json", result_project)
+    return report
+
+
+def extract_color_scatter(
+    project_path: Path,
+    output_dir: Path,
+    *,
+    plot_bounds: tuple[int, int, int, int],
+    x_anchors: Iterable[tuple[float, float]],
+    y_anchors: Iterable[tuple[float, float]],
+    series: Iterable[tuple[str, str]],
+    x_scale: str = "linear",
+    y_scale: str = "linear",
+    color_tolerance: float = 36.0,
+    min_component_area: int = 6,
+    max_component_area: int = 400,
+    min_fill_ratio: float = 0.35,
+    max_aspect_ratio: float = 2.0,
+    minimum_points_per_series: int = 1,
+    overlay_review_status: str = "pending",
+) -> dict[str, Any]:
+    project, image, rgb, x_axis, y_axis = _load_raster_project(
+        project_path,
+        allowed_chart_types={"scatter"},
+        extractor_id="native_color_scatter_v1",
+        plot_bounds=plot_bounds,
+        x_anchors=x_anchors,
+        y_anchors=y_anchors,
+        x_scale=x_scale,
+        y_scale=y_scale,
+    )
+    series_list = list(series)
+    if not series_list:
+        raise FigureEvidenceError("at least one --series name=#RRGGBB is required")
+    if len({name for name, _ in series_list}) != len(series_list):
+        raise FigureEvidenceError("series names must be unique")
+
+    rows_by_series: dict[str, list[dict[str, Any]]] = {}
+    component_ledger: list[dict[str, Any]] = []
+    overlay = image.copy()
+    draw = ImageDraw.Draw(overlay)
+    draw.rectangle(plot_bounds, outline=(255, 0, 255), width=1)
+
+    for name, color in series_list:
+        mask = _color_mask(rgb, plot_bounds, hex_rgb(color), color_tolerance)
+        components = _connected_components(
+            mask,
+            left=plot_bounds[0],
+            top=plot_bounds[1],
+        )
+        rows: list[dict[str, Any]] = []
+        rejected = 0
+        for component in components:
+            width_px = int(component["width_px"])
+            height_px = int(component["height_px"])
+            aspect = max(width_px, height_px) / max(1, min(width_px, height_px))
+            if not (
+                min_component_area <= component["area_px"] <= max_component_area
+                and component["fill_ratio"] >= min_fill_ratio
+                and aspect <= max_aspect_ratio
+            ):
+                rejected += 1
+                continue
+            x_pixel = float(component["centroid_x_px"])
+            y_pixel = float(component["centroid_y_px"])
+            rows.append(
+                {
+                    "series": name,
+                    "x": x_axis.map_pixel(x_pixel),
+                    "y": y_axis.map_pixel(y_pixel),
+                    "x_px": x_pixel,
+                    "y_px": y_pixel,
+                    "area_px": component["area_px"],
+                    "width_px": width_px,
+                    "height_px": height_px,
+                    "uncertainty_x": _pixel_uncertainty(x_axis, x_pixel),
+                    "uncertainty_y": _pixel_uncertainty(y_axis, y_pixel),
+                    "status": "visible_component_supported",
+                }
+            )
+            x0, y0, x1, y1 = component["bbox_px"]
+            draw.rectangle((x0, y0, x1, y1), outline=hex_rgb(color), width=1)
+        rows.sort(key=lambda row: (row["x_px"], row["y_px"]))
+        rows_by_series[name] = rows
+        component_ledger.append(
+            {
+                "series": name,
+                "detected_components": len(components),
+                "accepted_components": len(rows),
+                "rejected_components": rejected,
+                "minimum_required": minimum_points_per_series,
+                "status": "pass"
+                if len(rows) >= minimum_points_per_series
+                else "failed",
+            }
+        )
+
+    calibration_pass = (
+        x_axis.normalized_max_residual <= 0.02
+        and y_axis.normalized_max_residual <= 0.02
+    )
+    grammar_pass = all(item["status"] == "pass" for item in component_ledger)
+    any_rows = any(rows_by_series.values())
+    authorized, extraction_status = _extraction_state(
+        calibration_pass=calibration_pass,
+        grammar_pass=grammar_pass,
+        any_rows=any_rows,
+        overlay_review_status=overlay_review_status,
+    )
+    colors = dict(series_list)
+    visualspec = (
+        _visualspec_from_points(
+            image.width, image.height, x_axis, y_axis, rows_by_series, colors
+        )
+        if authorized
+        else None
+    )
+    report = {
+        "schema": SCHEMA_EXTRACTION,
+        "extractor": {
+            "id": "native_color_scatter_v1",
+            "support_level": "candidate",
+            "claim": "visible compact filled color components only",
+        },
+        "input_contract": {
+            "path": project["input"]["path"],
+            "sha256": project["input"]["sha256"],
+            "width_px": image.width,
+            "height_px": image.height,
+            "coordinate_space": "original_raster_pixels",
+            "source_identity_verified": True,
+        },
+        "plot_bounds_px": list(plot_bounds),
+        "calibration": {"x": x_axis.as_dict(), "y": y_axis.as_dict()},
+        "configuration": {
+            "color_tolerance": color_tolerance,
+            "min_component_area": min_component_area,
+            "max_component_area": max_component_area,
+            "min_fill_ratio": min_fill_ratio,
+            "max_aspect_ratio": max_aspect_ratio,
+            "minimum_points_per_series": minimum_points_per_series,
+            "overlay_review_status": overlay_review_status,
+        },
+        "component_ledger": component_ledger,
+        "value_delivery_authorized": authorized,
+        "extraction_status": extraction_status,
+        "render_status": "not_run",
+        "delivery_status": "working",
+        "limitations": [
+            "candidate extractor for compact filled markers only",
+            "touching, hollow, bubble-sized, occluded, or same-color annotation components are rejected or require a tighter ROI",
+        ],
+    }
+    return _write_component_result(
+        project_path=project_path,
+        project=project,
+        output_dir=output_dir,
+        report=report,
+        csv_name="digitized_scatter.csv",
+        fieldnames=[
+            "series",
+            "x",
+            "y",
+            "x_px",
+            "y_px",
+            "area_px",
+            "width_px",
+            "height_px",
+            "uncertainty_x",
+            "uncertainty_y",
+            "status",
+        ],
+        rows_by_series=rows_by_series,
+        series_order=[name for name, _ in series_list],
+        overlay=overlay,
+        visualspec=visualspec,
+    )
+
+
+def extract_color_bars(
+    project_path: Path,
+    output_dir: Path,
+    *,
+    plot_bounds: tuple[int, int, int, int],
+    x_anchors: Iterable[tuple[float, float]],
+    y_anchors: Iterable[tuple[float, float]],
+    series: Iterable[tuple[str, str]],
+    baseline_pixel: int,
+    x_scale: str = "linear",
+    y_scale: str = "linear",
+    color_tolerance: float = 36.0,
+    baseline_tolerance_px: int = 3,
+    min_component_area: int = 20,
+    min_fill_ratio: float = 0.75,
+    minimum_bars_per_series: int = 1,
+    overlay_review_status: str = "pending",
+) -> dict[str, Any]:
+    project, image, rgb, x_axis, y_axis = _load_raster_project(
+        project_path,
+        allowed_chart_types={"simple_bar", "grouped_bar", "histogram"},
+        extractor_id="native_color_bar_v1",
+        plot_bounds=plot_bounds,
+        x_anchors=x_anchors,
+        y_anchors=y_anchors,
+        x_scale=x_scale,
+        y_scale=y_scale,
+    )
+    if not plot_bounds[1] <= baseline_pixel <= plot_bounds[3]:
+        raise FigureEvidenceError("baseline pixel must lie inside plot bounds")
+    series_list = list(series)
+    if not series_list:
+        raise FigureEvidenceError("at least one --series name=#RRGGBB is required")
+    if len({name for name, _ in series_list}) != len(series_list):
+        raise FigureEvidenceError("series names must be unique")
+
+    rows_by_series: dict[str, list[dict[str, Any]]] = {}
+    component_ledger: list[dict[str, Any]] = []
+    overlay = image.copy()
+    draw = ImageDraw.Draw(overlay)
+    draw.rectangle(plot_bounds, outline=(255, 0, 255), width=1)
+    draw.line(
+        (plot_bounds[0], baseline_pixel, plot_bounds[2], baseline_pixel),
+        fill=(0, 160, 255),
+        width=1,
+    )
+    baseline_y = y_axis.map_pixel(baseline_pixel)
+    y_anchor_values = [value for _, value in y_axis.anchors]
+    y_span = max(y_anchor_values) - min(y_anchor_values)
+    zero_tolerance = max(abs(y_span) * 1e-6, 1e-12)
+    if abs(baseline_y) > zero_tolerance:
+        raise FigureEvidenceError(
+            "native_color_bar_v1 requires a verified zero baseline"
+        )
+
+    for name, color in series_list:
+        mask = _color_mask(rgb, plot_bounds, hex_rgb(color), color_tolerance)
+        components = _connected_components(
+            mask,
+            left=plot_bounds[0],
+            top=plot_bounds[1],
+        )
+        rows: list[dict[str, Any]] = []
+        rejected = 0
+        for component in components:
+            x0, y0, x1, y1 = component["bbox_px"]
+            if not (
+                component["area_px"] >= min_component_area
+                and component["fill_ratio"] >= min_fill_ratio
+                and abs(y1 - baseline_pixel) <= baseline_tolerance_px
+                and component["height_px"] > component["width_px"]
+            ):
+                rejected += 1
+                continue
+            x_pixel = (x0 + x1) / 2
+            top_pixel = float(y0)
+            rows.append(
+                {
+                    "series": name,
+                    "x": x_axis.map_pixel(x_pixel),
+                    "y": y_axis.map_pixel(top_pixel),
+                    "baseline_y": baseline_y,
+                    "x_px": x_pixel,
+                    "top_y_px": top_pixel,
+                    "baseline_y_px": baseline_pixel,
+                    "width_px": component["width_px"],
+                    "height_px": component["height_px"],
+                    "area_px": component["area_px"],
+                    "uncertainty_x": _pixel_uncertainty(x_axis, x_pixel),
+                    "uncertainty_y": _pixel_uncertainty(y_axis, top_pixel),
+                    "status": "visible_rectangle_supported",
+                }
+            )
+            draw.rectangle((x0, y0, x1, y1), outline=hex_rgb(color), width=1)
+        rows.sort(key=lambda row: row["x_px"])
+        rows_by_series[name] = rows
+        component_ledger.append(
+            {
+                "series": name,
+                "detected_components": len(components),
+                "accepted_bars": len(rows),
+                "rejected_components": rejected,
+                "minimum_required": minimum_bars_per_series,
+                "status": "pass"
+                if len(rows) >= minimum_bars_per_series
+                else "failed",
+            }
+        )
+
+    calibration_pass = (
+        x_axis.normalized_max_residual <= 0.02
+        and y_axis.normalized_max_residual <= 0.02
+    )
+    grammar_pass = all(item["status"] == "pass" for item in component_ledger)
+    any_rows = any(rows_by_series.values())
+    authorized, extraction_status = _extraction_state(
+        calibration_pass=calibration_pass,
+        grammar_pass=grammar_pass,
+        any_rows=any_rows,
+        overlay_review_status=overlay_review_status,
+    )
+    colors = dict(series_list)
+    visualspec = (
+        _visualspec_from_bars(
+            image.width, image.height, x_axis, y_axis, rows_by_series, colors
+        )
+        if authorized
+        else None
+    )
+    report = {
+        "schema": SCHEMA_EXTRACTION,
+        "extractor": {
+            "id": "native_color_bar_v1",
+            "support_level": "candidate",
+            "claim": "visible vertical solid-color rectangles sharing a declared baseline",
+        },
+        "input_contract": {
+            "path": project["input"]["path"],
+            "sha256": project["input"]["sha256"],
+            "width_px": image.width,
+            "height_px": image.height,
+            "coordinate_space": "original_raster_pixels",
+            "source_identity_verified": True,
+        },
+        "plot_bounds_px": list(plot_bounds),
+        "calibration": {"x": x_axis.as_dict(), "y": y_axis.as_dict()},
+        "configuration": {
+            "color_tolerance": color_tolerance,
+            "baseline_pixel": baseline_pixel,
+            "baseline_tolerance_px": baseline_tolerance_px,
+            "min_component_area": min_component_area,
+            "min_fill_ratio": min_fill_ratio,
+            "minimum_bars_per_series": minimum_bars_per_series,
+            "overlay_review_status": overlay_review_status,
+        },
+        "component_ledger": component_ledger,
+        "value_delivery_authorized": authorized,
+        "extraction_status": extraction_status,
+        "render_status": "not_run",
+        "delivery_status": "working",
+        "limitations": [
+            "candidate extractor for vertical solid-color rectangles only",
+            "gradients, 3D effects, horizontal bars, stacked segments, touching bars, and legend swatches require refusal or a project-level extractor",
+        ],
+    }
+    return _write_component_result(
+        project_path=project_path,
+        project=project,
+        output_dir=output_dir,
+        report=report,
+        csv_name="digitized_bars.csv",
+        fieldnames=[
+            "series",
+            "x",
+            "y",
+            "baseline_y",
+            "x_px",
+            "top_y_px",
+            "baseline_y_px",
+            "width_px",
+            "height_px",
+            "area_px",
+            "uncertainty_x",
+            "uncertainty_y",
+            "status",
+        ],
+        rows_by_series=rows_by_series,
+        series_order=[name for name, _ in series_list],
+        overlay=overlay,
+        visualspec=visualspec,
+    )
+
+
 def _print(payload: dict[str, Any]) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
 
@@ -704,6 +1340,54 @@ def build_parser() -> argparse.ArgumentParser:
         help="Set accepted only after inspecting the generated overlay at original resolution.",
     )
     extract_parser.add_argument("--output-dir", required=True, type=Path)
+
+    scatter_parser = subparsers.add_parser(
+        "extract-scatter",
+        help="Candidate extraction of compact filled color scatter markers.",
+    )
+    scatter_parser.add_argument("--project", required=True, type=Path)
+    scatter_parser.add_argument("--plot-bounds", required=True)
+    scatter_parser.add_argument("--x-anchor", action="append", required=True)
+    scatter_parser.add_argument("--y-anchor", action="append", required=True)
+    scatter_parser.add_argument("--series", action="append", required=True)
+    scatter_parser.add_argument("--x-scale", choices=["linear", "log10"], default="linear")
+    scatter_parser.add_argument("--y-scale", choices=["linear", "log10"], default="linear")
+    scatter_parser.add_argument("--color-tolerance", type=float, default=36.0)
+    scatter_parser.add_argument("--min-component-area", type=int, default=6)
+    scatter_parser.add_argument("--max-component-area", type=int, default=400)
+    scatter_parser.add_argument("--min-fill-ratio", type=float, default=0.35)
+    scatter_parser.add_argument("--max-aspect-ratio", type=float, default=2.0)
+    scatter_parser.add_argument("--minimum-points-per-series", type=int, default=1)
+    scatter_parser.add_argument(
+        "--overlay-review",
+        choices=["pending", "accepted"],
+        default="pending",
+    )
+    scatter_parser.add_argument("--output-dir", required=True, type=Path)
+
+    bar_parser = subparsers.add_parser(
+        "extract-bars",
+        help="Candidate extraction of vertical solid-color bars or histogram bins.",
+    )
+    bar_parser.add_argument("--project", required=True, type=Path)
+    bar_parser.add_argument("--plot-bounds", required=True)
+    bar_parser.add_argument("--x-anchor", action="append", required=True)
+    bar_parser.add_argument("--y-anchor", action="append", required=True)
+    bar_parser.add_argument("--series", action="append", required=True)
+    bar_parser.add_argument("--baseline-pixel", required=True, type=int)
+    bar_parser.add_argument("--x-scale", choices=["linear", "log10"], default="linear")
+    bar_parser.add_argument("--y-scale", choices=["linear", "log10"], default="linear")
+    bar_parser.add_argument("--color-tolerance", type=float, default=36.0)
+    bar_parser.add_argument("--baseline-tolerance-px", type=int, default=3)
+    bar_parser.add_argument("--min-component-area", type=int, default=20)
+    bar_parser.add_argument("--min-fill-ratio", type=float, default=0.75)
+    bar_parser.add_argument("--minimum-bars-per-series", type=int, default=1)
+    bar_parser.add_argument(
+        "--overlay-review",
+        choices=["pending", "accepted"],
+        default="pending",
+    )
+    bar_parser.add_argument("--output-dir", required=True, type=Path)
     return parser
 
 
@@ -740,6 +1424,62 @@ def main(argv: list[str] | None = None) -> int:
                 color_tolerance=args.color_tolerance,
                 minimum_coverage=args.minimum_coverage,
                 max_vertical_span_px=args.max_vertical_span_px,
+                overlay_review_status=args.overlay_review,
+            )
+            _print(payload)
+            return 0 if payload["value_delivery_authorized"] else 3
+        if args.command == "extract-scatter":
+            if args.color_tolerance < 0:
+                raise FigureEvidenceError("color tolerance must be non-negative")
+            if not 0 < args.min_fill_ratio <= 1:
+                raise FigureEvidenceError("min fill ratio must be in (0, 1]")
+            if args.min_component_area <= 0 or args.max_component_area < args.min_component_area:
+                raise FigureEvidenceError("component area bounds are invalid")
+            if args.max_aspect_ratio < 1:
+                raise FigureEvidenceError("max aspect ratio must be at least 1")
+            payload = extract_color_scatter(
+                args.project,
+                args.output_dir,
+                plot_bounds=parse_bounds(args.plot_bounds),
+                x_anchors=[parse_anchor(value) for value in args.x_anchor],
+                y_anchors=[parse_anchor(value) for value in args.y_anchor],
+                series=[parse_series(value) for value in args.series],
+                x_scale=args.x_scale,
+                y_scale=args.y_scale,
+                color_tolerance=args.color_tolerance,
+                min_component_area=args.min_component_area,
+                max_component_area=args.max_component_area,
+                min_fill_ratio=args.min_fill_ratio,
+                max_aspect_ratio=args.max_aspect_ratio,
+                minimum_points_per_series=args.minimum_points_per_series,
+                overlay_review_status=args.overlay_review,
+            )
+            _print(payload)
+            return 0 if payload["value_delivery_authorized"] else 3
+        if args.command == "extract-bars":
+            if args.color_tolerance < 0:
+                raise FigureEvidenceError("color tolerance must be non-negative")
+            if not 0 < args.min_fill_ratio <= 1:
+                raise FigureEvidenceError("min fill ratio must be in (0, 1]")
+            if args.min_component_area <= 0:
+                raise FigureEvidenceError("min component area must be positive")
+            if args.baseline_tolerance_px < 0:
+                raise FigureEvidenceError("baseline tolerance must be non-negative")
+            payload = extract_color_bars(
+                args.project,
+                args.output_dir,
+                plot_bounds=parse_bounds(args.plot_bounds),
+                x_anchors=[parse_anchor(value) for value in args.x_anchor],
+                y_anchors=[parse_anchor(value) for value in args.y_anchor],
+                series=[parse_series(value) for value in args.series],
+                baseline_pixel=args.baseline_pixel,
+                x_scale=args.x_scale,
+                y_scale=args.y_scale,
+                color_tolerance=args.color_tolerance,
+                baseline_tolerance_px=args.baseline_tolerance_px,
+                min_component_area=args.min_component_area,
+                min_fill_ratio=args.min_fill_ratio,
+                minimum_bars_per_series=args.minimum_bars_per_series,
                 overlay_review_status=args.overlay_review,
             )
             _print(payload)

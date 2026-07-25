@@ -35,6 +35,7 @@ from workflow_contracts import (  # noqa: E402
     inspect_mineru_zip,
     write_deep_read_cards,
 )
+from mineru_assets import enumerate_mineru_assets, match_mineru_zip  # noqa: E402
 
 
 def _clean(value: Any) -> str:
@@ -307,50 +308,20 @@ def _read_mineru_text(zip_path: Path) -> str:
 
 
 def _read_mineru_figure_candidates(zip_path: Path, limit: int = 30) -> list[dict[str, Any]]:
-    try:
-        with zipfile.ZipFile(zip_path) as zf:
-            manifest = json.loads(zf.read("manifest.json").decode("utf-8", errors="replace"))
-    except (KeyError, json.JSONDecodeError, zipfile.BadZipFile):
-        return []
-
-    raw_items: list[dict[str, Any]] = []
-    if isinstance(manifest, dict):
-        for key in ("allFigures", "allTables"):
-            value = manifest.get(key)
-            if isinstance(value, list):
-                raw_items.extend(item for item in value if isinstance(item, dict))
-        sections = manifest.get("sections")
-        if isinstance(sections, list):
-            for section in sections:
-                if not isinstance(section, dict):
-                    continue
-                for key in ("figures", "tables"):
-                    value = section.get(key)
-                    if isinstance(value, list):
-                        raw_items.extend(item for item in value if isinstance(item, dict))
-
-    candidates: list[dict[str, Any]] = []
-    seen: set[tuple[str, str]] = set()
-    for item in raw_items:
-        path = _clean(item.get("path") or item.get("img_path") or item.get("source_image_path"))
-        label = _clean(item.get("label") or item.get("figure_id") or item.get("table_id"))
-        caption = _clean(item.get("caption") or " ".join(_clean_list(item.get("image_caption") or item.get("table_caption"))))
-        if not path and not label and not caption:
-            continue
-        key = (path, label or caption)
-        if key in seen:
-            continue
-        seen.add(key)
-        candidates.append({
-            "figure_id": label or Path(path).stem,
-            "page": _clean(item.get("page") or item.get("page_idx")),
-            "caption": caption,
-            "source_image_path": f"{zip_path}::{path}" if path else str(zip_path),
+    return [
+        {
+            "figure_id": _clean(item.get("figure_id")),
+            "figure_type": _clean(item.get("figure_type")),
+            "page": _clean(item.get("page")),
+            "caption": _clean(item.get("caption")),
+            "source_image_path": _clean(item.get("source_image_path")),
             "local_image_path": "",
-        })
-        if len(candidates) >= limit:
-            break
-    return candidates
+            "source_item_key": _clean(item.get("source_item_key")),
+            "source_attachment_key": _clean(item.get("source_attachment_key")),
+            "source_stage": _clean(item.get("source_stage")),
+        }
+        for item in enumerate_mineru_assets(zip_path)[:limit]
+    ]
 
 
 def _extract_pdf_images(
@@ -430,50 +401,8 @@ def _read_pdf_figure_candidates(
 
 
 def _match_mineru_zip(record: dict[str, Any], zip_paths: list[Path]) -> Path | None:
-    """Match a record to the best MinerU ZIP by scoring significant-word overlap.
-
-    Filters out numeric years and requires both a minimum overlap count
-    AND a minimum Jaccard-like ratio to avoid false matches from shared
-    domain terms (e.g. "electric", "vehicle", "charging").
-    """
-    # Collect significant words from the record's identity (skip pure numbers)
-    record_words: set[str] = set()
-    for key in _record_keys(record):
-        for word in _slug(key).split("-"):
-            if len(word) > 3 and not word.isdigit():
-                record_words.add(word)
-
-    pdf_path = _clean(record.get("pdf_path"))
-    pdf_name = Path(pdf_path).name if pdf_path else ""
-    if pdf_name:
-        for word in _slug(Path(pdf_name).stem).split("-"):
-            if len(word) > 3 and not word.isdigit():
-                record_words.add(word)
-
-    if not record_words:
-        return None
-
-    best_zip: Path | None = None
-    best_score = 0.0
-    for zip_path in zip_paths:
-        summary = inspect_mineru_zip(zip_path)
-        source_name = _slug(_clean(summary.source_filename))
-        zip_words = {w for w in source_name.split("-") if len(w) > 3 and not w.isdigit()}
-
-        if not zip_words:
-            continue
-
-        overlap_count = len(record_words & zip_words)
-        if overlap_count < 3:
-            continue
-
-        # Jaccard-like ratio: require substantial fraction of the smaller set to match
-        ratio = overlap_count / max(len(record_words), len(zip_words))
-        if ratio >= 0.35 and ratio > best_score:
-            best_score = ratio
-            best_zip = zip_path
-
-    return best_zip
+    """Match exact Zotero lineage first, then use conservative filename overlap."""
+    return match_mineru_zip(record, zip_paths)
 
 
 def _match_figure_candidates(record: dict[str, Any], figure_records: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -739,10 +668,14 @@ def build_cards(
                 figure_candidates=[
                     {
                         "figure_id": _clean(fig.get("figure_id")),
+                        "figure_type": _clean(fig.get("figure_type")),
                         "page": _clean(fig.get("page")),
                         "caption": _clean(fig.get("caption")),
                         "source_image_path": _clean(fig.get("source_image_path")),
                         "local_image_path": _clean(fig.get("local_image_path")),
+                        "source_item_key": _clean(fig.get("source_item_key")),
+                        "source_attachment_key": _clean(fig.get("source_attachment_key")),
+                        "source_stage": _clean(fig.get("source_stage")),
                     }
                     for fig in figure_candidates
                 ],

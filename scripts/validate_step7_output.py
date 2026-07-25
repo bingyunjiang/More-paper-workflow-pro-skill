@@ -22,6 +22,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from PIL import Image
+
 
 MECHANISM_TERMS = [
     "机理",
@@ -55,6 +57,7 @@ AUTHOR_YEAR_DEPTH_RE = re.compile(
     r"[（(](?:19|20)\d{2}[）)](?:（已读(?:全文|摘要)|（仅元数据）)"
 )
 FIGURE_MARKER_RE = re.compile(r"(\[\[FIGURE:[^\]]+\]\]|!\[[^\]]*\]\([^)]+\))")
+MARKDOWN_IMAGE_RE = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
 REVIEWER_SCORE_THRESHOLDS = {
     "originality": 3,
     "importance": 3,
@@ -160,6 +163,13 @@ def _figure_mode_present(root: Path, card_text: str) -> bool:
 
 
 def _figure_mode(root: Path, card_text: str) -> str:
+    asset_payload = _load_json(root / "figure_asset_check.json")
+    if isinstance(asset_payload, dict) and asset_payload.get("figure_mode") in {
+        "auto_insert",
+        "post_write",
+        "skip",
+    }:
+        return str(asset_payload["figure_mode"])
     texts = [card_text]
     for name in ["figure_asset_check.md", "draft_risk_summary.md"]:
         path = root / name
@@ -173,6 +183,14 @@ def _figure_mode(root: Path, card_text: str) -> str:
 
 
 def _figure_backend(root: Path, card_text: str) -> str:
+    asset_payload = _load_json(root / "figure_asset_check.json")
+    if isinstance(asset_payload, dict) and asset_payload.get("figure_backend") in {
+        "auto",
+        "quick",
+        "reproduction",
+        "not_applicable",
+    }:
+        return str(asset_payload["figure_backend"])
     texts = [card_text]
     for name in ["figure_asset_check.md", "draft_risk_summary.md"]:
         path = root / name
@@ -299,6 +317,10 @@ def _validate_figure_evidence_report(
 
 
 def _figure_assets_available(root: Path) -> bool:
+    json_path = root / "figure_asset_check.json"
+    payload = _load_json(json_path) if json_path.exists() else None
+    if isinstance(payload, dict) and payload.get("original_assets_available") is True:
+        return True
     texts: list[str] = []
     for name in ["figure_asset_check.md", "figure_asset_check.json", "step7_execution_card.md"]:
         path = root / name
@@ -317,11 +339,122 @@ def _figure_assets_available(root: Path) -> bool:
 
 
 def _has_figure_index(root: Path) -> bool:
-    return (root / "figure_index.json").exists() or (root / "figure_index.md").exists()
+    json_path = root / "figure_index.json"
+    if json_path.exists():
+        payload = _load_json(json_path)
+        return bool(
+            isinstance(payload, dict)
+            and isinstance(payload.get("records"), list)
+            and payload["records"]
+        )
+    return (root / "figure_index.md").exists()
 
 
 def _has_figure_marker(text: str) -> bool:
     return bool(FIGURE_MARKER_RE.search(text))
+
+
+def _validate_inserted_images(drafts: list[Path]) -> list[Finding]:
+    findings: list[Finding] = []
+    for draft in drafts:
+        text = _read_text(draft)
+        for reference in MARKDOWN_IMAGE_RE.findall(text):
+            clean = reference.strip().strip("<>")
+            if re.match(r"^(?:https?|data):", clean, flags=re.IGNORECASE):
+                continue
+            image_path = (draft.parent / clean).resolve()
+            if not image_path.is_file():
+                findings.append(
+                    Finding(
+                        "fail",
+                        "missing_inserted_image",
+                        f"{draft.name} references missing image {clean}",
+                    )
+                )
+                continue
+            try:
+                with Image.open(image_path) as image:
+                    image.verify()
+            except Exception:
+                findings.append(
+                    Finding(
+                        "fail",
+                        "invalid_inserted_image",
+                        f"{draft.name} references an unreadable image {clean}",
+                    )
+                )
+    return findings
+
+
+def _validate_original_figure_provenance(
+    root: Path,
+    draft_hash: str,
+) -> list[Finding]:
+    report_path = root / "figure_resolution_report.json"
+    evidence_path = root / "figure_evidence_report.json"
+    findings: list[Finding] = []
+    report = _load_json(report_path)
+    if not isinstance(report, dict):
+        return [
+            Finding(
+                "fail",
+                "missing_figure_resolution_report",
+                "ready_for_step8 requires figure_resolution_report.json",
+            )
+        ]
+    if report.get("output_sha256") != draft_hash:
+        findings.append(
+            Finding(
+                "fail",
+                "stale_figure_resolution_report",
+                "figure resolution report does not match the current draft",
+            )
+        )
+    if report.get("unresolved_count", 0) > 0:
+        findings.append(
+            Finding(
+                "fail",
+                "unresolved_figure_matches",
+                "figure resolution report contains unresolved matches",
+            )
+        )
+    records = report.get("records")
+    if not isinstance(records, list) or not records:
+        findings.append(
+            Finding(
+                "fail",
+                "missing_figure_resolution_records",
+                "figure resolution report has no resolved provenance records",
+            )
+        )
+    else:
+        for index, record in enumerate(records, 1):
+            if not isinstance(record, dict) or record.get("status") != "resolved":
+                continue
+            for field in (
+                "source_image_path",
+                "local_image_path",
+                "source_image_sha256",
+                "materialized_sha256",
+            ):
+                if not record.get(field):
+                    findings.append(
+                        Finding(
+                            "fail",
+                            "incomplete_original_figure_provenance",
+                            f"figure resolution record {index} lacks {field}",
+                        )
+                    )
+    evidence = _load_json(evidence_path)
+    if not isinstance(evidence, dict) or evidence.get("schema_version") != "figure-evidence.v1":
+        findings.append(
+            Finding(
+                "fail",
+                "missing_original_figure_evidence_report",
+                "ready_for_step8 requires a valid figure_evidence_report.json",
+            )
+        )
+    return findings
 
 
 def _strip_internal_sections(text: str) -> str:
@@ -507,18 +640,14 @@ def validate(root: Path, target_state: str = "auto") -> tuple[list[Finding], dic
         ))
     if drafts and figure_assets_available and figure_mode in {"auto_insert", "post_write"}:
         if not _has_figure_index(root):
-            findings.append(Finding("fail", "missing_figure_index", "figure assets are available but figure_index.json/md is missing"))
+            findings.append(Finding("fail", "missing_figure_index", "figure assets are available but figure_index.json/md is missing or empty"))
         if not _has_figure_marker(combined_draft_text):
             findings.append(Finding("fail", "missing_figure_marker", "figure assets are available but draft has no image path or [[FIGURE:...]] marker"))
         if requested_state == "ready_for_step8":
-            report = _load_json(root / "figure_resolution_report.json")
-            if not isinstance(report, dict):
-                findings.append(Finding("fail", "missing_figure_resolution_report", "ready_for_step8 requires figure_resolution_report.json"))
-            else:
-                if report.get("output_sha256") != draft_hash:
-                    findings.append(Finding("fail", "stale_figure_resolution_report", "figure resolution report does not match the current draft"))
-                if report.get("unresolved_count", 0) > 0:
-                    findings.append(Finding("fail", "unresolved_figure_matches", "figure resolution report contains unresolved matches"))
+            findings.extend(_validate_original_figure_provenance(root, draft_hash))
+
+    if drafts:
+        findings.extend(_validate_inserted_images(drafts))
 
     if drafts:
         zotero_keys = _zotero_keys_in_body(combined_draft_text)

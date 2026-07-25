@@ -28,7 +28,7 @@ class PortabilityTests(ScientificFigureReproductionTestBase):
             subprocess.run([sys.executable, str(SCRIPTS / "render_matplotlib.py"), "--spec", str(spec_path), "--out-dir", str(baseline)], check=True)
             bundle = root / "bundle"
             completed = subprocess.run(
-                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--source", str(baseline / "render.png"), "--out-dir", str(bundle), "--require-strict"],
+                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--source", str(baseline / "render.png"), "--out-dir", str(bundle), "--require-strict", "--transform-authorization", "explicit_user_request"],
                 text=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -50,7 +50,7 @@ class PortabilityTests(ScientificFigureReproductionTestBase):
             for name in ("bundle_one", "bundle_two"):
                 bundle = root / name
                 completed = subprocess.run(
-                    [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--source", str(baseline / "render.png"), "--out-dir", str(bundle), "--require-strict"],
+                    [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--source", str(baseline / "render.png"), "--out-dir", str(bundle), "--require-strict", "--transform-authorization", "explicit_user_request"],
                     text=True,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,

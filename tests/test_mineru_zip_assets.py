@@ -65,8 +65,9 @@ class MinerUZipAssetsTest(unittest.TestCase):
         self.assertEqual(data["schema_version"], "figure-index.v1")
         self.assertEqual(data["records"][0]["source_item_key"], "AX5588SA")
         self.assertEqual(data["records"][0]["source_attachment_key"], "8DYA42PB")
-        self.assertEqual(data["records"][0]["source_image_path"], "images/fig-a.jpg")
-        self.assertTrue(data["records"][0]["local_image_path"].endswith("figures/image-1.jpg"))
+        self.assertTrue(data["records"][0]["source_image_path"].endswith("::images/fig-a.jpg"))
+        self.assertIn("figures/image-1-", data["records"][0]["local_image_path"])
+        self.assertTrue(data["records"][0]["local_image_path"].endswith(".jpg"))
 
 
 if __name__ == "__main__":

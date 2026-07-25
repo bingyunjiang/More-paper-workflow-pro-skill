@@ -208,7 +208,7 @@ class FastValidationTests(ScientificFigureReproductionTestBase):
             spec_path.write_text(json.dumps(spec), encoding="utf-8")
             out_dir = root / "out"
             completed = subprocess.run(
-                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--out-dir", str(out_dir)],
+                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--out-dir", str(out_dir), "--transform-authorization", "explicit_user_request"],
                 text=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -254,4 +254,3 @@ class FastValidationTests(ScientificFigureReproductionTestBase):
 
 if __name__ == "__main__":
     unittest.main()
-

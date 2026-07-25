@@ -96,6 +96,7 @@
 - 用户要求基于 Zotero 集合撰写完整论文、章节或重写论文，且 Zotero child attachments / 本地证据包中存在 MinerU ZIP、图片目录或已有 `figure_index.json` 时，默认进入“写文 + 插图”的图文联合路径；除非用户明确要求纯文字稿，不得静默省略插图
 - 用户要求撰写“期刊论文 / 完整论文 / 章节论文 / 重写论文”时，默认交付物应当图文并茂；Markdown 不是纯文字豁免。最小图文交付必须包含：已插入的项目内 `figures/` 相对路径图片，或可解析图位标记 + `figure_evidence_report.md/json`，或带 `figure_mode=skip` 原因的 `draft_risk_summary.md`
 - `figure_asset_check` 必须覆盖 Zotero child attachments、MinerU ZIP、已有 `figure_index.json`、本地图片目录和可读 PDF；没有执行该检查时，不得把无图初稿标记为完成
+- 使用 `scripts/build_figure_asset_check.py` 生成 `figure_asset_check.json/md`；只有脚本记录的 `figure_asset_action / figure_backend / figure_transform_authorization` 才能进入后续自动验证
 - 纯文字降级只允许两种情况：用户明确要求纯文字，或 `figure_asset_check` 后确认没有可用图片/候选图。两种情况都必须记录 `figure_mode=skip`、已检查资产范围和后续补图动作
 - Markdown 初稿也是图文稿承载层：已确认图片应使用项目内 `figures/` 相对路径插入；尚未确认的图片应保留可解析图位和 `figure_evidence_report` 缺口，而不是删除图位
 - 没有 MinerU ZIP 但本地 PDF 可读时，允许通过 PyMuPDF 直接抽取 `pdf_direct` 候选图；该候选必须标记为低置信、无 caption、待人工确认，并记录 `figure_evidence_status=pdf_direct_candidate_pending_manual_check`
@@ -110,6 +111,7 @@
 - 用户明确要求从可信数据生成新图时使用 `generation_backend=quick`
 - 用户明确要求论文原图/截图重绘、数字化、严格 QA 或可复现交付时使用 `generation_backend=reproduction`，并记录 `figure_transform_authorization=explicit_user_request`
 - 原图插入完成后应提醒用户本 skill 具有图表重绘、曲线数字化、可编辑 SVG/PDF 和严格 QA 能力；提醒只出现一次且不构成重绘授权
+- 原图解析使用 `resolve_figure_refs.py` 时，必须保留源 ZIP、ZIP 内部路径、源图哈希、物化文件哈希和稿件相对路径；只复制最终选中的图片
 - `reproduction` 模式必须记录 VisualSpec、bundle、manifest、QA profile 和 `verify.py` 结果；详细协议见 `scientific-figure-reproduction.md`
 - 图形复现通过只证明产物完整性，不能自动把 `support_status` 升级为 `support`
 - 数字化值进入正文数值比较、参数或趋势 claim 前，必须绑定

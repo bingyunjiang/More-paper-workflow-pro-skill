@@ -32,6 +32,7 @@ except Exception:
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
 import zipfile
@@ -45,6 +46,7 @@ try:
     from workflow_contracts import normalize_doi  # noqa: E402
 except ImportError:
     normalize_doi = None  # type: ignore[assignment]
+from mineru_assets import materialize_mineru_asset  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -89,6 +91,7 @@ def _load_cards(paths: list[str]) -> list[dict[str, Any]]:
                     fig_copy["_citekey"] = _clean(record.get("citekey"))
                     fig_copy["_title"] = _clean(record.get("title"))
                     fig_copy["_reading_depth"] = _clean(record.get("reading_depth"))
+                    fig_copy["_source_trace"] = dict(record.get("source_trace") or {})
                     all_candidates.append(fig_copy)
     return all_candidates
 
@@ -247,8 +250,12 @@ def _score_figure(fig: dict[str, Any], keywords: list[str]) -> tuple[int, int]:
 # Image path resolution (handles MinerU ZIP internal paths)
 # ---------------------------------------------------------------------------
 
-def _resolve_image_path(fig: dict[str, Any], figures_dir: Path) -> str:
-    """Resolve a figure candidate's image to an actual file path on disk.
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _materialize_image(fig: dict[str, Any], figures_dir: Path) -> dict[str, str]:
+    """Materialize only the selected candidate and return source lineage.
 
     Handles:
       - ``local_image_path`` — already on disk, use directly
@@ -258,35 +265,36 @@ def _resolve_image_path(fig: dict[str, Any], figures_dir: Path) -> str:
     """
     local = _clean(fig.get("local_image_path"))
     source = _clean(fig.get("source_image_path"))
+    label = _clean(fig.get("figure_id"))
+    figures_dir = figures_dir.resolve()
+    figures_dir.mkdir(parents=True, exist_ok=True)
 
-    # Prefer already-extracted local file
-    if local and Path(local).resolve().exists():
-        return str(Path(local).resolve())
-
-    # Handle MinerU ZIP internal path: /path/to/cache.zip::images/hash.jpg
     if "::" in source:
-        zip_part, _, internal = source.partition("::")
-        zip_p = Path(zip_part).resolve()
-        if zip_p.exists():
-            figures_dir = figures_dir.resolve()
-            figures_dir.mkdir(parents=True, exist_ok=True)
-            # Extract and save with a readable name
-            internal_name = Path(internal).name
-            out_path = (figures_dir / internal_name).resolve()
-            if not out_path.exists():
-                try:
-                    with zipfile.ZipFile(zip_p) as zf:
-                        out_path.write_bytes(zf.read(internal))
-                except (KeyError, zipfile.BadZipFile, OSError):
-                    return source  # fallback: return raw source path
-            return str(out_path)
+        try:
+            return materialize_mineru_asset(source, figures_dir, label=label)
+        except (FileNotFoundError, KeyError, OSError, ValueError):
+            return {"local_path": "", "source_image_path": source}
 
-    # Absolute path that exists
-    if source and Path(source).resolve().exists():
-        return str(Path(source).resolve())
-
-    # Relative path or non-existent — return as-is
-    return source
+    candidate = Path(local or source).expanduser()
+    if not candidate.is_absolute():
+        candidate = candidate.resolve()
+    if not candidate.is_file():
+        return {"local_path": "", "source_image_path": source or local}
+    data = candidate.read_bytes()
+    digest = hashlib.sha256(data).hexdigest()
+    suffix = candidate.suffix.lower() or ".bin"
+    safe_label = re.sub(r"[^\w.-]+", "-", label, flags=re.UNICODE).strip("-")
+    stem = safe_label[:48] or candidate.stem[:48] or "figure"
+    target = figures_dir / f"{stem}-{digest[:12]}{suffix}"
+    if not target.exists():
+        target.write_bytes(data)
+    return {
+        "local_path": target.as_posix(),
+        "source_file": candidate.as_posix(),
+        "source_image_path": source,
+        "source_image_sha256": digest,
+        "materialized_sha256": _sha256(target),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -299,26 +307,22 @@ def _build_figure_block(
     description: str,
     draft_path: Path,
     figures_dir: Path,
-) -> str:
+) -> tuple[str, dict[str, str]]:
     """Build the minimal text-figure unit: 引出句 + 图 + 图注."""
-    img_path = _resolve_image_path(fig, figures_dir)
+    provenance = _materialize_image(fig, figures_dir)
+    img_path = provenance.get("local_path", "")
     if not img_path:
-        return f"[图 {fig_number}：{description} — 图片路径缺失]"
+        return f"[图 {fig_number}：{description} — 图片路径缺失]", provenance
 
     # Compute relative path from draft location
     rel = img_path
     try:
         p = Path(img_path).resolve()
         draft_parent = draft_path.parent.resolve()
-        if p.is_absolute():
-            try:
-                rel = p.relative_to(draft_parent).as_posix()
-            except (ValueError, OSError):
-                rel = p.name
-        else:
-            rel = p.as_posix()
+        rel = Path(os.path.relpath(p, draft_parent)).as_posix()
     except Exception:
         rel = Path(img_path).name
+    provenance["draft_relative_path"] = rel
 
     raw_caption = _clean(fig.get("caption")) or ""
     orig_figure_id = _clean(fig.get("figure_id")) or ""
@@ -372,7 +376,7 @@ def _build_figure_block(
     # Source attribution in skill format: 作者, 年份, 图 xxx。阅读深度
     src_line = f"（来源: {src_label}）" if src_label else ""
 
-    return f"{connector}\n\n{figure_md}\n\n{caption_line}\n\n{src_line}"
+    return f"{connector}\n\n{figure_md}\n\n{caption_line}\n\n{src_line}", provenance
 
 
 # ---------------------------------------------------------------------------
@@ -387,6 +391,7 @@ def resolve_figure_refs(
     output_path: str | Path,
     figures_dir: str | Path | None = None,
     report_json: str | Path | None = None,
+    figure_evidence_json: str | Path | None = None,
 ) -> int:
     draft_p = Path(draft_path).expanduser().resolve()
     if not draft_p.exists():
@@ -455,7 +460,25 @@ def resolve_figure_refs(
 
         if best_fig and best_kw_score > 0 and best_q_score >= 1:
             fig_number = resolved_count + 1
-            block = _build_figure_block(best_fig, fig_number, desc, draft_p, _figures_dir)
+            block, provenance = _build_figure_block(
+                best_fig, fig_number, desc, draft_p, _figures_dir
+            )
+            if not provenance.get("local_path"):
+                replacement = f"[[FIGURE:{desc}|status=materialization_failed]]"
+                replacements.append((marker["start"], marker["end"], replacement))
+                warnings.append(
+                    f"图片物化失败: {desc!r} → {_clean(best_fig.get('figure_id'))}"
+                )
+                resolution_records.append({
+                    "description": desc,
+                    "status": "materialization_failed",
+                    "figure_id": _clean(best_fig.get("figure_id")),
+                    "keyword_score": best_kw_score,
+                    "quality_score": best_q_score,
+                    "manual_confirmation_required": True,
+                    "source_image_path": _clean(best_fig.get("source_image_path")),
+                })
+                continue
             replacements.append((marker["start"], marker["end"], block))
             used_figure_ids.add(
                 _clean(best_fig.get("source_image_path") or best_fig.get("local_image_path"))
@@ -470,6 +493,26 @@ def resolve_figure_refs(
                 "description": desc,
                 "status": "resolved",
                 "figure_id": _clean(best_fig.get("figure_id")),
+                "figure_type": _clean(best_fig.get("figure_type") or "figure"),
+                "page": _clean(best_fig.get("page")),
+                "caption": _clean(best_fig.get("caption")),
+                "citekey": _clean(best_fig.get("_citekey")),
+                "paper_title": _clean(best_fig.get("_title")),
+                "reading_depth": _clean(best_fig.get("_reading_depth")),
+                "source_item_key": _clean(
+                    best_fig.get("source_item_key")
+                    or (best_fig.get("_source_trace") or {}).get("zotero_item_key")
+                ),
+                "source_attachment_key": _clean(best_fig.get("source_attachment_key")),
+                "source_stage": _clean(best_fig.get("source_stage")),
+                "source_image_path": _clean(best_fig.get("source_image_path")),
+                "local_image_path": provenance.get("local_path", ""),
+                "draft_relative_path": provenance.get("draft_relative_path", ""),
+                "source_zip": provenance.get("source_zip", ""),
+                "source_zip_sha256": provenance.get("source_zip_sha256", ""),
+                "source_internal_path": provenance.get("source_internal_path", ""),
+                "source_image_sha256": provenance.get("source_image_sha256", ""),
+                "materialized_sha256": provenance.get("materialized_sha256", ""),
                 "keyword_score": best_kw_score,
                 "quality_score": best_q_score,
                 "manual_confirmation_required": False,
@@ -538,6 +581,66 @@ def resolve_figure_refs(
         "unresolved_count": unresolved_count,
         "records": resolution_records,
     }, ensure_ascii=False, indent=2), encoding="utf-8")
+    evidence_path = (
+        Path(figure_evidence_json).expanduser()
+        if figure_evidence_json
+        else output_p.parent / "figure_evidence_report.json"
+    )
+    evidence_records = [
+        {
+            "schema_version": "figure-evidence.v1",
+            "figure_id": record.get("figure_id", ""),
+            "item_key": record.get("source_item_key", ""),
+            "claim_binding": record.get("description", ""),
+            "figure_intent": record.get("description", ""),
+            "evidence_basis": record.get("source_image_path", ""),
+            "candidate_specs": [],
+            "human_selected_candidate": record.get("figure_id", ""),
+            "figure_risk_note": "",
+            "caption_support": record.get("caption", ""),
+            "text_support": "",
+            "visual_support": "original_asset_inserted",
+            "evidence_status": "source_traced_original",
+            "recommended_action": "retain_original",
+            "generation_backend": "not_applicable",
+            "visualspec_path": "",
+            "reproduction_bundle": "",
+            "manifest_path": "",
+            "reproduction_status": "",
+            "qa_profile": "",
+            "verification_status": "pass",
+            "figure_asset_action": "insert_original",
+            "figure_transform_authorization": "not_required",
+            "extraction_project_path": "",
+            "extraction_report_path": "",
+            "extraction_status": "",
+            "value_delivery_authorized": False,
+            "source_zip_sha256": record.get("source_zip_sha256", ""),
+            "source_image_sha256": record.get("source_image_sha256", ""),
+            "materialized_sha256": record.get("materialized_sha256", ""),
+            "local_image_path": record.get("draft_relative_path", ""),
+            "page": record.get("page", ""),
+            "caption": record.get("caption", ""),
+        }
+        for record in resolution_records
+        if record.get("status") == "resolved"
+    ]
+    evidence_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "figure-evidence.v1",
+                "metadata": {
+                    "input_draft": str(draft_p),
+                    "output_draft": str(output_p),
+                    "output_sha256": hashlib.sha256(result.encode("utf-8")).hexdigest(),
+                },
+                "records": evidence_records,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     print(f"RESOLVED: {resolved_count}/{len(markers)} markers → {output_path}")
     if warnings:
         print(f"WARNINGS: {len(warnings)}")
@@ -565,6 +668,7 @@ def main() -> int:
     parser.add_argument("--output", default=None, help="Output path (default: draft_resolved.md)")
     parser.add_argument("--figures-dir", default=None, help="Directory for extracted figures (default: <draft>/figures)")
     parser.add_argument("--report-json", default=None, help="Structured resolution report (default: output sibling figure_resolution_report.json)")
+    parser.add_argument("--figure-evidence-json", default=None, help="Original-figure evidence report (default: output sibling figure_evidence_report.json)")
     args = parser.parse_args()
 
     if not args.cards and not args.figure_index:
@@ -580,6 +684,7 @@ def main() -> int:
         output_path=output,
         figures_dir=args.figures_dir,
         report_json=args.report_json,
+        figure_evidence_json=args.figure_evidence_json,
     )
 
 

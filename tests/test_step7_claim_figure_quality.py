@@ -42,6 +42,58 @@ class Step7ClaimFigureQualityTest(unittest.TestCase):
         self.assertIn("manual_confirmation_required", text)
         self.assertEqual(report["unresolved_count"], 1)
 
+    def test_selected_original_is_materialized_with_provenance(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            image = root / "source.png"
+            image.write_bytes(b"source-image-bytes")
+            draft = root / "draft.md"
+            output = root / "resolved.md"
+            cards = root / "cards.json"
+            draft.write_text("温度场结果如下。\n\n[图: 温度分布]", encoding="utf-8")
+            cards.write_text(json.dumps({"records": [{
+                "citekey": "author2024",
+                "reading_depth": "full_text",
+                "source_trace": {
+                    "image_source": "MinerU",
+                    "zotero_item_key": "ITEM123",
+                },
+                "figure_candidates": [{
+                    "figure_id": "Fig. 2",
+                    "page": "4",
+                    "caption": "Temperature distribution",
+                    "local_image_path": str(image),
+                    "source_item_key": "ITEM123",
+                    "source_attachment_key": "ATT123",
+                }],
+            }]}), encoding="utf-8")
+            resolve_figure_refs(
+                draft_path=draft,
+                cards_paths=[str(cards)],
+                output_path=output,
+            )
+            report = json.loads(
+                (root / "figure_resolution_report.json").read_text(encoding="utf-8")
+            )
+            evidence = json.loads(
+                (root / "figure_evidence_report.json").read_text(encoding="utf-8")
+            )
+
+        record = report["records"][0]
+        self.assertEqual("resolved", record["status"])
+        self.assertEqual("ITEM123", record["source_item_key"])
+        self.assertEqual("ATT123", record["source_attachment_key"])
+        self.assertEqual(record["source_image_sha256"], record["materialized_sha256"])
+        self.assertTrue(record["draft_relative_path"].startswith("figures/"))
+        self.assertEqual(
+            "insert_original",
+            evidence["records"][0]["figure_asset_action"],
+        )
+        self.assertEqual(
+            "not_applicable",
+            evidence["records"][0]["generation_backend"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -15,7 +15,7 @@ class BundleWorkflowTests(ScientificFigureReproductionTestBase):
             source = baseline / "render.png"
             out_dir = root / "out"
             completed = subprocess.run(
-                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--source", str(source), "--out-dir", str(out_dir), "--require-strict"],
+                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--source", str(source), "--out-dir", str(out_dir), "--require-strict", "--transform-authorization", "explicit_user_request"],
                 text=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -52,7 +52,7 @@ class BundleWorkflowTests(ScientificFigureReproductionTestBase):
             spec_path.write_text(json.dumps(self._line_spec()), encoding="utf-8")
             out_dir = root / "out"
             completed = subprocess.run(
-                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--source", str(source), "--out-dir", str(out_dir), "--require-strict"],
+                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--source", str(source), "--out-dir", str(out_dir), "--require-strict", "--transform-authorization", "explicit_user_request"],
                 text=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -73,7 +73,7 @@ class BundleWorkflowTests(ScientificFigureReproductionTestBase):
             subprocess.run([sys.executable, str(SCRIPTS / "render_matplotlib.py"), "--spec", str(spec_path), "--out-dir", str(baseline)], check=True)
             out_dir = root / "out"
             completed = subprocess.run(
-                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--source", str(baseline / "render.png"), "--out-dir", str(out_dir), "--require-strict"],
+                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--source", str(baseline / "render.png"), "--out-dir", str(out_dir), "--require-strict", "--transform-authorization", "explicit_user_request"],
                 text=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -182,7 +182,7 @@ if __name__ == "__main__":
             )
             out_dir = root / "out"
             completed = subprocess.run(
-                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--source", str(source), "--out-dir", str(out_dir), "--script", str(custom)],
+                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--source", str(source), "--out-dir", str(out_dir), "--script", str(custom), "--transform-authorization", "explicit_user_request"],
                 text=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -208,7 +208,7 @@ if __name__ == "__main__":
             subprocess.run([sys.executable, str(SCRIPTS / "render_matplotlib.py"), "--spec", str(spec_path), "--out-dir", str(baseline)], check=True, timeout=60)
             out_dir = root / "out"
             completed = subprocess.run(
-                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--source", str(baseline / "render.png"), "--out-dir", str(out_dir), "--require-strict"],
+                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--source", str(baseline / "render.png"), "--out-dir", str(out_dir), "--require-strict", "--transform-authorization", "explicit_user_request"],
                 text=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -274,7 +274,7 @@ if __name__ == "__main__":
             subprocess.run([sys.executable, str(SCRIPTS / "render_matplotlib.py"), "--spec", str(spec_path), "--out-dir", str(baseline)], check=True, timeout=60)
             out_dir = root / "out"
             completed = subprocess.run(
-                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--source", str(baseline / "render.png"), "--out-dir", str(out_dir), "--require-strict"],
+                [sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--source", str(baseline / "render.png"), "--out-dir", str(out_dir), "--require-strict", "--transform-authorization", "explicit_user_request"],
                 text=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -304,7 +304,7 @@ if __name__ == "__main__":
             baseline = root / "baseline"
             subprocess.run([sys.executable, str(SCRIPTS / "render_matplotlib.py"), "--spec", str(spec_path), "--out-dir", str(baseline)], check=True, timeout=60)
             out_dir = root / "out"
-            first = subprocess.run([sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--source", str(baseline / "render.png"), "--out-dir", str(out_dir), "--require-strict"], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=180)
+            first = subprocess.run([sys.executable, str(SCRIPTS / "run_reproduction.py"), "--spec", str(spec_path), "--source", str(baseline / "render.png"), "--out-dir", str(out_dir), "--require-strict", "--transform-authorization", "explicit_user_request"], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=180)
             self.assertEqual(0, first.returncode, first.stdout + first.stderr)
             first_hashes = verifier.build_checksums(out_dir)["files"]
             second = subprocess.run([sys.executable, str(out_dir / "reproduce.py")], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=180)
@@ -321,4 +321,3 @@ if __name__ == "__main__":
             payload["environment"]["python"] = "0.0.0"
             policy.write_text(json.dumps(payload), encoding="utf-8")
             self.assertEqual("failed", env_policy.verify_environment_policy(policy)["status"])
-

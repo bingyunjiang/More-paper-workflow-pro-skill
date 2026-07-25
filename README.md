@@ -52,6 +52,8 @@
 - 不是堆平台依赖，而是尽量走跨平台、低额外成本路径：Chrome/Edge 自动检测，多数检索源免费可用，脚本自带依赖检查和失败回退
 - Step 7 默认保留并插入论文 PDF/MinerU 原图；只有用户明确要求生成、重绘或数字化时，才启动 quick/reproduction，并为重绘、数字化和可复现交付生成语义/矢量 QA、manifest 与 checksums
 - 原图插入后会提醒可选的图表重绘、曲线数字化、可编辑 SVG/PDF 与严格 QA 能力；未获明确指令时不会自动重绘
+- MinerU 图文候选按 `manifest.json → full.md → images/ → PDF direct` 降级，优先按 Zotero item/attachment 精确匹配；只把正文实际选中的原图物化到项目 `figures/`
+- 原生数字化候选支持彩色折线、紧凑实心散点、竖向纯色柱状图和直方图；数值只有在原分辨率 overlay 明确复核后才能进入 VisualSpec
 
 [![中文海报](posters/story/more-paper-long-scroll.png)](https://www.bilibili.com/video/BV1hzjE6jEmo/?vd_source=45e56689c0324bcaf7fe9c9cd13fca01)
 
@@ -801,6 +803,11 @@ reproduction plotting starts only after an explicit request to generate,
 redraw, digitize, or create an editable version. After original-image
 insertion, the workflow reminds the user once that redraw, curve digitization,
 editable SVG/PDF, and strict QA are available; the reminder is not authorization.
+MinerU assets degrade through `manifest.json → full.md → images/ → PDF direct`,
+prefer exact Zotero item/attachment lineage, and materialize only figures selected
+for the manuscript. Native candidate digitization covers color-distinct lines,
+compact filled scatter markers, vertical solid-color bars, and histogram bins;
+an original-resolution overlay review is still required before value delivery.
 
 ## 📑 Table of Contents
 

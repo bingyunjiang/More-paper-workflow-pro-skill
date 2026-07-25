@@ -1,7 +1,7 @@
 interface:
   display_name: "more-paper-workflow"
-  short_description: "Research workflow with reproducible scientific figures"
-  default_prompt: "Use $more-paper-workflow when the user asks to plan research, search literature, manage PDFs or Zotero, write a paper, generate or reproduce scientific figures, digitize plots, audit citations, or polish a draft."
+  short_description: "Paper workflow with original-figure-first insertion and optional verified redraw"
+  default_prompt: "Use $more-paper-workflow to plan research, search literature, manage PDFs or Zotero, write a paper, insert original MinerU/PDF figures by default, generate new charts from trusted data when requested, redraw or digitize figures only after an explicit user request, audit citations, or polish a draft."
 
 policy:
   allow_implicit_invocation: true

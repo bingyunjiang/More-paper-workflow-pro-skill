@@ -142,7 +142,10 @@ class ValidateStep7OutputTest(unittest.TestCase):
                 "# Figure Asset Check\n\n- figure_mode: post_write\n- mineru_zip: available\n",
                 encoding="utf-8",
             )
-            (out / "figure_index.json").write_text('{"records": []}\n', encoding="utf-8")
+            (out / "figure_index.json").write_text(
+                '{"records": [{"figure_id": "Fig. 1"}]}\n',
+                encoding="utf-8",
+            )
             (out / "journal_paper_draft.md").write_text(
                 "# 受力与变形特征\n\n正文采用编号引文[1]（已读全文）。\n\n[[FIGURE:wall_thinning|source=99QWSQ5K|status=post_write]]\n",
                 encoding="utf-8",
@@ -150,6 +153,42 @@ class ValidateStep7OutputTest(unittest.TestCase):
             result = self.run_validator(out)
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_empty_figure_index_does_not_satisfy_asset_gate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            self.write_minimum_artifacts(out, figure_mode="post_write")
+            (out / "figure_asset_check.md").write_text(
+                "# Figure Asset Check\n\n- figure_mode: post_write\n- mineru_zip: available\n",
+                encoding="utf-8",
+            )
+            (out / "figure_index.json").write_text(
+                '{"records": []}\n',
+                encoding="utf-8",
+            )
+            (out / "journal_paper_draft.md").write_text(
+                "# 方法\n\n正文采用编号引文[1]（已读全文）。\n\n"
+                "[[FIGURE:method|status=post_write]]\n",
+                encoding="utf-8",
+            )
+            result = self.run_validator(out, "draft_ready")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("missing_figure_index", result.stdout)
+
+    def test_inserted_image_must_exist_and_decode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            self.write_minimum_artifacts(out)
+            (out / "journal_paper_draft.md").write_text(
+                "# 方法\n\n正文采用编号引文[1]（已读全文）。\n\n"
+                "![图 1](figures/missing.png)\n",
+                encoding="utf-8",
+            )
+            result = self.run_validator(out, "draft_ready")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("missing_inserted_image", result.stdout)
 
     def write_minimum_artifacts(self, out: Path, figure_mode: str = "skip", figure_backend: str = "") -> None:
         backend_line = f"- figure_backend: {figure_backend}" if figure_backend else ""
