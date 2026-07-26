@@ -9,6 +9,8 @@
 # more-paper-workflow `v1.0.22-20260724`
 
 > 从研究问题到可核验论文：一套支持任意步骤直达、证据分级和质量闭环的学术论文工作流。
+>
+> From research question to verifiable paper: start from any Step, keep evidence visible, and close every quality gate.
 
 <p align="center">
   <img src="docs/assets/marketing/more-paper-workflow-slide-16x9.png" alt="more-paper-workflow：从研究问题到可核验论文" width="100%">
@@ -18,11 +20,15 @@
 
 已有 DOI、PDF、Zotero 文库或草稿？你可以直接进入对应 Step，不必机械重跑前序流程；但证据边界、Checkpoint 和 Completion Gate 不会被跳过。
 
-**[快速开始](#快速开始)** · **[八步工作流](#八步工作流)** · **[安装](#安装)** · **[完整流程图](docs/public-workflow-flowcharts.md)** · **[最小样例](examples/first-run/README.md)**
+**English readers:** start with the [English summary and copy-ready prompts](#english).
+
+**[快速开始](#快速开始)** · **[八步工作流](#八步工作流)** · **[安装](#安装)** · **[English](#english)** · **[完整流程图](docs/public-workflow-flowcharts.md)** · **[最小样例](examples/first-run/README.md)**
 
 ---
 
 ## 为什么需要它
+
+*Why it matters: useful academic writing keeps research questions, evidence, claims and deliverables connected.*
 
 论文真正困难的地方，通常不是“写出一段话”，而是下面几个问题：
 
@@ -34,28 +40,32 @@
 
 ### 三个核心差异
 
-| 能力 | 常见 AI 写作方式 | more-paper-workflow |
+*Three practical differences*
+
+| 能力 / Capability | 常见 AI 写作方式 / Typical AI writing | more-paper-workflow |
 | --- | --- | --- |
-| 工作范围 | 从主题直接生成正文 | 从定题到终验的现有 8 步工作流 |
-| 证据使用 | 容易混用标题、摘要和全文 | 明确区分候选、元数据、摘要和全文证据 |
-| 任务状态 | 生成结束即视为完成 | 区分草稿、风险、失败、待人工和可交付状态 |
-| 进入方式 | 从头执行固定流程 | 依据现有材料 direct-entry |
-| 高风险动作 | 容易静默继续 | 登录、外部写入和弱证据使用前明确确认 |
+| 工作范围 / Scope | 从主题直接生成正文 | 从定题到终验的现有 8 步工作流 |
+| 证据使用 / Evidence | 容易混用标题、摘要和全文 | 明确区分候选、元数据、摘要和全文证据 |
+| 任务状态 / Status | 生成结束即视为完成 | 区分草稿、风险、失败、待人工和可交付状态 |
+| 进入方式 / Entry | 从头执行固定流程 | 依据现有材料 direct-entry |
+| 高风险动作 / Risk | 容易静默继续 | 登录、外部写入和弱证据使用前明确确认 |
 
 ---
 
 ## 八步工作流
 
-| 阶段 | Step | 解决的问题 | 主要产物 |
+*Eight Steps · Direct Entry · Evidence-Grounded*
+
+| 阶段 / Phase | Step | 解决的问题 / Purpose | 主要产物 / Outputs |
 | --- | --- | --- | --- |
-| 研究设计 | 1 · 研究主题 | 研究什么、边界在哪里、如何证伪 | `研究主题.md` |
-| 研究设计 | 2 · 大纲关键词 | 章节如何承接 RQ 和证据需求 | `大纲关键词.md`、`section_blueprints.json` |
-| 研究设计 | 3 · 检索方案 | 如何形成可执行、可复核的查询 | `检索方案.json`、`compiled_queries.json` |
-| 证据获取 | 4 · 检索评分 | 如何检索、核验、去重、评分与分层 | `workflow_search_results.json`、`step4-dashboard/` |
-| 证据获取 | 5 · PDF 下载 | 如何路由、校验、记录失败并恢复 | `download_manifest.json`、PDF 附件池 |
-| 证据管理 | 6 · Zotero 对齐 | 如何对齐集合、条目、BibTeX 和 PDF | Zotero 映射、附件索引、`capability_index.json` |
-| 证据化生产 | 7 · 写作与审计 | 如何先锁定论证和证据，再写作与绘图 | `writing_blueprints.json`、草稿、引用审计报告 |
-| 终稿验证 | 8 · 保守润色 | 如何诊断、局部修订并验证含义未漂移 | 润色稿、`revision_ledger.json/md` |
+| 研究设计 / Research design | 1 · 研究主题 / Topic | 研究什么、边界在哪里、如何证伪 | `研究主题.md` |
+| 研究设计 / Research design | 2 · 大纲关键词 / Outline | 章节如何承接 RQ 和证据需求 | `大纲关键词.md`、`section_blueprints.json` |
+| 研究设计 / Research design | 3 · 检索方案 / Search plan | 如何形成可执行、可复核的查询 | `检索方案.json`、`compiled_queries.json` |
+| 证据获取 / Evidence acquisition | 4 · 检索评分 / Search & score | 如何检索、核验、去重、评分与分层 | `workflow_search_results.json`、`step4-dashboard/` |
+| 证据获取 / Evidence acquisition | 5 · PDF 下载 / PDF routing | 如何路由、校验、记录失败并恢复 | `download_manifest.json`、PDF 附件池 |
+| 证据管理 / Evidence management | 6 · Zotero 对齐 / Zotero alignment | 如何对齐集合、条目、BibTeX 和 PDF | Zotero 映射、附件索引、`capability_index.json` |
+| 证据化生产 / Evidence-based production | 7 · 写作与审计 / Write & audit | 如何先锁定论证和证据，再写作与绘图 | `writing_blueprints.json`、草稿、引用审计报告 |
+| 终稿验证 / Final validation | 8 · 保守润色 / Conservative revision | 如何诊断、局部修订并验证含义未漂移 | 润色稿、`revision_ledger.json/md` |
 
 
 <p align="center">
@@ -67,6 +77,8 @@
 ---
 
 ## 快速开始
+
+*Quick start: give the repository URL to a supported Skill runtime, then copy a prompt. English prompts are available in the [English summary](#english).*
 
 把仓库地址交给支持 Skill 的 Codex、Claude Code、Hermes 或 OpenClaw：
 
@@ -128,16 +140,18 @@ python3 scripts/run_step8_ai_trace.py --project-root examples/demo/step8-ai-trac
 
 ## 任意 Step 直达
 
+*Start from the Step your current materials support. Direct entry is a fast path, not a quality bypass.*
+
 入口由“你想完成什么”决定，而不是由文件扩展名决定：
 
-| 你已经有什么 | 推荐入口 |
+| 你已经有什么 / Available material | 推荐入口 / Recommended entry |
 | --- | --- |
-| 研究方向 | Step 1 · 定题 |
-| 查询式或已有文献表 | Step 4 · 检索与评分 |
-| DOI、标题、URL、BibTeX | Step 5 · 下载 |
-| Zotero 文库或 PDF 文件夹 | Step 6 · 文库整理 |
-| 证据包或章节草稿 | Step 7 · 写作与审计 |
-| 待润色稿件 | Step 8 · 保守修订 |
+| 研究方向 / Research direction | Step 1 · 定题 / Topic |
+| 查询式或已有文献表 / Queries or literature list | Step 4 · 检索与评分 / Search & score |
+| DOI、标题、URL、BibTeX | Step 5 · 下载 / PDF routing |
+| Zotero 文库或 PDF 文件夹 / Zotero library or PDF folder | Step 6 · 文库整理 / Library alignment |
+| 证据包或章节草稿 / Evidence pack or draft | Step 7 · 写作与审计 / Write & audit |
+| 待润色稿件 / Manuscript to revise | Step 8 · 保守修订 / Conservative revision |
 
 入口收敛**不影响对话式工作流从 Step 1-8 直接进入**。Artifact Passport 的材料识别与 readiness 路由只覆盖 Step 4-8；它生成的 `artifact_passport.json` 是 `direct-entry artifact graph` 和 **runtime 状态源**之一，不替代正式产物。
 
@@ -145,21 +159,23 @@ python3 scripts/run_step8_ai_trace.py --project-root examples/demo/step8-ai-trac
 
 ## 质量防线
 
-### 弱证据不支撑强 claim
+*Quality gates keep fast execution from weakening evidence standards.*
+
+### 弱证据不支撑强 claim / Weak evidence cannot support strong claims
 
 - `metadata_only` 只能说明元数据存在。
 - `abstract_only` 只能支持摘要明确表达的背景性判断。
 - 参数、实验数值、强机理结论和因果判断优先要求全文核验。
 - RAG 仅作为**候选定位加速层**，不得替代原文确认。
 
-### 快速通道不跳质量门
+### 快速通道不跳质量门 / Fast paths do not bypass quality gates
 
 - Checkpoint 是当前 Step 的输入与风险确认，不是线性流程锁。
 - Completion Gate 检查主产物、状态、风险和下一步输入。
 - Failure Triage 先定位失败层，再做最小补救。
 - HANDOFF 记录 confirmed inputs、primary outputs、open risks 和 recommended next step。
 
-### 写作与图表保持证据边界
+### 写作与图表保持证据边界 / Keep writing and figures evidence-grounded
 
 - Step 7 按大纲对应的 Zotero 子集合逐节读取证据，不扫整个文库。
 - `full-document / review-only / abstract-only / chapter-only / continue-existing / revision-only` 是公开写作模式。
@@ -167,13 +183,15 @@ python3 scripts/run_step8_ai_trace.py --project-root examples/demo/step8-ai-trac
 - 图表证据子链区分原图插入、可信数据新图和 source-locked 重绘/数字化。
 - 用户仍保留自己的写作策略和表达风格。
 
-### Step 8 只做保守修订
+### Step 8 只做保守修订 / Conservative revision only
 
 Step 8 先做 **AI 味确定性检查**和**载体清洁度检查**，再把问题分为：**可直接修订**、**需作者决定**、**当前依据不足**。它不会把语言优化变成观点漂移，也不承诺通过任何 AIGC 检测。
 
 ---
 
 ## 你会得到什么
+
+*You receive reusable project artifacts, not just chat responses.*
 
 这套工作流交付的是可继续使用的项目工件，而不只是聊天回答：
 
@@ -190,6 +208,8 @@ Step 8 先做 **AI 味确定性检查**和**载体清洁度检查**，再把问�
 ---
 
 ## 安装
+
+*Install by sharing the repository URL with a supported Skill runtime.*
 
 ### 推荐方式
 
@@ -218,6 +238,8 @@ Step 6 支持 `local / cloud / skip`。只读扫描、查重和 plan-only 不触
 
 ## 它不会做什么
 
+*Boundaries: no invented evidence, silent external writes or quality-gate bypasses.*
+
 - 不承诺一键生成可信论文。
 - 不把候选、摘要或未链接证据冒充全文证据。
 - 不在未确认时执行机构登录、Zotero 写入或高风险引用动作。
@@ -228,6 +250,8 @@ Step 6 支持 `local / cloud / skip`。只读扫描、查重和 plan-only 不触
 ---
 
 ## 进阶文档
+
+*Detailed documentation and runtime contracts*
 
 | 主题 | 文档 |
 | --- | --- |
