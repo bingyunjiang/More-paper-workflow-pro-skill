@@ -39,13 +39,23 @@
 
 ### Step 7 原生图表数字化证据链
 
+- 在同一锁定版本内修正曲线数据链为 `spec-review/确认 → candidates.csv →
+  自动质量评估 → review-decisions.json → observations.csv → 正式 data.csv →
+  VisualSpec → render/QA`；候选和可见像素观测不再直接生成 VisualSpec。
+- 新增 `curve_topology=continuous|segmented` 与
+  `curve_data_mode=observations|guide_constrained`。证据缺口与正式断点分栏保存；
+  连续曲线的虚线空白、遮挡和 JPEG 缺色不再成为正式断点，渲染阶段禁止补线。
+- 新增规格确认、复核决策与正式数据 provenance Schema，四类状态改为
+  `extraction/review/render/delivery` 独立维护；旧 `digitized_lines.csv` 只能迁移为
+  candidate-only 输入。
+
 - 新增 `scripts/figure_evidence_pipeline.py` 与
   `schemas/figure-project-v1.schema.json`，记录源文件 SHA-256、原始尺寸、
   坐标空间、图型路由以及相互独立的提取、渲染和交付状态。
 - 新增彩色栅格折线候选提取基线，支持线性/`log10` 坐标、多锚点残差、
   像素到数值映射、逐点不确定度、覆盖清单、缺失值拒绝和原图 overlay。
-- 原始分辨率 overlay 显式复核前保持 `needs_review` 且不生成 VisualSpec；
-  Step 7 校验器拒绝“重绘通过但提取未授权”等状态冲突。
+- 原始测量栅格与 `spec-review.png` 必须在提取前由用户确认；提取后普通候选可
+  批量接受、异常候选逐项处理，只有正式 `data.csv` 能构建数字化 VisualSpec。
 - 图形发布验收新增 `digitization_contract`。
 - PDF/MinerU 论文原图改为默认直接插入；重绘或数字化必须记录用户明确授权。
   原图插入后固定提醒一次可选的重绘、曲线数字化、可编辑 SVG/PDF 和严格

@@ -180,7 +180,7 @@ python3 scripts/run_step8_ai_trace.py --project-root examples/demo/step8-ai-trac
 - Step 7 按大纲对应的 Zotero 子集合逐节读取证据，不扫整个文库。
 - `full-document / review-only / abstract-only / chapter-only / continue-existing / revision-only` 是公开写作模式。
 - `continue-existing`、`chapter-only` 和 `revision-only` 都允许直达，但不能跳过证据确认。
-- 图表证据子链区分原图插入、可信数据新图和 source-locked 重绘/数字化。
+- 图表证据子链区分原图插入、可信数据新图和 source-locked 重绘/数字化；曲线数字化固定经过 `candidates → observations → formal data.csv → VisualSpec`，线型只影响渲染，不改变数据连续性。
 - 用户仍保留自己的写作策略和表达风格。
 
 ### Step 8 只做保守修订 / Conservative revision only

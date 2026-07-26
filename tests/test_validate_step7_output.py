@@ -273,7 +273,7 @@ class ValidateStep7OutputTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("figure_backend: reproduction", result.stdout)
 
-    def test_digitized_reproduction_requires_authorized_extraction_contract(self):
+    def test_digitized_reproduction_rejects_unreviewed_candidate_delivery(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
             self.write_minimum_artifacts(out, figure_backend="reproduction")
@@ -294,13 +294,14 @@ class ValidateStep7OutputTest(unittest.TestCase):
                     "extraction_project_path": "figures/fig_1/figure_project.result.json",
                     "extraction_report_path": "figures/fig_1/extraction_report.json",
                     "extraction_status": "authorized_candidate",
-                    "value_delivery_authorized": False
+                    "review_status": "not_reviewed",
+                    "value_delivery_authorized": True
                 }],
             }), encoding="utf-8")
             result = self.run_validator(out, "draft_ready")
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("digitized_values_not_authorized", result.stdout)
+        self.assertIn("digitization_status_authorization_conflict", result.stdout)
 
     def test_reproduction_requires_explicit_user_transform_authorization(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -1,0 +1,42 @@
+{
+  "chart": {
+    "chart_type": "line",
+    "chart_type_verified": true
+  },
+  "delivery_status": "working",
+  "evidence_contract": {
+    "candidate_review_required_before_formal_data": true,
+    "formal_data_required_before_visualspec": true,
+    "measure_original_coordinates_only": true,
+    "minimum_axis_anchors_per_axis": 2,
+    "missing_values_are_not_interpolated_during_extraction": true,
+    "official_source_data_validation_is_separate": true,
+    "overlay_review_required": true,
+    "render_stage_bridging_forbidden": true,
+    "render_stage_interpolation_forbidden": true,
+    "source_identity_required": true,
+    "spec_review_confirmation_required_before_extraction": true
+  },
+  "extraction_status": "needs_configuration",
+  "input": {
+    "coordinate_space": "original_raster_pixels",
+    "display_name": "source-occluded.png",
+    "height_px": 100,
+    "media_type": "raster_image",
+    "path": "source-occluded.png",
+    "pixel_mode": "RGB",
+    "sha256": "1bc8dccaf6b89e90aa75c81ef577962877e7c404439a70aee4f5465e46ebd059",
+    "size_bytes": 654,
+    "width_px": 160
+  },
+  "project_root": ".",
+  "render_status": "not_run",
+  "review_status": "not_started",
+  "routing": {
+    "extractor": "native_color_line_v1",
+    "status": "ready_for_configuration",
+    "support_level": "candidate",
+    "value_delivery_authorized": false
+  },
+  "schema": "morepaper.figure_project.v1"
+}

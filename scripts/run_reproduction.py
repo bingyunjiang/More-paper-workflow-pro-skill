@@ -19,6 +19,7 @@ from PIL import Image
 
 from bundle_lock import fixed_environment, write_bundle_lock
 from environment_policy import REQUIRED_PACKAGES, write_environment_policy
+from figure_data_pipeline import validate_visualspec_data_contract
 from portable_paths import portable_command, portable_path
 
 
@@ -138,6 +139,14 @@ def preflight_inputs(spec_path: Path, *, source: Path | None = None, report_root
     spec = json.loads(spec_path.read_text(encoding="utf-8-sig"))
     base_dir = spec_path.resolve().parent
     checks: list[dict[str, str]] = []
+    formal_data = validate_visualspec_data_contract(spec_path)
+    if formal_data["status"] == "failed":
+        return {
+            "status": "failed",
+            "stage": "input_preflight",
+            "failure_type": "invalid_formal_data_contract",
+            "errors": formal_data["errors"],
+        }
     if source is not None:
         checks.append({"path": str(source), "spec_location": "--source"})
     for panel_index, panel in enumerate(spec.get("panels", [])):
@@ -165,6 +174,10 @@ def prepare_visualspec_bundle(spec_path: Path, out_dir: Path, *, source: Path | 
     source_copy = None
     if source:
         source_copy = _copy_input(source.resolve(), inputs_dir, used)
+    data_contract = spec.get("data_contract")
+    if isinstance(data_contract, dict):
+        formal_data = _resolve_source(str(data_contract["path"]), base_dir)
+        data_contract["path"] = _copy_input(formal_data.resolve(), inputs_dir, used)
     for panel in spec.get("panels", []):
         if panel.get("source_crop"):
             panel_source = _resolve_source(str(panel["source_crop"]), base_dir)

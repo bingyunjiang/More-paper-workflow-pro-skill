@@ -1,0 +1,76 @@
+{
+  "schema": "scientificfigure.render_semantics.v1",
+  "figures": {
+    "figure_1": {
+      "panels": {
+        "digitized_panel": {
+          "axes": {
+            "x": {
+              "scale": "linear",
+              "limits": [
+                -3.552713678800501e-15,
+                12.000000000000004
+              ],
+              "ticks": [
+                0.0,
+                2.0,
+                4.0,
+                6.0,
+                8.0,
+                10.0,
+                12.0
+              ],
+              "label": ""
+            },
+            "y": {
+              "scale": "linear",
+              "limits": [
+                -0.049999999999998046,
+                4.95
+              ],
+              "ticks": [
+                -1.0,
+                0.0,
+                1.0,
+                2.0,
+                3.0,
+                4.0,
+                5.0
+              ],
+              "label": ""
+            }
+          },
+          "plots": [
+            {
+              "type": "line",
+              "label": "response",
+              "x_hash": "sha256:00fac9a468c140974835f21d3dde6fa3a1520b6a98573f9562a5a37fab2d3ce4",
+              "y_hash": "sha256:88ea8b4a7c005e6c519fbe2a0ce7510d10a97f54ac1a9e20a4a7634e10f35e83",
+              "point_count": 100,
+              "style": {
+                "color": "#cc2244",
+                "line_width_pt": 1.6,
+                "line_style": "dashdot",
+                "marker": "o"
+              },
+              "provenance": {
+                "type": "observed",
+                "x_hash": "observed",
+                "y_hash": "observed",
+                "point_count": "observed",
+                "style.color": "observed",
+                "style.line_width_pt": "observed",
+                "style.line_style": "observed",
+                "style.marker": "observed"
+              }
+            }
+          ],
+          "legend_labels": [
+            "response"
+          ],
+          "annotations": []
+        }
+      }
+    }
+  }
+}

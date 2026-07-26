@@ -26,7 +26,7 @@ reproduction。进入后依赖不完整必须中止并提示安装
 ## 严格复现工作流
 
 1. 识别每张图和 panel 的来源、用途、数据基础、坐标轴、单位、图例和注释。
-2. 如果输入是栅格/PDF 且需要恢复数值，先通过 `figure_evidence_pipeline.py` 建立源文件合同并完成数字化授权；未授权的候选值不得进入 VisualSpec。
+2. 如果输入是栅格/PDF 且需要恢复数值，先通过 `figure_evidence_pipeline.py` 完成来源锁定、规格叠图与用户确认、候选提取/自动诊断、用户复核、`observations.csv` 和正式 `data.csv`；候选或像素观测不得进入 VisualSpec。
 3. 创建或更新 `scientificfigure.visualspec.v2`；v1 只作为兼容输入。
 4. 对复杂示意图、相图、EBSD、异常填充或领域图像处理使用项目级自定义 renderer，但仍进入统一 QA 闭环。
 5. 使用统一入口：
@@ -59,7 +59,7 @@ python scripts/generate_figures.py \
 
 ## 工具路由
 
-- `scripts/figure_evidence_pipeline.py`：原图/PDF 指纹、图型路由、源身份复核、候选折线提取、覆盖/残差证据和 VisualSpec 桥接。
+- `scripts/figure_evidence_pipeline.py`：原图/PDF 指纹、spec-review/确认、候选提取、自动诊断、复核应用、正式数据、VisualSpec 数据合同与交付验证。
 - `scripts/scaffold_figurespec.py`：生成 VisualSpec 骨架。
 - `scripts/validate_visualspec.py`：渲染前校验协议。
 - `scripts/run_reproduction.py`：构建自包含复现包并执行完整闭环。
@@ -92,9 +92,11 @@ python scripts/generate_figures.py \
 `figure_transform_authorization=explicit_user_request`。原图直接插入必须使用
 `figure_asset_action=insert_original` 和 `generation_backend=not_applicable`。
 
-数字化还必须单独保留 `extraction_status` 和
-`value_delivery_authorized`。`semantic_strict_pass` 不能反向授权未通过
-源身份、坐标校准、覆盖审计或人工 overlay 复核的提取数据。
+数字化还必须单独保留 `extraction_status / review_status / render_status /
+delivery_status`。`semantic_strict_pass` 不能反向授权未通过来源、规格确认、
+候选复核和正式数据门的结果。渲染器禁止从原图/guided path 临时补线、插值
+或桥接；任何派生稠密点必须预先写入 `data.csv`，并保留引导路径、可见像素
+残差、派生方法和哈希血缘。
 
 自定义 command renderer 不能自我声明 semantic strict；其上限为 `semantic_near_pass`，除非语义由内置提取与审计路径独立验证。
 

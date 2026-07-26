@@ -1,0 +1,10 @@
+{
+  "schema": "morepaper.figure_styles.v1",
+  "series": {
+    "response": {
+      "color": "#cc2244",
+      "line_style": "dashed",
+      "line_width_pt": 1.6
+    }
+  }
+}

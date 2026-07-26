@@ -899,6 +899,12 @@ class FigureEvidenceRecord:
     extraction_project_path: str = ""
     extraction_report_path: str = ""
     extraction_status: str = ""
+    review_status: str = ""
+    review_decisions_path: str = ""
+    observations_path: str = ""
+    data_path: str = ""
+    data_sha256: str = ""
+    visualspec_data_sha256: str = ""
     value_delivery_authorized: bool = False
 
 

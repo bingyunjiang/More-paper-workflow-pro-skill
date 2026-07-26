@@ -157,6 +157,33 @@
       "redraw",
       "digitize"
     ],
+    "figure_data_chain": [
+      "source_lock",
+      "spec_review",
+      "spec_confirmation",
+      "candidates",
+      "quality_assessment",
+      "review_decisions",
+      "observations",
+      "formal_data",
+      "visualspec",
+      "render",
+      "validate"
+    ],
+    "curve_topology": [
+      "continuous",
+      "segmented"
+    ],
+    "curve_data_mode": [
+      "observations",
+      "guide_constrained"
+    ],
+    "figure_domain_states": {
+      "extraction_status": ["not_run", "needs_configuration", "candidate_ready", "formal_data_ready", "partial_visible", "not_extracted", "failed"],
+      "review_status": ["not_started", "not_reviewed", "pending", "complete", "failed"],
+      "render_status": ["not_run", "rendered", "validated", "failed"],
+      "delivery_status": ["working", "validated", "failed"]
+    },
     "domain_states": [
       "draft_ready",
       "evidence_closed",

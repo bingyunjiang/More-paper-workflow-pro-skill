@@ -1,0 +1,74 @@
+{
+  "schema": "scientificfigure.manifest.v2",
+  "project_root": ".",
+  "spec_path": "visualspec-dashed.json",
+  "output_dir": ".",
+  "source_code_status": "incomplete",
+  "render_status": "pass",
+  "raster_export_status": "pass",
+  "vector_export_status": "pass",
+  "export_status": "pass",
+  "vector_validation_status": "not_run",
+  "semantic_reconstruction_status": "not_run",
+  "visual_qa_status": "not_run",
+  "qa_status": "not_run",
+  "run_status": "not_run",
+  "qa_execution_status": "not_run",
+  "quality_status": "not_applicable",
+  "status": "render_only",
+  "source_strategy": "digitized_raster",
+  "representation": "semantic_vector",
+  "overall_status": "render_only",
+  "figures": {
+    "figure_1": {
+      "source": null,
+      "spec": "visualspec-dashed.json",
+      "script": null,
+      "runner": "render_visualspec_matplotlib.py",
+      "exports": {
+        "png": "render.png",
+        "svg": "render.svg",
+        "pdf": "render.pdf"
+      },
+      "qa": {
+        "execution_status": "not_run",
+        "result": "not_applicable",
+        "score_report": null
+      },
+      "source_strategy": "digitized_raster",
+      "representation": "semantic_vector",
+      "status": "render_only",
+      "panels": {
+        "digitized_panel": {
+          "bbox_normalized": [
+            0.16,
+            0.16,
+            0.78,
+            0.74
+          ],
+          "source": null,
+          "source_strategy": "digitized_raster",
+          "representation": "semantic_vector",
+          "qa": {
+            "execution_status": "not_run",
+            "result": "not_applicable",
+            "score_report": null
+          }
+        }
+      }
+    }
+  },
+  "per_figure_scripts": {},
+  "errors": [],
+  "exports": {
+    "png": "render.png",
+    "svg": "render.svg",
+    "pdf": "render.pdf"
+  },
+  "semantics": "render_semantics.json",
+  "backend": "python_matplotlib",
+  "crop_mode": "fixed_canvas",
+  "resolved_fonts": {
+    "default": "Arial"
+  }
+}

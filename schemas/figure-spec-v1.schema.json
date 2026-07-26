@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "morepaper.figure_spec.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "source", "chart_type", "plot_bounds_px", "axes", "series", "exclusion_regions_px"],
+  "properties": {
+    "schema": {"const": "morepaper.figure_spec.v1"},
+    "source": {
+      "type": "object",
+      "required": ["path", "sha256", "width_px", "height_px", "coordinate_space"],
+      "properties": {
+        "path": {"type": "string"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "width_px": {"type": "integer", "minimum": 1},
+        "height_px": {"type": "integer", "minimum": 1},
+        "coordinate_space": {"const": "original_raster_pixels"}
+      }
+    },
+    "chart_type": {"type": "string"},
+    "plot_bounds_px": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "integer"}},
+    "axes": {
+      "type": "object",
+      "required": ["x", "y"],
+      "properties": {
+        "x": {"$ref": "#/$defs/axis"},
+        "y": {"$ref": "#/$defs/axis"}
+      }
+    },
+    "series": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "color", "semantic_role", "curve_topology"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "color": {"type": "string"},
+          "semantic_role": {"type": "string"},
+          "curve_topology": {"enum": ["continuous", "segmented"]}
+        }
+      }
+    },
+    "exclusion_regions_px": {"type": "array", "items": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "integer"}}}
+  },
+  "$defs": {
+    "axis": {
+      "type": "object",
+      "required": ["scale", "anchors"],
+      "properties": {
+        "scale": {"enum": ["linear", "log10"]},
+        "anchors": {"type": "array", "minItems": 2, "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}}
+      }
+    }
+  }
+}

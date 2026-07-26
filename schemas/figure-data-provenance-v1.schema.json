@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "morepaper.figure_data_provenance.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "status", "data_path", "data_sha256", "row_count", "series_topology", "lineage", "render_stage_interpolation", "render_stage_bridging", "style_independent"],
+  "properties": {
+    "schema": {"const": "morepaper.figure_data_provenance.v1"},
+    "status": {"const": "formal_data_ready"},
+    "data_path": {"const": "data.csv"},
+    "data_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "row_count": {"type": "integer", "minimum": 1},
+    "series_topology": {"type": "object"},
+    "lineage": {"type": "object"},
+    "guide_constrained": {"type": ["object", "null"]},
+    "render_stage_interpolation": {"const": false},
+    "render_stage_bridging": {"const": false},
+    "style_independent": {"const": true}
+  }
+}

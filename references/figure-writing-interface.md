@@ -45,6 +45,12 @@
 - extraction_project_path
 - extraction_report_path
 - extraction_status
+- review_status
+- review_decisions_path
+- observations_path
+- data_path
+- data_sha256
+- visualspec_data_sha256
 - value_delivery_authorized
 
 ## 图-表-panel 绑定矩阵
@@ -115,8 +121,11 @@
 - `reproduction` 模式必须记录 VisualSpec、bundle、manifest、QA profile 和 `verify.py` 结果；详细协议见 `scientific-figure-reproduction.md`
 - 图形复现通过只证明产物完整性，不能自动把 `support_status` 升级为 `support`
 - 数字化值进入正文数值比较、参数或趋势 claim 前，必须绑定
-  `figure_project.result.json` 与 `extraction_report.json`；若
-  `value_delivery_authorized=false`，只能保留图位、缺口或保守定性描述。
+  `figure_project.result.json`、`extraction_report.json`、完整
+  `review-decisions.json`、`observations.csv`、正式 `data.csv` 及其哈希；若
+  `extraction_status!=formal_data_ready`、`review_status!=complete` 或
+  `value_delivery_authorized=false`，只能保留 candidate/not reviewed、图位、
+  缺口或保守定性描述。
 - 官方源数据验证不得覆盖图片提取 CSV；两者必须以独立工件进入
   `figure_evidence_report`。
 
@@ -135,7 +144,13 @@
   "figure_transform_authorization": "not_required|explicit_user_request",
   "extraction_project_path": "figures/fig_1/figure_project.result.json",
   "extraction_report_path": "figures/fig_1/extraction_report.json",
-  "extraction_status": "needs_review|authorized_candidate|partial_visible|not_extracted|failed",
+  "extraction_status": "candidate_ready|formal_data_ready|partial_visible|not_extracted|failed",
+  "review_status": "not_reviewed|pending|complete|failed",
+  "review_decisions_path": "figures/fig_1/review-decisions.json",
+  "observations_path": "figures/fig_1/observations.csv",
+  "data_path": "figures/fig_1/data.csv",
+  "data_sha256": "<sha256>",
+  "visualspec_data_sha256": "<same-sha256>",
   "value_delivery_authorized": false
 }
 ```

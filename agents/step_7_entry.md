@@ -68,7 +68,7 @@
 - 只插入 MinerU/PDF/本地已有论文原图 -> `figure_backend=not_applicable`；这是图文联合的默认路径，不重绘、不数字化
 - 用户明确要求基于 CSV、实验数据或统计结果生成普通新图 -> `figure_backend=quick`
 - 只有用户明确要求“重绘/复现/恢复曲线数值/转成可编辑矢量/严格图形 QA”时 -> `figure_backend=reproduction`
-- `reproduction` 中如果需要从图片/PDF恢复数值，先在 Step 7.15 运行 `figure_evidence_pipeline.py inspect` 和相应提取器；只有 `value_delivery_authorized=true` 后才把生成的 VisualSpec 交给 reproduction。只做视觉重绘、不恢复数值时不需要该前置链。
+- `reproduction` 中如果需要从图片/PDF恢复数值，必须完成 `inspect → spec-review/用户确认 → candidates → 自动诊断 → review-decisions → observations → data → VisualSpec`；只有 `extraction_status=formal_data_ready`、`review_status=complete` 后才交给 reproduction。只做视觉重绘、不恢复数值时不需要该前置链。
 - 发现参考图、截图、裁剪图或 VisualSpec 本身不构成重绘授权；必须记录 `figure_transform_authorization=explicit_user_request`
 - 用户显式指定 `quick/reproduction` 时覆盖默认插图路径；严格后端缺依赖时中止并提示安装，不得静默降级
 

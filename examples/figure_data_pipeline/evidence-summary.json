@@ -1,0 +1,26 @@
+{
+  "data_row_count": 100,
+  "data_sha256": "39f5a5af067ddc2ce53cd62815a6257f3d05c41ec670a2bdda4e840c7f193e07",
+  "formal_segment_breaks": 0,
+  "observation_evidence_breaks": 1,
+  "render_stage_bridging": false,
+  "render_stage_interpolation": false,
+  "schema": "morepaper.figure_gap_regression_example.v1",
+  "source_occlusion": "legend rectangle hides a continuous line",
+  "style_invariance_verified": true,
+  "styles_rendered": [
+    "solid",
+    "dashed",
+    "dashdot"
+  ],
+  "synthetic_fixture": true,
+  "validation": {
+    "delivery_status": "validated",
+    "errors": [],
+    "extraction_status": "formal_data_ready",
+    "render_status": "validated",
+    "review_status": "complete",
+    "schema": "morepaper.figure_data_validation.v1",
+    "status": "pass"
+  }
+}

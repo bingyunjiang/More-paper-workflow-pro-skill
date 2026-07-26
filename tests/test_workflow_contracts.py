@@ -486,7 +486,13 @@ class WorkflowContractsTest(unittest.TestCase):
                 figure_transform_authorization="explicit_user_request",
                 extraction_project_path="figures/fig_3/figure_project.result.json",
                 extraction_report_path="figures/fig_3/extraction_report.json",
-                extraction_status="authorized_candidate",
+                extraction_status="formal_data_ready",
+                review_status="complete",
+                review_decisions_path="figures/fig_3/review-decisions.json",
+                observations_path="figures/fig_3/observations.csv",
+                data_path="figures/fig_3/data.csv",
+                data_sha256="a" * 64,
+                visualspec_data_sha256="a" * 64,
                 value_delivery_authorized=True,
             )
         ]
@@ -505,7 +511,9 @@ class WorkflowContractsTest(unittest.TestCase):
             payload["records"][0]["figure_transform_authorization"],
             "explicit_user_request",
         )
-        self.assertEqual(payload["records"][0]["extraction_status"], "authorized_candidate")
+        self.assertEqual(payload["records"][0]["extraction_status"], "formal_data_ready")
+        self.assertEqual(payload["records"][0]["review_status"], "complete")
+        self.assertEqual(payload["records"][0]["data_sha256"], "a" * 64)
         self.assertTrue(payload["records"][0]["value_delivery_authorized"])
 
 

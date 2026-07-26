@@ -16,6 +16,25 @@ from typing import Any, Iterable
 import numpy as np
 from PIL import Image, ImageDraw
 
+from figure_data_pipeline import (
+    CANDIDATE_FIELDS,
+    FigureDataError,
+    assess_candidates,
+    build_data,
+    build_observations,
+    build_spec_review,
+    build_visualspec,
+    candidate_rows_from_series,
+    confirm_spec,
+    migrate_legacy_digitized_lines,
+    review_template,
+    validate_delivery,
+    validate_spec_confirmation,
+    validate_visualspec_data_contract,
+    write_csv as write_pipeline_csv,
+    write_pipeline_state,
+)
+
 
 SCHEMA_PROJECT = "morepaper.figure_project.v1"
 SCHEMA_EXTRACTION = "morepaper.figure_extraction_evidence.v1"
@@ -185,11 +204,17 @@ def inspect_source(input_path: Path, chart_type: str | None, output_project: Pat
             "source_identity_required": True,
             "measure_original_coordinates_only": True,
             "minimum_axis_anchors_per_axis": 2,
-            "missing_values_are_not_interpolated": True,
+            "missing_values_are_not_interpolated_during_extraction": True,
+            "render_stage_interpolation_forbidden": True,
+            "render_stage_bridging_forbidden": True,
+            "spec_review_confirmation_required_before_extraction": True,
+            "candidate_review_required_before_formal_data": True,
+            "formal_data_required_before_visualspec": True,
             "overlay_review_required": True,
             "official_source_data_validation_is_separate": True,
         },
         "extraction_status": extraction_status,
+        "review_status": "not_started",
         "render_status": "not_run",
         "delivery_status": "working",
     }
@@ -223,6 +248,7 @@ def validate_project(project_path: Path, *, verify_source: bool = True) -> dict[
         "routing",
         "evidence_contract",
         "extraction_status",
+        "review_status",
         "render_status",
         "delivery_status",
     ):
@@ -305,6 +331,15 @@ def parse_series(value: str) -> tuple[str, str]:
     if not re.fullmatch(r"#[0-9A-Fa-f]{6}", color):
         raise FigureEvidenceError("series color must be #RRGGBB")
     return name, color.lower()
+
+
+def parse_topology(value: str) -> tuple[str, str]:
+    if "=" not in value:
+        raise FigureEvidenceError("series topology must be name=continuous|segmented")
+    name, topology = (part.strip() for part in value.split("=", 1))
+    if not name or topology not in {"continuous", "segmented"}:
+        raise FigureEvidenceError("series topology must be name=continuous|segmented")
+    return name, topology
 
 
 def hex_rgb(value: str) -> tuple[int, int, int]:
@@ -635,6 +670,7 @@ def extract_color_lines(
     minimum_coverage: float = 0.65,
     max_vertical_span_px: int = 12,
     overlay_review_status: str = "pending",
+    spec_confirmation_path: Path | None = None,
 ) -> dict[str, Any]:
     project = _load_json(project_path)
     validation = validate_project(project_path, verify_source=True)
@@ -644,6 +680,25 @@ def extract_color_lines(
         raise FigureEvidenceError("native_color_line_v1 requires chart.chart_type=line")
     if project.get("input", {}).get("media_type") != "raster_image":
         raise FigureEvidenceError("native_color_line_v1 requires a raster image")
+    if spec_confirmation_path is None:
+        raise FigureEvidenceError("spec_not_confirmed: --spec-confirmation is required before extraction")
+
+    x_anchor_list = list(x_anchors)
+    y_anchor_list = list(y_anchors)
+    series_list = list(series)
+    try:
+        confirmation, confirmed_spec = validate_spec_confirmation(
+            project_path,
+            spec_confirmation_path,
+            plot_bounds=plot_bounds,
+            x_anchors=x_anchor_list,
+            y_anchors=y_anchor_list,
+            series=series_list,
+        )
+        if confirmed_spec.get("axes", {}).get("x", {}).get("scale") != x_scale or confirmed_spec.get("axes", {}).get("y", {}).get("scale") != y_scale:
+            raise FigureDataError("extraction axis scales differ from confirmed specification")
+    except FigureDataError as exc:
+        raise FigureEvidenceError(str(exc)) from exc
 
     source = resolve_project_source(project_path, project)
     with Image.open(source) as original:
@@ -651,19 +706,20 @@ def extract_color_lines(
     width, height = image.size
     _validate_bounds(plot_bounds, width, height)
 
-    series_list = list(series)
     if not series_list:
         raise FigureEvidenceError("at least one --series name=#RRGGBB is required")
     if len({name for name, _ in series_list}) != len(series_list):
         raise FigureEvidenceError("series names must be unique")
 
-    x_axis = fit_axis(x_anchors, x_scale)
-    y_axis = fit_axis(y_anchors, y_scale)
+    x_axis = fit_axis(x_anchor_list, x_scale)
+    y_axis = fit_axis(y_anchor_list, y_scale)
     rgb = np.asarray(image)
     series_rows: dict[str, list[dict[str, Any]]] = {}
     coverage_ledger: list[dict[str, Any]] = []
     colors = dict(series_list)
     total_columns = plot_bounds[2] - plot_bounds[0] + 1
+    exclusion_regions = [tuple(int(value) for value in region) for region in confirmed_spec.get("exclusion_regions_px", [])]
+    safe_reextraction_ledger: list[dict[str, Any]] = []
 
     for name, color in series_list:
         points, counts = _line_points_for_color(
@@ -672,6 +728,59 @@ def extract_color_lines(
             hex_rgb(color),
             color_tolerance,
             max_vertical_span_px,
+        )
+        excluded_points = [
+            (x_pixel, y_pixel)
+            for x_pixel, y_pixel in points
+            if any(left <= x_pixel <= right and top <= y_pixel <= bottom for left, top, right, bottom in exclusion_regions)
+        ]
+        if excluded_points:
+            excluded_set = set(excluded_points)
+            points = [point for point in points if point not in excluded_set]
+            counts["excluded_by_confirmed_region"] = len(excluded_points)
+        original_points = list(points)
+        retry_tolerance = min(96.0, max(color_tolerance + 8.0, color_tolerance * 1.25))
+        retry_points, retry_counts = _line_points_for_color(
+            rgb,
+            plot_bounds,
+            hex_rgb(color),
+            retry_tolerance,
+            max_vertical_span_px,
+        )
+        retry_points = [
+            point
+            for point in retry_points
+            if not any(left <= point[0] <= right and top <= point[1] <= bottom for left, top, right, bottom in exclusion_regions)
+        ]
+        original_by_x = {x: y for x, y in original_points}
+        original_x = sorted(original_by_x)
+        safe_added: list[tuple[int, float]] = []
+        for x_pixel, y_pixel in retry_points:
+            if x_pixel in original_by_x:
+                continue
+            left_x = max((value for value in original_x if value < x_pixel), default=None)
+            right_x = min((value for value in original_x if value > x_pixel), default=None)
+            if left_x is None or right_x is None or right_x - left_x > 12:
+                continue
+            fraction = (x_pixel - left_x) / (right_x - left_x)
+            predicted_y = original_by_x[left_x] + fraction * (original_by_x[right_x] - original_by_x[left_x])
+            if abs(y_pixel - predicted_y) <= max(2.0, max_vertical_span_px / 2):
+                safe_added.append((x_pixel, y_pixel))
+        if safe_added:
+            points = sorted(original_points + safe_added)
+        safe_reextraction_ledger.append(
+            {
+                "series": name,
+                "attempted": True,
+                "method": "bounded_color_tolerance_retry_with_two_sided_path_residual_gate_v1",
+                "original_tolerance": color_tolerance,
+                "retry_tolerance": retry_tolerance,
+                "original_points": len(original_points),
+                "retry_visible_points": len(retry_points),
+                "accepted_additional_points": len(safe_added),
+                "retry_ambiguous_columns": retry_counts["ambiguous_vertical_span"],
+                "status": "adopted_safe_visible_points" if safe_added else "no_safe_additions",
+            }
         )
         rows: list[dict[str, Any]] = []
         for x_pixel, y_pixel in points:
@@ -696,6 +805,7 @@ def extract_color_lines(
                 "accepted_columns": len(rows),
                 "missing_columns": counts["missing"],
                 "ambiguous_columns": counts["ambiguous_vertical_span"],
+                "excluded_columns": counts.get("excluded_by_confirmed_region", 0),
                 "coverage": coverage,
                 "status": "pass" if coverage >= minimum_coverage else "failed",
             }
@@ -708,34 +818,23 @@ def extract_color_lines(
     coverage_pass = all(item["status"] == "pass" for item in coverage_ledger)
     any_rows = any(series_rows.values())
     candidate_gates_pass = calibration_pass and coverage_pass and any_rows
-    overlay_review_accepted = overlay_review_status == "accepted"
-    authorized = candidate_gates_pass and overlay_review_accepted
-    if authorized:
-        extraction_status = "authorized_candidate"
-    elif candidate_gates_pass:
-        extraction_status = "needs_review"
+    authorized = False
+    if candidate_gates_pass:
+        extraction_status = "candidate_ready"
     elif any_rows:
         extraction_status = "partial_visible"
     else:
         extraction_status = "not_extracted"
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    csv_path = output_dir / "digitized_lines.csv"
-    fieldnames = [
-        "series",
-        "x",
-        "y",
-        "x_px",
-        "y_px",
-        "uncertainty_x",
-        "uncertainty_y",
-        "status",
-    ]
-    with csv_path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        for name, _ in series_list:
-            writer.writerows(series_rows[name])
+    csv_path = output_dir / "candidates.csv"
+    candidate_rows = candidate_rows_from_series(
+        series_rows,
+        source_sha256=project["input"]["sha256"],
+        spec_sha256=str(confirmation["spec_sha256"]),
+        extractor_id="native_color_line_v1",
+    )
+    write_pipeline_csv(csv_path, CANDIDATE_FIELDS, candidate_rows)
 
     overlay = image.copy()
     draw = ImageDraw.Draw(overlay)
@@ -753,13 +852,17 @@ def extract_color_lines(
     overlay_path = output_dir / "digitization_overlay.png"
     overlay.save(overlay_path)
 
-    visualspec_path: Path | None = None
-    if authorized:
-        visualspec = _visualspec_from_series(
-            width, height, x_axis, y_axis, series_rows, colors
-        )
-        visualspec_path = output_dir / "visualspec.json"
-        _write_json(visualspec_path, visualspec)
+    quality_path = output_dir / "quality-assessment.json"
+    quality = assess_candidates(
+        csv_path,
+        quality_path,
+        safe_reextraction={
+            "attempted": True,
+            "source_sha256": project["input"]["sha256"],
+            "spec_sha256": confirmation["spec_sha256"],
+            "series": safe_reextraction_ledger,
+        },
+    )
 
     report = {
         "schema": SCHEMA_EXTRACTION,
@@ -782,10 +885,13 @@ def extract_color_lines(
             "color_tolerance": color_tolerance,
             "minimum_coverage": minimum_coverage,
             "max_vertical_span_px": max_vertical_span_px,
+            "confirmed_exclusion_regions_px": [list(region) for region in exclusion_regions],
             "missing_values_interpolated": False,
-            "overlay_review_status": overlay_review_status,
+            "legacy_overlay_review_status_ignored": overlay_review_status,
+            "spec_confirmation_sha256": sha256_file(spec_confirmation_path),
         },
         "coverage_ledger": coverage_ledger,
+        "safe_reextraction": safe_reextraction_ledger,
         "residual_audit": {
             "status": "pass" if calibration_pass else "failed",
             "x_normalized_max_residual": x_axis.normalized_max_residual,
@@ -794,15 +900,19 @@ def extract_color_lines(
         "artifacts": {
             "csv": csv_path.name,
             "overlay": overlay_path.name,
-            "visualspec": visualspec_path.name if visualspec_path else None,
+            "quality_assessment": quality_path.name,
+            "visualspec": None,
         },
-        "value_delivery_authorized": authorized,
+        "candidate_generation_succeeded": bool(candidate_rows),
+        "value_delivery_authorized": False,
+        "review_status": "not_reviewed",
         "extraction_status": extraction_status,
         "render_status": "not_run",
         "delivery_status": "working",
         "limitations": [
-            "candidate extractor; original-resolution overlay review remains required",
-            "does not recover hidden observations, author fit parameters, or occluded spans",
+            "candidate extractor; candidates.csv is not formal data",
+            "quality assessment does not replace user review decisions",
+            "does not recover hidden observations or author fit parameters",
             "same-color legends, annotations, crossings, and thick vertical strokes "
             "require a tighter verified plot ROI",
         ],
@@ -812,17 +922,27 @@ def extract_color_lines(
 
     result_project = dict(project)
     result_project["extraction_status"] = extraction_status
+    result_project["review_status"] = "not_reviewed"
     result_project["render_status"] = "not_run"
     result_project["delivery_status"] = "working"
     result_project["routing"] = dict(project["routing"])
     result_project["routing"]["value_delivery_authorized"] = authorized
     result_project["artifacts"] = {
         "extraction_report": report_path.name,
-        "digitized_csv": csv_path.name,
+        "candidates_csv": csv_path.name,
+        "quality_assessment": quality_path.name,
         "overlay": overlay_path.name,
-        "visualspec": visualspec_path.name if visualspec_path else None,
+        "visualspec": None,
     }
     _write_json(output_dir / "figure_project.result.json", result_project)
+    write_pipeline_state(
+        output_dir,
+        extraction_status=extraction_status,
+        review_status="not_reviewed",
+        render_status="not_run",
+        delivery_status="working",
+        artifacts={"candidates": csv_path.name, "quality_assessment": quality_path.name},
+    )
     return report
 
 
@@ -865,11 +985,11 @@ def _extraction_state(
     overlay_review_status: str,
 ) -> tuple[bool, str]:
     candidate_gates_pass = calibration_pass and grammar_pass and any_rows
-    authorized = candidate_gates_pass and overlay_review_status == "accepted"
-    if authorized:
-        return True, "authorized_candidate"
+    # Overlay review is retained as a deprecated compatibility argument, but
+    # candidate extraction can never authorize formal values.
+    del overlay_review_status
     if candidate_gates_pass:
-        return False, "needs_review"
+        return False, "candidate_ready"
     if any_rows:
         return False, "partial_visible"
     return False, "not_extracted"
@@ -889,28 +1009,43 @@ def _write_component_result(
     visualspec: dict[str, Any] | None,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
-    csv_path = output_dir / csv_name
-    with csv_path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        for name in series_order:
-            writer.writerows(rows_by_series[name])
+    del csv_name, fieldnames, visualspec
+    normalized_rows: dict[str, list[dict[str, Any]]] = {}
+    for name in series_order:
+        normalized_rows[name] = []
+        for row in rows_by_series[name]:
+            normalized = dict(row)
+            if "y_px" not in normalized and "top_y_px" in normalized:
+                normalized["y_px"] = normalized["top_y_px"]
+            normalized_rows[name].append(normalized)
+    csv_path = output_dir / "candidates.csv"
+    candidate_rows = candidate_rows_from_series(
+        normalized_rows,
+        source_sha256=str(report["input_contract"]["sha256"]),
+        spec_sha256=str(report["configuration"]["spec_sha256"]),
+        extractor_id=str(report["extractor"]["id"]),
+    )
+    write_pipeline_csv(csv_path, CANDIDATE_FIELDS, candidate_rows)
     overlay_path = output_dir / "digitization_overlay.png"
     overlay.save(overlay_path)
-    visualspec_path: Path | None = None
-    if visualspec is not None:
-        visualspec_path = output_dir / "visualspec.json"
-        _write_json(visualspec_path, visualspec)
+    quality_path = output_dir / "quality-assessment.json"
+    assess_candidates(csv_path, quality_path)
 
     report["artifacts"] = {
         "csv": csv_path.name,
         "overlay": overlay_path.name,
-        "visualspec": visualspec_path.name if visualspec_path else None,
+        "quality_assessment": quality_path.name,
+        "visualspec": None,
     }
+    report["candidate_generation_succeeded"] = bool(candidate_rows)
+    report["value_delivery_authorized"] = False
+    report["review_status"] = "not_reviewed"
+    report["extraction_status"] = "candidate_ready" if candidate_rows else "not_extracted"
     report_path = output_dir / "extraction_report.json"
     _write_json(report_path, report)
     result_project = dict(project)
     result_project["extraction_status"] = report["extraction_status"]
+    result_project["review_status"] = "not_reviewed"
     result_project["render_status"] = "not_run"
     result_project["delivery_status"] = "working"
     result_project["routing"] = dict(project["routing"])
@@ -919,11 +1054,20 @@ def _write_component_result(
     ]
     result_project["artifacts"] = {
         "extraction_report": report_path.name,
-        "digitized_csv": csv_path.name,
+        "candidates_csv": csv_path.name,
+        "quality_assessment": quality_path.name,
         "overlay": overlay_path.name,
-        "visualspec": visualspec_path.name if visualspec_path else None,
+        "visualspec": None,
     }
     _write_json(output_dir / "figure_project.result.json", result_project)
+    write_pipeline_state(
+        output_dir,
+        extraction_status=report["extraction_status"],
+        review_status="not_reviewed",
+        render_status="not_run",
+        delivery_status="working",
+        artifacts={"candidates": csv_path.name, "quality_assessment": quality_path.name},
+    )
     return report
 
 
@@ -944,6 +1088,7 @@ def extract_color_scatter(
     max_aspect_ratio: float = 2.0,
     minimum_points_per_series: int = 1,
     overlay_review_status: str = "pending",
+    spec_confirmation_path: Path | None = None,
 ) -> dict[str, Any]:
     project, image, rgb, x_axis, y_axis = _load_raster_project(
         project_path,
@@ -960,6 +1105,19 @@ def extract_color_scatter(
         raise FigureEvidenceError("at least one --series name=#RRGGBB is required")
     if len({name for name, _ in series_list}) != len(series_list):
         raise FigureEvidenceError("series names must be unique")
+    if spec_confirmation_path is None:
+        raise FigureEvidenceError("spec_not_confirmed: --spec-confirmation is required before extraction")
+    try:
+        confirmation, _ = validate_spec_confirmation(
+            project_path,
+            spec_confirmation_path,
+            plot_bounds=plot_bounds,
+            x_anchors=x_anchors,
+            y_anchors=y_anchors,
+            series=series_list,
+        )
+    except FigureDataError as exc:
+        raise FigureEvidenceError(str(exc)) from exc
 
     rows_by_series: dict[str, list[dict[str, Any]]] = {}
     component_ledger: list[dict[str, Any]] = []
@@ -1034,13 +1192,9 @@ def extract_color_scatter(
         overlay_review_status=overlay_review_status,
     )
     colors = dict(series_list)
-    visualspec = (
-        _visualspec_from_points(
-            image.width, image.height, x_axis, y_axis, rows_by_series, colors
-        )
-        if authorized
-        else None
-    )
+    # Candidate extraction never constructs VisualSpec. Formal data.csv is the
+    # only allowed digitized input to the VisualSpec stage.
+    visualspec = None
     report = {
         "schema": SCHEMA_EXTRACTION,
         "extractor": {
@@ -1059,6 +1213,7 @@ def extract_color_scatter(
         "plot_bounds_px": list(plot_bounds),
         "calibration": {"x": x_axis.as_dict(), "y": y_axis.as_dict()},
         "configuration": {
+            "spec_sha256": confirmation["spec_sha256"],
             "color_tolerance": color_tolerance,
             "min_component_area": min_component_area,
             "max_component_area": max_component_area,
@@ -1120,6 +1275,7 @@ def extract_color_bars(
     min_fill_ratio: float = 0.75,
     minimum_bars_per_series: int = 1,
     overlay_review_status: str = "pending",
+    spec_confirmation_path: Path | None = None,
 ) -> dict[str, Any]:
     project, image, rgb, x_axis, y_axis = _load_raster_project(
         project_path,
@@ -1138,6 +1294,19 @@ def extract_color_bars(
         raise FigureEvidenceError("at least one --series name=#RRGGBB is required")
     if len({name for name, _ in series_list}) != len(series_list):
         raise FigureEvidenceError("series names must be unique")
+    if spec_confirmation_path is None:
+        raise FigureEvidenceError("spec_not_confirmed: --spec-confirmation is required before extraction")
+    try:
+        confirmation, _ = validate_spec_confirmation(
+            project_path,
+            spec_confirmation_path,
+            plot_bounds=plot_bounds,
+            x_anchors=x_anchors,
+            y_anchors=y_anchors,
+            series=series_list,
+        )
+    except FigureDataError as exc:
+        raise FigureEvidenceError(str(exc)) from exc
 
     rows_by_series: dict[str, list[dict[str, Any]]] = {}
     component_ledger: list[dict[str, Any]] = []
@@ -1225,13 +1394,9 @@ def extract_color_bars(
         overlay_review_status=overlay_review_status,
     )
     colors = dict(series_list)
-    visualspec = (
-        _visualspec_from_bars(
-            image.width, image.height, x_axis, y_axis, rows_by_series, colors
-        )
-        if authorized
-        else None
-    )
+    # Candidate extraction never constructs VisualSpec. Formal data.csv is the
+    # only allowed digitized input to the VisualSpec stage.
+    visualspec = None
     report = {
         "schema": SCHEMA_EXTRACTION,
         "extractor": {
@@ -1250,6 +1415,7 @@ def extract_color_bars(
         "plot_bounds_px": list(plot_bounds),
         "calibration": {"x": x_axis.as_dict(), "y": y_axis.as_dict()},
         "configuration": {
+            "spec_sha256": confirmation["spec_sha256"],
             "color_tolerance": color_tolerance,
             "baseline_pixel": baseline_pixel,
             "baseline_tolerance_px": baseline_tolerance_px,
@@ -1319,6 +1485,30 @@ def build_parser() -> argparse.ArgumentParser:
     validate_parser.add_argument("--project", required=True, type=Path)
     validate_parser.add_argument("--json-out", type=Path)
 
+    spec_parser = subparsers.add_parser(
+        "spec-review",
+        help="Create figure-spec.json and spec-review.png before any extraction.",
+    )
+    spec_parser.add_argument("--project", required=True, type=Path)
+    spec_parser.add_argument("--plot-bounds", required=True)
+    spec_parser.add_argument("--x-anchor", action="append", required=True)
+    spec_parser.add_argument("--y-anchor", action="append", required=True)
+    spec_parser.add_argument("--series", action="append", required=True)
+    spec_parser.add_argument("--series-topology", action="append", required=True)
+    spec_parser.add_argument("--exclude-region", action="append", default=[])
+    spec_parser.add_argument("--x-scale", choices=["linear", "log10"], default="linear")
+    spec_parser.add_argument("--y-scale", choices=["linear", "log10"], default="linear")
+    spec_parser.add_argument("--output-dir", required=True, type=Path)
+
+    confirm_parser = subparsers.add_parser(
+        "confirm-spec", help="Bind explicit user confirmation to the source, project, spec, and overlay hashes."
+    )
+    confirm_parser.add_argument("--project", required=True, type=Path)
+    confirm_parser.add_argument("--spec", required=True, type=Path)
+    confirm_parser.add_argument("--overlay", required=True, type=Path)
+    confirm_parser.add_argument("--confirmation", choices=["explicit_user_confirmation"], required=True)
+    confirm_parser.add_argument("--output", required=True, type=Path)
+
     extract_parser = subparsers.add_parser(
         "extract-line",
         help="Candidate extraction of color-distinct raster lines with explicit calibration.",
@@ -1328,6 +1518,7 @@ def build_parser() -> argparse.ArgumentParser:
     extract_parser.add_argument("--x-anchor", action="append", required=True)
     extract_parser.add_argument("--y-anchor", action="append", required=True)
     extract_parser.add_argument("--series", action="append", required=True)
+    extract_parser.add_argument("--spec-confirmation", required=True, type=Path)
     extract_parser.add_argument("--x-scale", choices=["linear", "log10"], default="linear")
     extract_parser.add_argument("--y-scale", choices=["linear", "log10"], default="linear")
     extract_parser.add_argument("--color-tolerance", type=float, default=36.0)
@@ -1350,6 +1541,7 @@ def build_parser() -> argparse.ArgumentParser:
     scatter_parser.add_argument("--x-anchor", action="append", required=True)
     scatter_parser.add_argument("--y-anchor", action="append", required=True)
     scatter_parser.add_argument("--series", action="append", required=True)
+    scatter_parser.add_argument("--spec-confirmation", required=True, type=Path)
     scatter_parser.add_argument("--x-scale", choices=["linear", "log10"], default="linear")
     scatter_parser.add_argument("--y-scale", choices=["linear", "log10"], default="linear")
     scatter_parser.add_argument("--color-tolerance", type=float, default=36.0)
@@ -1374,6 +1566,7 @@ def build_parser() -> argparse.ArgumentParser:
     bar_parser.add_argument("--x-anchor", action="append", required=True)
     bar_parser.add_argument("--y-anchor", action="append", required=True)
     bar_parser.add_argument("--series", action="append", required=True)
+    bar_parser.add_argument("--spec-confirmation", required=True, type=Path)
     bar_parser.add_argument("--baseline-pixel", required=True, type=int)
     bar_parser.add_argument("--x-scale", choices=["linear", "log10"], default="linear")
     bar_parser.add_argument("--y-scale", choices=["linear", "log10"], default="linear")
@@ -1388,6 +1581,73 @@ def build_parser() -> argparse.ArgumentParser:
         default="pending",
     )
     bar_parser.add_argument("--output-dir", required=True, type=Path)
+
+    assess_parser = subparsers.add_parser(
+        "assess-candidates", help="Run automatic quality assessment and anomaly diagnosis on candidates.csv."
+    )
+    assess_parser.add_argument("--candidates", required=True, type=Path)
+    assess_parser.add_argument("--output", required=True, type=Path)
+
+    review_parser = subparsers.add_parser(
+        "init-review", help="Create a hash-bound review-decisions.json template."
+    )
+    review_parser.add_argument("--candidates", required=True, type=Path)
+    review_parser.add_argument("--quality", required=True, type=Path)
+    review_parser.add_argument("--spec-confirmation", required=True, type=Path)
+    review_parser.add_argument("--output", required=True, type=Path)
+
+    observations_parser = subparsers.add_parser(
+        "build-observations", help="Apply complete user review decisions to visible observations.csv."
+    )
+    observations_parser.add_argument("--candidates", required=True, type=Path)
+    observations_parser.add_argument("--quality", required=True, type=Path)
+    observations_parser.add_argument("--review-decisions", required=True, type=Path)
+    observations_parser.add_argument("--output", required=True, type=Path)
+
+    data_parser = subparsers.add_parser(
+        "build-data", help="Build topology-confirmed, style-independent formal data.csv."
+    )
+    data_parser.add_argument("--observations", required=True, type=Path)
+    data_parser.add_argument("--review-decisions", required=True, type=Path)
+    data_parser.add_argument("--guide-path", type=Path)
+    data_parser.add_argument("--output", required=True, type=Path)
+    data_parser.add_argument("--provenance", required=True, type=Path)
+
+    visualspec_parser = subparsers.add_parser(
+        "build-visualspec", help="Build VisualSpec only from formal data.csv and its provenance."
+    )
+    visualspec_parser.add_argument("--data", required=True, type=Path)
+    visualspec_parser.add_argument("--provenance", required=True, type=Path)
+    visualspec_parser.add_argument("--styles", type=Path)
+    visualspec_parser.add_argument("--output", required=True, type=Path)
+    visualspec_parser.add_argument("--width-mm", type=float, default=100.0)
+    visualspec_parser.add_argument("--height-mm", type=float, default=70.0)
+    visualspec_parser.add_argument("--dpi", type=int, default=300)
+
+    contract_parser = subparsers.add_parser(
+        "validate-visualspec-data", help="Reject digitized VisualSpec inputs that bypass formal data.csv."
+    )
+    contract_parser.add_argument("--visualspec", required=True, type=Path)
+
+    delivery_parser = subparsers.add_parser(
+        "validate-data-chain", help="Validate candidates-to-delivery lineage without promoting render state."
+    )
+    delivery_parser.add_argument("--candidates", required=True, type=Path)
+    delivery_parser.add_argument("--observations", required=True, type=Path)
+    delivery_parser.add_argument("--review-decisions", required=True, type=Path)
+    delivery_parser.add_argument("--data", required=True, type=Path)
+    delivery_parser.add_argument("--provenance", required=True, type=Path)
+    delivery_parser.add_argument("--visualspec", required=True, type=Path)
+    delivery_parser.add_argument("--render-manifest", type=Path)
+    delivery_parser.add_argument("--json-out", type=Path)
+
+    migration_parser = subparsers.add_parser(
+        "migrate-legacy", help="Migrate legacy digitized_lines.csv to candidate-only candidates.csv."
+    )
+    migration_parser.add_argument("--legacy", required=True, type=Path)
+    migration_parser.add_argument("--source-sha256", required=True)
+    migration_parser.add_argument("--spec-sha256", required=True)
+    migration_parser.add_argument("--output", required=True, type=Path)
     return parser
 
 
@@ -1405,6 +1665,32 @@ def main(argv: list[str] | None = None) -> int:
                 _write_json(args.json_out, payload)
             _print(payload)
             return 0 if payload["status"] == "pass" else 2
+        if args.command == "spec-review":
+            topology = dict(parse_topology(value) for value in args.series_topology)
+            payload = build_spec_review(
+                args.project,
+                args.output_dir,
+                plot_bounds=parse_bounds(args.plot_bounds),
+                x_anchors=[parse_anchor(value) for value in args.x_anchor],
+                y_anchors=[parse_anchor(value) for value in args.y_anchor],
+                series=[parse_series(value) for value in args.series],
+                curve_topology=topology,
+                exclusion_regions=[parse_bounds(value) for value in args.exclude_region],
+                x_scale=args.x_scale,
+                y_scale=args.y_scale,
+            )
+            _print(payload)
+            return 0
+        if args.command == "confirm-spec":
+            payload = confirm_spec(
+                args.project,
+                args.spec,
+                args.overlay,
+                args.output,
+                confirmation=args.confirmation,
+            )
+            _print(payload)
+            return 0
         if args.command == "extract-line":
             if not 0 < args.minimum_coverage <= 1:
                 raise FigureEvidenceError("minimum coverage must be in (0, 1]")
@@ -1425,9 +1711,10 @@ def main(argv: list[str] | None = None) -> int:
                 minimum_coverage=args.minimum_coverage,
                 max_vertical_span_px=args.max_vertical_span_px,
                 overlay_review_status=args.overlay_review,
+                spec_confirmation_path=args.spec_confirmation,
             )
             _print(payload)
-            return 0 if payload["value_delivery_authorized"] else 3
+            return 0 if payload.get("candidate_generation_succeeded") else 3
         if args.command == "extract-scatter":
             if args.color_tolerance < 0:
                 raise FigureEvidenceError("color tolerance must be non-negative")
@@ -1453,9 +1740,10 @@ def main(argv: list[str] | None = None) -> int:
                 max_aspect_ratio=args.max_aspect_ratio,
                 minimum_points_per_series=args.minimum_points_per_series,
                 overlay_review_status=args.overlay_review,
+                spec_confirmation_path=args.spec_confirmation,
             )
             _print(payload)
-            return 0 if payload["value_delivery_authorized"] else 3
+            return 0 if payload.get("candidate_generation_succeeded") else 3
         if args.command == "extract-bars":
             if args.color_tolerance < 0:
                 raise FigureEvidenceError("color tolerance must be non-negative")
@@ -1481,11 +1769,67 @@ def main(argv: list[str] | None = None) -> int:
                 min_fill_ratio=args.min_fill_ratio,
                 minimum_bars_per_series=args.minimum_bars_per_series,
                 overlay_review_status=args.overlay_review,
+                spec_confirmation_path=args.spec_confirmation,
             )
             _print(payload)
-            return 0 if payload["value_delivery_authorized"] else 3
+            return 0 if payload.get("candidate_generation_succeeded") else 3
+        if args.command == "assess-candidates":
+            payload = assess_candidates(args.candidates, args.output)
+            _print(payload)
+            return 0
+        if args.command == "init-review":
+            payload = review_template(args.candidates, args.quality, args.spec_confirmation, args.output)
+            _print(payload)
+            return 0
+        if args.command == "build-observations":
+            payload = build_observations(args.candidates, args.quality, args.review_decisions, args.output)
+            _print(payload)
+            return 0
+        if args.command == "build-data":
+            payload = build_data(args.observations, args.review_decisions, args.output, args.provenance, guide_path=args.guide_path)
+            _print(payload)
+            return 0
+        if args.command == "build-visualspec":
+            payload = build_visualspec(
+                args.data,
+                args.provenance,
+                args.output,
+                styles_path=args.styles,
+                width_mm=args.width_mm,
+                height_mm=args.height_mm,
+                dpi=args.dpi,
+            )
+            _print(payload)
+            return 0
+        if args.command == "validate-visualspec-data":
+            payload = validate_visualspec_data_contract(args.visualspec)
+            _print(payload)
+            return 0 if payload["status"] == "pass" else 2
+        if args.command == "validate-data-chain":
+            payload = validate_delivery(
+                candidates_path=args.candidates,
+                observations_path=args.observations,
+                decisions_path=args.review_decisions,
+                data_path=args.data,
+                provenance_path=args.provenance,
+                visualspec_path=args.visualspec,
+                render_manifest_path=args.render_manifest,
+            )
+            if args.json_out:
+                _write_json(args.json_out, payload)
+            _print(payload)
+            return 0 if payload["status"] == "pass" else 2
+        if args.command == "migrate-legacy":
+            payload = migrate_legacy_digitized_lines(
+                args.legacy,
+                args.output,
+                source_sha256=args.source_sha256,
+                spec_sha256=args.spec_sha256,
+            )
+            _print(payload)
+            return 0
         parser.error(f"unknown command: {args.command}")
-    except FigureEvidenceError as exc:
+    except (FigureEvidenceError, FigureDataError) as exc:
         _print(
             {
                 "schema": "morepaper.figure_pipeline_error.v1",

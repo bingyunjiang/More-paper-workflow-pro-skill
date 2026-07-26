@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "morepaper.figure_spec_confirmation.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "status", "confirmation", "confirmed_items", "source_sha256", "project_sha256", "spec_path", "spec_sha256", "overlay_path", "overlay_sha256"],
+  "properties": {
+    "schema": {"const": "morepaper.figure_spec_confirmation.v1"},
+    "status": {"const": "confirmed"},
+    "confirmation": {"const": "explicit_user_confirmation"},
+    "confirmed_items": {"type": "array", "minItems": 5, "items": {"type": "string"}},
+    "source_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "project_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "spec_path": {"type": "string", "minLength": 1},
+    "spec_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "overlay_path": {"type": "string", "minLength": 1},
+    "overlay_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

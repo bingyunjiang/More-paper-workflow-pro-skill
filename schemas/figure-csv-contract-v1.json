@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "morepaper.figure_csv_contract.v1",
+  "title": "Step 7 figure CSV column and invariant registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "artifacts", "invariants"],
+  "properties": {
+    "schema": {"const": "morepaper.figure_csv_contract.v1"},
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidates.csv", "observations.csv", "data.csv"],
+      "properties": {
+        "candidates.csv": {
+          "type": "object",
+          "properties": {
+            "role": {"const": "algorithm_candidates_not_formal_data"},
+            "columns": {"const": ["candidate_id", "series", "candidate_order", "x_px", "y_px", "x", "y", "uncertainty_x", "uncertainty_y", "visibility_status", "evidence_segment_break_before", "evidence_break_reason", "source_sha256", "spec_sha256", "extractor_id", "quality_status", "anomaly_codes"]}
+          }
+        },
+        "observations.csv": {
+          "type": "object",
+          "properties": {
+            "role": {"const": "review_accepted_visible_pixel_observations"},
+            "columns": {"const": ["observation_id", "candidate_id", "series", "curve_order", "x_px", "y_px", "x", "y", "uncertainty_x", "uncertainty_y", "visibility_status", "evidence_segment_break_before", "evidence_break_reason", "review_action", "source_sha256", "spec_sha256", "candidates_sha256", "review_decisions_sha256"]}
+          }
+        },
+        "data.csv": {
+          "type": "object",
+          "properties": {
+            "role": {"const": "formal_style_independent_redraw_data"},
+            "columns": {"const": ["series", "curve_order", "x", "y", "formal_segment_id", "formal_segment_break_before", "evidence_segment_break_before", "evidence_break_reason", "source_kind", "source_observation_ids", "source_candidate_ids", "uncertainty_x", "uncertainty_y", "derivation_method", "guide_path_sha256", "source_sha256", "spec_sha256", "candidates_sha256", "observations_sha256", "review_decisions_sha256"]}
+          }
+        }
+      }
+    },
+    "invariants": {
+      "type": "object",
+      "properties": {
+        "visualspec_reads_only_data_csv": {"const": true},
+        "render_stage_interpolation": {"const": false},
+        "render_stage_bridging": {"const": false},
+        "line_style_mutates_data": {"const": false},
+        "continuous_evidence_gap_is_formal_break": {"const": false},
+        "segmented_break_requires_user_confirmation": {"const": true}
+      }
+    }
+  }
+}

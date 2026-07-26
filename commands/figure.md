@@ -13,7 +13,7 @@
 2. 只有用户明确要求基于可信结构化数据生成普通新图时，使用 `quick`。
 3. 只有用户明确要求重绘或从图片/PDF恢复数值时，才进入 `reproduction`；恢复数值先运行 `figure_evidence_pipeline.py inspect`。
 4. 当前原生数值提取候选路线包括彩色折线、紧凑实心散点、竖向纯色柱状图和直方图；其余图型必须返回 `recognized_not_implemented`、使用项目级实现，或保留人工确认状态。
-5. 已授权的数字化 CSV/VisualSpec、参考图重绘、严格 QA、可编辑矢量和可复现交付使用 `reproduction`。
+5. 数字化必须先形成复核完成、拓扑明确、样式无关的正式 `data.csv`；只有由该文件构建的 VisualSpec 才能进入 `reproduction`。
 6. 参考图片、截图或曲线的存在不等于重绘授权；记录 `figure_transform_authorization=explicit_user_request` 后才能运行绘图代码。
 7. 用户显式指定 backend 时覆盖自动判断；严格后端缺依赖时必须失败，不得降级。
 
@@ -32,14 +32,18 @@
 ```bash
 python scripts/generate_figures.py --backend quick --spec figures.json --output figures
 python scripts/figure_evidence_pipeline.py inspect --input source.png --chart-type line --output-project figure-project.json
-python scripts/figure_evidence_pipeline.py extract-line --project figure-project.json --plot-bounds 40,20,620,420 --x-anchor 40,0 --x-anchor 620,100 --y-anchor 420,0 --y-anchor 20,1 --series response=#cc2244 --output-dir digitized
-python scripts/figure_evidence_pipeline.py extract-line --project figure-project.json --plot-bounds 40,20,620,420 --x-anchor 40,0 --x-anchor 620,100 --y-anchor 420,0 --y-anchor 20,1 --series response=#cc2244 --overlay-review accepted --output-dir digitized
-python scripts/figure_evidence_pipeline.py extract-scatter --project figure-project.json --plot-bounds 40,20,620,420 --x-anchor 40,0 --x-anchor 620,100 --y-anchor 420,0 --y-anchor 20,1 --series samples=#2266cc --output-dir digitized
-python scripts/figure_evidence_pipeline.py extract-bars --project figure-project.json --plot-bounds 40,20,620,420 --x-anchor 40,0 --x-anchor 620,100 --y-anchor 420,0 --y-anchor 20,1 --series bars=#22aa66 --baseline-pixel 420 --output-dir digitized
+python scripts/figure_evidence_pipeline.py spec-review --project figure-project.json --plot-bounds 40,20,620,420 --x-anchor 40,0 --x-anchor 620,100 --y-anchor 420,0 --y-anchor 20,1 --series response=#cc2244 --series-topology response=continuous --output-dir digitized/spec
+python scripts/figure_evidence_pipeline.py confirm-spec --project figure-project.json --spec digitized/spec/figure-spec.json --overlay digitized/spec/spec-review.png --confirmation explicit_user_confirmation --output digitized/spec/spec-confirmation.json
+python scripts/figure_evidence_pipeline.py extract-line --project figure-project.json --spec-confirmation digitized/spec/spec-confirmation.json --plot-bounds 40,20,620,420 --x-anchor 40,0 --x-anchor 620,100 --y-anchor 420,0 --y-anchor 20,1 --series response=#cc2244 --output-dir digitized
+python scripts/figure_evidence_pipeline.py init-review --candidates digitized/candidates.csv --quality digitized/quality-assessment.json --spec-confirmation digitized/spec/spec-confirmation.json --output digitized/review-decisions.json
+python scripts/figure_evidence_pipeline.py build-observations --candidates digitized/candidates.csv --quality digitized/quality-assessment.json --review-decisions digitized/review-decisions.json --output digitized/observations.csv
+python scripts/figure_evidence_pipeline.py build-data --observations digitized/observations.csv --review-decisions digitized/review-decisions.json --output digitized/data.csv --provenance digitized/data.provenance.json
+python scripts/figure_evidence_pipeline.py build-visualspec --data digitized/data.csv --provenance digitized/data.provenance.json --output digitized/visualspec.json
 python scripts/generate_figures.py --backend reproduction --spec visualspec.json --source source.png --output bundle --require-strict --transform-authorization explicit_user_request
 ```
 
-第一次 `extract-line` 只生成 CSV、报告和 overlay。必须在原始分辨率检查
-overlay 后，才可用 `--overlay-review accepted` 重新执行并生成 VisualSpec。
+`extract-*` 只生成 `candidates.csv`、自动质量报告和观测叠图；不得生成
+VisualSpec。普通候选可在无异常时经用户回复“继续/下一步”批量接受，异常候选
+必须逐项处理。完整职责和状态门见数字化证据合同。
 
 数字化证据合同见 `references/DIGITIZATION_WORKFLOW.md`；重绘与交付协议见 `references/scientific-figure-reproduction.md`。

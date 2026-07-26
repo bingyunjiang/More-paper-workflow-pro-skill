@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "morepaper.figure_review_decisions.v1",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema", "review_status", "source_sha256", "spec_sha256", "spec_confirmation_sha256", "candidates_sha256", "quality_assessment_sha256", "normal_batch", "anomaly_decisions", "series_topology"],
+  "properties": {
+    "schema": {"const": "morepaper.figure_review_decisions.v1"},
+    "review_status": {"enum": ["pending_user_decisions", "complete", "reviewed_complete"]},
+    "source_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "spec_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "spec_confirmation_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "candidates_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "quality_assessment_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "normal_batch": {"type": "object"},
+    "anomaly_decisions": {"type": "array", "items": {"type": "object"}},
+    "series_topology": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["curve_topology", "confirmed_by_user", "formal_break_before_candidate_ids", "curve_data_mode"],
+        "properties": {
+          "curve_topology": {"enum": ["continuous", "segmented"]},
+          "confirmed_by_user": {"type": "boolean"},
+          "formal_break_before_candidate_ids": {"type": "array", "items": {"type": "string"}},
+          "curve_data_mode": {"enum": ["observations", "guide_constrained"]},
+          "guide_path_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        }
+      }
+    }
+  }
+}

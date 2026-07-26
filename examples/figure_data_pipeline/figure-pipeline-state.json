@@ -1,0 +1,17 @@
+{
+  "artifacts": {
+    "candidates": "candidates.csv",
+    "data": "data.csv",
+    "data_provenance": "data.provenance.json",
+    "observations": "observations.csv",
+    "quality_assessment": "quality-assessment.json",
+    "render_manifest": "render_manifest.json",
+    "review_decisions": "review-decisions.json",
+    "visualspec": "visualspec-solid.json"
+  },
+  "delivery_status": "validated",
+  "extraction_status": "formal_data_ready",
+  "render_status": "validated",
+  "review_status": "complete",
+  "schema": "morepaper.figure_pipeline_state.v1"
+}

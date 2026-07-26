@@ -1398,9 +1398,8 @@ caption / claim_binding / section_id`。详细接口统一读取
 `figure_resolution_report.json` 与原图 `figure_evidence_report.json`。
 
 只有明确要求恢复数值时才按 `references/DIGITIZATION_WORKFLOW.md` 执行
-`inspect` 和对应提取器；首次输出保持 `needs_review`，原始分辨率 overlay
-确认后才能追加 `--overlay-review accepted`。只有授权候选值才能进入
-VisualSpec。重绘、严格 QA 和 bundle 命令按
+`inspect → spec-review/用户确认 → candidates → 自动诊断 → review-decisions → observations → data → VisualSpec`。普通候选可由用户回复“继续/下一步”批量接受，异常候选逐项处理；候选或像素观测不能直接进入 VisualSpec。连续性只由用户确认的 `curve_topology` 写入正式 `data.csv`，渲染阶段禁止补线。
+重绘、严格 QA 和 bundle 命令按
 `references/scientific-figure-reproduction.md` 执行，并强制携带
 `--transform-authorization explicit_user_request`。
 

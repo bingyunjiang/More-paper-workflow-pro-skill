@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "morepaper.figure_candidate_quality.v1",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema", "status", "candidates_path", "candidates_sha256", "candidate_count", "ordinary_candidate_count", "anomaly_candidate_count", "ordinary_candidate_ids", "anomalies", "safe_reextraction", "user_review_policy"],
+  "properties": {
+    "schema": {"const": "morepaper.figure_candidate_quality.v1"},
+    "status": {"enum": ["no_candidates", "ordinary_candidates_ready", "needs_anomaly_review"]},
+    "candidates_path": {"type": "string"},
+    "candidates_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "candidate_count": {"type": "integer", "minimum": 0},
+    "ordinary_candidate_count": {"type": "integer", "minimum": 0},
+    "anomaly_candidate_count": {"type": "integer", "minimum": 0},
+    "ordinary_candidate_ids": {"type": "array", "items": {"type": "string"}},
+    "anomalies": {"type": "array", "items": {"type": "object"}},
+    "safe_reextraction": {"type": "object"},
+    "user_review_policy": {"type": "object"}
+  }
+}

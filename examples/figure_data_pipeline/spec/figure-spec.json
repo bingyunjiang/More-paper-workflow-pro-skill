@@ -1,0 +1,61 @@
+{
+  "axes": {
+    "x": {
+      "anchors": [
+        [
+          20,
+          0
+        ],
+        [
+          140,
+          12
+        ]
+      ],
+      "scale": "linear"
+    },
+    "y": {
+      "anchors": [
+        [
+          78,
+          0
+        ],
+        [
+          28,
+          5
+        ]
+      ],
+      "scale": "linear"
+    }
+  },
+  "chart_type": "line",
+  "exclusion_regions_px": [
+    [
+      70,
+      48,
+      90,
+      67
+    ]
+  ],
+  "plot_bounds_px": [
+    20,
+    15,
+    140,
+    82
+  ],
+  "schema": "morepaper.figure_spec.v1",
+  "series": [
+    {
+      "color": "#cc2244",
+      "curve_topology": "continuous",
+      "name": "response",
+      "semantic_role": "response"
+    }
+  ],
+  "source": {
+    "coordinate_space": "original_raster_pixels",
+    "height_px": 100,
+    "path": "../source-occluded.png",
+    "sha256": "1bc8dccaf6b89e90aa75c81ef577962877e7c404439a70aee4f5465e46ebd059",
+    "width_px": 160
+  }
+}

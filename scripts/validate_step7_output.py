@@ -280,13 +280,45 @@ def _validate_figure_evidence_report(
                         f"figure record {index} lacks {', '.join(extraction_missing)}",
                     )
                 )
-            if extraction_status == "authorized_candidate":
+            if extraction_status == "formal_data_ready":
+                formal_required = {
+                    "review_decisions_path",
+                    "observations_path",
+                    "data_path",
+                    "data_sha256",
+                    "visualspec_data_sha256",
+                }
+                formal_missing = sorted(field for field in formal_required if not record.get(field))
+                if formal_missing:
+                    findings.append(
+                        Finding(
+                            "fail",
+                            "incomplete_formal_data_record",
+                            f"figure record {index} lacks {', '.join(formal_missing)}",
+                        )
+                    )
+                if record.get("review_status") != "complete":
+                    findings.append(
+                        Finding(
+                            "fail",
+                            "digitization_review_incomplete",
+                            f"figure record {index} lacks complete review_status",
+                        )
+                    )
+                if record.get("data_sha256") != record.get("visualspec_data_sha256"):
+                    findings.append(
+                        Finding(
+                            "fail",
+                            "visualspec_formal_data_hash_mismatch",
+                            f"figure record {index} VisualSpec is not bound to formal data.csv",
+                        )
+                    )
                 if record.get("value_delivery_authorized") is not True:
                     findings.append(
                         Finding(
                             "fail",
                             "digitized_values_not_authorized",
-                            f"figure record {index} claims authorized_candidate without value delivery authorization",
+                            f"figure record {index} has formal data without value delivery authorization",
                         )
                     )
             elif record.get("value_delivery_authorized") is True:
@@ -294,7 +326,7 @@ def _validate_figure_evidence_report(
                     Finding(
                         "fail",
                         "digitization_status_authorization_conflict",
-                        f"figure record {index} authorizes values with extraction status {extraction_status}",
+                        f"figure record {index} authorizes candidate/not-reviewed values with extraction status {extraction_status}",
                     )
                 )
             elif require_evidence_closure:
@@ -302,7 +334,7 @@ def _validate_figure_evidence_report(
                     Finding(
                         "fail",
                         "digitization_not_complete",
-                        f"figure record {index} has non-authorized extraction status {extraction_status}",
+                        f"figure record {index} has non-formal extraction status {extraction_status}",
                     )
                 )
             else:

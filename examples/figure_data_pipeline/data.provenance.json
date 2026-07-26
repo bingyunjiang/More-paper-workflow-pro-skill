@@ -1,0 +1,26 @@
+{
+  "data_path": "data.csv",
+  "data_sha256": "39f5a5af067ddc2ce53cd62815a6257f3d05c41ec670a2bdda4e840c7f193e07",
+  "guide_constrained": null,
+  "lineage": {
+    "candidates_sha256": "754551dd47950ff4b919d03244338110e22ca8740713c8074cbce08c90b6d36b",
+    "observations_sha256": "ad2e0bb990d1a5fc3d7c726105bbba471d1048bc9ab07b4a64613afa63512819",
+    "review_decisions_sha256": "c1c7fc7d32b67809b202ec79e4fa65e7b92e4dc56a5989f67f7b9b9180e5286c",
+    "source_sha256": "1bc8dccaf6b89e90aa75c81ef577962877e7c404439a70aee4f5465e46ebd059",
+    "spec_sha256": "754fb6ddb0451047eb8a0d60b4e03d876bf64c6e889684cced3c06038051385f"
+  },
+  "render_stage_bridging": false,
+  "render_stage_interpolation": false,
+  "row_count": 100,
+  "schema": "morepaper.figure_data_provenance.v1",
+  "series_topology": {
+    "response": {
+      "confirmed_by_user": true,
+      "curve_data_mode": "observations",
+      "curve_topology": "continuous",
+      "formal_break_before_candidate_ids": []
+    }
+  },
+  "status": "formal_data_ready",
+  "style_independent": true
+}

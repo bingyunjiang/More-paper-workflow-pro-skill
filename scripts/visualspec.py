@@ -418,6 +418,24 @@ def validate_visualspec(spec: dict[str, Any]) -> list[str]:
                 if atype in SUPPORTED_ANNOTATION_TYPES:
                     errors.extend(_annotation_style_errors(annotation.get("style") or {}, atype, f"panels[{index}].annotations[{ann_index}]"))
 
+    digitized = any(
+        isinstance(panel, dict) and panel.get("source_strategy") == "digitized_raster"
+        for panel in panels
+    )
+    data_contract = spec.get("data_contract")
+    if digitized and not isinstance(data_contract, dict):
+        errors.append("digitized_raster VisualSpec requires a formal data_contract")
+    if isinstance(data_contract, dict):
+        if data_contract.get("kind") != "formal_data_csv":
+            errors.append("data_contract.kind must be formal_data_csv")
+        data_name = Path(str(data_contract.get("path", ""))).name
+        if data_name != "data.csv":
+            errors.append("data_contract.path must reference formal data.csv")
+        if data_name in {"candidates.csv", "observations.csv", "digitized_lines.csv"}:
+            errors.append("candidate or observation data cannot enter VisualSpec")
+        if data_contract.get("style_independent") is not True:
+            errors.append("data_contract.style_independent must be true")
+
     return errors
 
 

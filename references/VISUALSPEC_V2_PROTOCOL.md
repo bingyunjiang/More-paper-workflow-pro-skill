@@ -18,6 +18,13 @@ Use separate fields rather than mixing method and status:
 - `representation`: `semantic_vector`, `semantic_raster`, `mixed`, or `pixel_primitives`.
 - `status`: final manifest status only, never a drawing mode.
 
+For `source_strategy=digitized_raster`, top-level `data_contract` is mandatory and
+must bind the exact formal `data.csv` SHA-256, row count, source/spec/candidates/
+observations/review-decision lineage, and `style_independent=true`. VisualSpec
+must never read `candidates.csv`, `observations.csv`, or legacy
+`digitized_lines.csv`. Line color, width, style, and marker are rendering-only;
+changing them must not mutate the formal data artifact.
+
 Final status values:
 
 - `semantic_strict_pass`

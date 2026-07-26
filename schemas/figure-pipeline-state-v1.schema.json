@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "morepaper.figure_pipeline_state.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "extraction_status", "review_status", "render_status", "delivery_status", "artifacts"],
+  "properties": {
+    "schema": {"const": "morepaper.figure_pipeline_state.v1"},
+    "extraction_status": {"enum": ["not_run", "needs_configuration", "candidate_ready", "formal_data_ready", "partial_visible", "not_extracted", "failed"]},
+    "review_status": {"enum": ["not_started", "not_reviewed", "pending", "complete", "failed"]},
+    "render_status": {"enum": ["not_run", "rendered", "validated", "failed"]},
+    "delivery_status": {"enum": ["working", "validated", "failed"]},
+    "artifacts": {"type": "object", "additionalProperties": {"type": "string"}}
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "anomaly_decisions": [
+    {
+      "action": "accept",
+      "candidate_id": "response:000051",
+      "review_note": "synthetic regression: legend occlusion is evidence gap, not physical break"
+    }
+  ],
+  "candidate_count": 100,
+  "candidates_sha256": "754551dd47950ff4b919d03244338110e22ca8740713c8074cbce08c90b6d36b",
+  "instructions": {
+    "anomalies": "set each action to accept, reject, correct, or reassign",
+    "normal_batch": "set action=accept and user_reply=continue or 下一步",
+    "topology": "set confirmed_by_user=true; only segmented curves may list formal breaks"
+  },
+  "normal_batch": {
+    "action": "accept",
+    "user_reply": "继续"
+  },
+  "quality_assessment_sha256": "a211db249fb043e4632530c81179ac0c4800ddf68b126f3db9fc9602df1426de",
+  "review_status": "complete",
+  "schema": "morepaper.figure_review_decisions.v1",
+  "series_topology": {
+    "response": {
+      "confirmed_by_user": true,
+      "curve_data_mode": "observations",
+      "curve_topology": "continuous",
+      "formal_break_before_candidate_ids": []
+    }
+  },
+  "source_sha256": "1bc8dccaf6b89e90aa75c81ef577962877e7c404439a70aee4f5465e46ebd059",
+  "spec_confirmation_sha256": "2b3fc4166bb2e32f913ccb23e556b95489eb2ce9330b69c6c72912afb5638019",
+  "spec_sha256": "754fb6ddb0451047eb8a0d60b4e03d876bf64c6e889684cced3c06038051385f"
+}

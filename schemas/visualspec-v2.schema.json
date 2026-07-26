@@ -41,6 +41,34 @@
       "type": "object",
       "additionalProperties": {"$ref": "#/$defs/qa_region"}
     },
+    "data_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "path",
+        "sha256",
+        "row_count",
+        "source_sha256",
+        "spec_sha256",
+        "candidates_sha256",
+        "observations_sha256",
+        "review_decisions_sha256",
+        "style_independent"
+      ],
+      "properties": {
+        "kind": {"const": "formal_data_csv"},
+        "path": {"type": "string", "pattern": "(^|/)data\\.csv$"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "row_count": {"type": "integer", "minimum": 1},
+        "source_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "spec_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "candidates_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "observations_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "review_decisions_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "style_independent": {"const": true}
+      }
+    },
     "panels": {
       "type": "array",
       "minItems": 1,

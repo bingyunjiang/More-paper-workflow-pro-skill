@@ -1,0 +1,17 @@
+{
+  "overlay": "spec-review.png",
+  "overlay_sha256": "156faf2d262863fc61b6919969ab70d3a43ea83fde77f4bf144e8dc426e865f9",
+  "required_confirmation_items": [
+    "plot_bounds",
+    "axis_anchors",
+    "series_semantics",
+    "curve_topology",
+    "exclusion_regions"
+  ],
+  "schema": "morepaper.figure_spec_review.v1",
+  "source_measurement_raster": "../source-occluded.png",
+  "source_sha256": "1bc8dccaf6b89e90aa75c81ef577962877e7c404439a70aee4f5465e46ebd059",
+  "spec": "figure-spec.json",
+  "spec_sha256": "754fb6ddb0451047eb8a0d60b4e03d876bf64c6e889684cced3c06038051385f",
+  "status": "awaiting_user_confirmation"
+}

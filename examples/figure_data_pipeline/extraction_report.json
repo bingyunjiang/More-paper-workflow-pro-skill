@@ -1,0 +1,129 @@
+{
+  "artifacts": {
+    "csv": "candidates.csv",
+    "overlay": "digitization_overlay.png",
+    "quality_assessment": "quality-assessment.json",
+    "visualspec": null
+  },
+  "calibration": {
+    "x": {
+      "anchors": [
+        {
+          "pixel": 20,
+          "residual_transformed_value": 3.552713678800501e-15,
+          "value": 0
+        },
+        {
+          "pixel": 140,
+          "residual_transformed_value": -3.552713678800501e-15,
+          "value": 12
+        }
+      ],
+      "intercept": -2.0000000000000044,
+      "model": "transformed_value = slope * pixel + intercept",
+      "normalized_max_residual": 2.9605947323337506e-16,
+      "scale": "linear",
+      "slope": 0.10000000000000005,
+      "status": "pass"
+    },
+    "y": {
+      "anchors": [
+        {
+          "pixel": 78,
+          "residual_transformed_value": -1.7763568394002505e-15,
+          "value": 0
+        },
+        {
+          "pixel": 28,
+          "residual_transformed_value": 0.0,
+          "value": 5
+        }
+      ],
+      "intercept": 7.799999999999999,
+      "model": "transformed_value = slope * pixel + intercept",
+      "normalized_max_residual": 3.552713678800501e-16,
+      "scale": "linear",
+      "slope": -0.09999999999999996,
+      "status": "pass"
+    }
+  },
+  "candidate_generation_succeeded": true,
+  "configuration": {
+    "color_tolerance": 36.0,
+    "confirmed_exclusion_regions_px": [
+      [
+        70,
+        48,
+        90,
+        67
+      ]
+    ],
+    "legacy_overlay_review_status_ignored": "pending",
+    "max_vertical_span_px": 6,
+    "minimum_coverage": 0.55,
+    "missing_values_interpolated": false,
+    "spec_confirmation_sha256": "2b3fc4166bb2e32f913ccb23e556b95489eb2ce9330b69c6c72912afb5638019"
+  },
+  "coverage_ledger": [
+    {
+      "accepted_columns": 100,
+      "ambiguous_columns": 0,
+      "coverage": 0.8264462809917356,
+      "declared_columns": 121,
+      "excluded_columns": 9,
+      "missing_columns": 12,
+      "series": "response",
+      "status": "pass"
+    }
+  ],
+  "delivery_status": "working",
+  "extraction_status": "candidate_ready",
+  "extractor": {
+    "claim": "visible color-supported curve coordinates only",
+    "id": "native_color_line_v1",
+    "support_level": "candidate"
+  },
+  "input_contract": {
+    "coordinate_space": "original_raster_pixels",
+    "height_px": 100,
+    "path": "source-occluded.png",
+    "sha256": "1bc8dccaf6b89e90aa75c81ef577962877e7c404439a70aee4f5465e46ebd059",
+    "source_identity_verified": true,
+    "width_px": 160
+  },
+  "limitations": [
+    "candidate extractor; candidates.csv is not formal data",
+    "quality assessment does not replace user review decisions",
+    "does not recover hidden observations or author fit parameters",
+    "same-color legends, annotations, crossings, and thick vertical strokes require a tighter verified plot ROI"
+  ],
+  "plot_bounds_px": [
+    20,
+    15,
+    140,
+    82
+  ],
+  "render_status": "not_run",
+  "residual_audit": {
+    "status": "pass",
+    "x_normalized_max_residual": 2.9605947323337506e-16,
+    "y_normalized_max_residual": 3.552713678800501e-16
+  },
+  "review_status": "not_reviewed",
+  "safe_reextraction": [
+    {
+      "accepted_additional_points": 0,
+      "attempted": true,
+      "method": "bounded_color_tolerance_retry_with_two_sided_path_residual_gate_v1",
+      "original_points": 100,
+      "original_tolerance": 36.0,
+      "retry_ambiguous_columns": 0,
+      "retry_tolerance": 45.0,
+      "retry_visible_points": 100,
+      "series": "response",
+      "status": "no_safe_additions"
+    }
+  ],
+  "schema": "morepaper.figure_extraction_evidence.v1",
+  "value_delivery_authorized": false
+}
