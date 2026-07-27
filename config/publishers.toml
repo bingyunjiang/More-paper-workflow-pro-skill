@@ -343,6 +343,56 @@ si_selectors = [
 requires_auth = "institution"
 publisher_domain = "www.tandfonline.com"
 
+# --- SAGE Journals ---
+[publishers.sage]
+doi_prefixes = ["10.1177/"]
+strategy = "generic"
+pdf_url_template = "https://journals.sagepub.com/doi/pdf/{doi}"
+article_url_template = "https://journals.sagepub.com/doi/{doi}"
+selectors = [
+    'a[href*="/doi/pdf/"]',
+    'a[href*="download=true"]',
+    'a:has-text("PDF")',
+    'a:has-text("Download PDF")',
+]
+requires_auth = "institution"
+publisher_domain = "journals.sagepub.com"
+login_url = "https://journals.sagepub.com/"
+known_issues = "Direct HTTP PDF requests may return 403; use the institutional CDP session."
+
+# --- Hanser eLibrary ---
+[publishers.hanser]
+doi_prefixes = ["10.3139/"]
+strategy = "generic"
+pdf_url_template = "https://www.hanser-elibrary.com/doi/pdf/{doi}"
+article_url_template = "https://www.hanser-elibrary.com/doi/{doi}"
+selectors = [
+    'a[href*="/doi/pdf/"]',
+    'a[href$=".pdf"]',
+    'a:has-text("PDF")',
+    'a:has-text("Download PDF")',
+]
+requires_auth = "institution"
+publisher_domain = "www.hanser-elibrary.com"
+login_url = "https://www.hanser-elibrary.com/"
+known_issues = "Direct HTTP PDF requests may return 403; use the institutional CDP session."
+
+# --- SAE Mobilus ---
+[publishers.sae]
+doi_prefixes = ["10.4271/"]
+strategy = "generic"
+article_url_template = "https://doi.org/{doi}"
+selectors = [
+    'a[href*="pdf"]',
+    'a[href*="download"]',
+    'button:has-text("PDF")',
+    'a:has-text("Download")',
+]
+requires_auth = "institution"
+publisher_domain = "saemobilus.sae.org"
+login_url = "https://saemobilus.sae.org/"
+known_issues = "DOI redirects to SAE Mobilus; direct HTTP may return an asynchronous 202 response."
+
 # --- Annual Reviews ---
 [publishers.annual_reviews]
 doi_prefixes = ["10.1146/"]
