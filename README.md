@@ -20,9 +20,18 @@
 
 已有 DOI、PDF、Zotero 文库或草稿？你可以直接进入对应 Step，不必机械重跑前序流程；但证据边界、Checkpoint 和 Completion Gate 不会被跳过。
 
+### more 系列
+
+| 项目 | 主要用途 |
+| --- | --- |
+| **[more-paper-workflow](https://github.com/bingyunjiang/more-paper-workflow)**（当前项目） | 论文定题、文献检索、证据组织、写作、科研图表与引用审计 |
+| [more-sci-figure](https://github.com/bingyunjiang/more-sci-figure) | 科研图表数据提取、人工复核、论文级重绘与交付验证 |
+| [more-comic-digitizer](https://github.com/bingyunjiang/more-comic-digitizer) | 儿童手绘漫画数字化、审核、共创与电子出版 |
+| [more-news-briefing](https://github.com/bingyunjiang/more-news-briefing) | 新闻与行业信息收集、去重、排序、核验和简报生成 |
+
 **English readers:** start with the [English summary and copy-ready prompts](#english).
 
-**[快速开始](#快速开始)** · **[八步工作流](#八步工作流)** · **[安装](#安装)** · **[English](#english)** · **[完整流程图](docs/public-workflow-flowcharts.md)** · **[最小样例](examples/first-run/README.md)**
+**[more 系列](#more-系列)** · **[快速开始](#快速开始)** · **[八步工作流](#八步工作流)** · **[安装](#安装)** · **[English](#english)** · **[完整流程图](docs/public-workflow-flowcharts.md)** · **[最小样例](examples/first-run/README.md)**
 
 ---
 
@@ -302,5 +311,3 @@ See the [first-run examples](examples/first-run/README.md), [workflow diagrams](
 **邮箱：** bingyunjiang@qq.com
 
 本项目以 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) 许可发布。详见 [LICENSE](LICENSE)。
-
-系列项目：[more-comic-digitizer](https://github.com/bingyunjiang/more-comic-digitizer)
