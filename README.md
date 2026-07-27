@@ -230,6 +230,17 @@ https://github.com/bingyunjiang/more-paper-workflow
 
 加载成功后，直接复制[快速开始](#快速开始)中的任意提示词。能正确识别 Step、输入边界和预期产物，即说明路由已生效。
 
+完整安装必须保留仓库根目录，而不是只复制单个 `SKILL.md` 或
+`skills/more-paper-workflow/` 子目录。可在仓库根目录执行完整性检查：
+
+```bash
+python scripts/validate_skill_package.py --root .
+```
+
+检查通过时，Step 7 的精确入口为 `agents/step_7_entry.md`，完整写作合同为
+`agents/step_7_writing.md`；不存在 `agents/step_7.md`。其他步骤同样以
+`manifest.yaml` 的 `step_routes` 和根目录 `SKILL.md` 列出的精确文件名为准。
+
 ### Windows UTF-8
 
 Markdown 和 YAML 文件均应以 UTF-8 保存。PowerShell 中文显示异常时，可显式读取：
@@ -254,7 +265,7 @@ Step 6 支持 `local / cloud / skip`。只读扫描、查重和 plan-only 不触
 - 不在未确认时执行机构登录、Zotero 写入或高风险引用动作。
 - 不因已有快速入口就跳过当前 Step 的质量门。
 - 不保证任何付费、订阅或受限内容一定可以获取。
-- 不把 README 当运行时真相；执行边界以 [`SKILL.md`](SKILL.md) 和 [`agents/step_*.md`](agents/) 为准。
+- 不把 README 当运行时真相；执行边界以 [`SKILL.md`](SKILL.md)、[`manifest.yaml`](manifest.yaml) 和其中列出的精确 `agents/` 文件为准。
 
 ---
 

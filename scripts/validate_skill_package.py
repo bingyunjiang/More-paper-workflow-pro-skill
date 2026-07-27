@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import posixpath
 import re
 import zipfile
 from pathlib import Path
@@ -35,6 +36,36 @@ STEP7_FIGURE_MODES = {"auto_insert", "post_write", "skip"}
 STEP8_OUTPUT_MODES = {"quick-polish", "audited-polish"}
 STEP8_REWRITE_SCOPES = {"in-place", "bounded", "structural"}
 STEP8_REWRITE_LEVELS = {"minimal", "standard", "aggressive"}
+STEP_RUNTIME_PATHS = (
+    "agents/step_1_entry.md",
+    "agents/step_1_topic.md",
+    "agents/step_2_outline.md",
+    "agents/step_3_entry.md",
+    "agents/step_3_search_plan.md",
+    "agents/step_4_search_score.md",
+    "agents/step_5_download.md",
+    "agents/step_6_entry.md",
+    "agents/step_6_zotero.md",
+    "agents/step_7_entry.md",
+    "agents/step_7_writing.md",
+    "agents/step_8_entry.md",
+    "agents/step_8_polishing.md",
+)
+REQUIRED_RUNTIME_PATHS = {
+    *STEP_RUNTIME_PATHS,
+    "agents/openai.yaml",
+    "references/entry-guide.md",
+    "references/reference-index.md",
+    "references/entry-routing-index.md",
+    "references/trigger-catalog.md",
+    "references/scientific-figure-reproduction.md",
+    "references/completion-gates.md",
+    "references/failure-triage.md",
+    "references/agent-execution-discipline.md",
+    "references/step-handoff-contract.md",
+    "references/update-reminder-protocol.md",
+    "scripts/build_figure_asset_check.py",
+}
 LEGACY_NAME_ALLOWLIST = {
     "SKILL.md",
     "README.md",
@@ -57,7 +88,7 @@ REQUIRED_ROOT_PATHS = {
     "schemas/workflow-contract-registry.json",
     "schemas/workflow-run-envelope.schema.json",
     "static/core/workflow-run-envelope.md",
-}
+} | REQUIRED_RUNTIME_PATHS
 
 
 def add_failure(failures: list[dict[str, str]], code: str, path: str, **details: str) -> None:
@@ -149,9 +180,13 @@ def validate_repository_structure(root: Path, failures: list[dict[str, str]]) ->
     if not (root / "SKILL.md").is_file() or not (root / "manifest.yaml").is_file():
         return
 
+    missing_required_paths = []
     for relative in sorted(REQUIRED_ROOT_PATHS):
         if not (root / relative).is_file():
             add_failure(failures, "missing_required_path", relative)
+            missing_required_paths.append(relative)
+    if missing_required_paths:
+        return
 
     main_manifest_path = root / "manifest.yaml"
     main_text = main_manifest_path.read_text(encoding="utf-8")
@@ -378,6 +413,16 @@ def validate_repository_structure(root: Path, failures: list[dict[str, str]]) ->
     skill_version_match = re.search(r"^version:\s*v?(\d+\.\d+\.\d+)", skill_text, re.MULTILINE)
     skill_name = skill_name_match.group(1) if skill_name_match else ""
     skill_version = skill_version_match.group(1) if skill_version_match else ""
+    if "agents/step_*.md" in skill_text:
+        add_failure(failures, "ambiguous_step_agent_wildcard", "SKILL.md")
+    for runtime_path in STEP_RUNTIME_PATHS:
+        if runtime_path not in skill_text:
+            add_failure(
+                failures,
+                "runtime_path_undocumented",
+                "SKILL.md",
+                target=runtime_path,
+            )
 
     plugin_path = root / ".codex-plugin" / "plugin.json"
     plugin = read_json(plugin_path, failures) if plugin_path.is_file() else {}
@@ -502,6 +547,20 @@ def validate_repository_structure(root: Path, failures: list[dict[str, str]]) ->
                     str(entry_path.relative_to(root)),
                     target=target,
                 )
+        if "agents/step_*.md" in entry_text:
+            add_failure(
+                failures,
+                "ambiguous_step_agent_wildcard",
+                str(entry_path.relative_to(root)),
+            )
+        for runtime_path in STEP_RUNTIME_PATHS:
+            if runtime_path not in entry_text:
+                add_failure(
+                    failures,
+                    "runtime_path_undocumented",
+                    str(entry_path.relative_to(root)),
+                    target=runtime_path,
+                )
 
     nested_plugin = root / "plugins" / PROJECT_NAME / ".codex-plugin" / "plugin.json"
     if nested_plugin.exists():
@@ -549,22 +608,90 @@ def scan_zip(path: Path) -> dict[str, Any]:
     failures: list[dict[str, str]] = []
     with zipfile.ZipFile(path, "r") as archive:
         names = archive.namelist()
-        required_suffixes = {
-            "/.codex-plugin/plugin.json",
-            "/.claude-plugin/plugin.json",
-            "/.claude-plugin/marketplace.json",
-            "/skills/more-paper-workflow/SKILL.md",
-            "/SKILL.md",
-            "/manifest.yaml",
-        }
-        for suffix in sorted(required_suffixes):
-            if not any(name.endswith(suffix) for name in names):
-                add_failure(failures, "missing_required_zip_entry", str(path), target=suffix)
-        if any(
-            name.endswith("/plugins/more-paper-workflow/.codex-plugin/plugin.json")
-            for name in names
-        ):
+        marker = ".codex-plugin/plugin.json"
+        plugin_entries = [name for name in names if name == marker or name.endswith(f"/{marker}")]
+        if len(plugin_entries) != 1:
+            add_failure(
+                failures,
+                "invalid_plugin_root_count",
+                str(path),
+                count=str(len(plugin_entries)),
+            )
+            package_root = ""
+        else:
+            package_root = plugin_entries[0][: -len(marker)].rstrip("/")
+
+        def packaged_path(relative: str) -> str:
+            return f"{package_root}/{relative}" if package_root else relative
+
+        for relative in sorted(REQUIRED_ROOT_PATHS):
+            if packaged_path(relative) not in names:
+                add_failure(
+                    failures,
+                    "missing_required_zip_entry",
+                    str(path),
+                    target=f"/{relative}",
+                )
+        if packaged_path(f"plugins/{PROJECT_NAME}/.codex-plugin/plugin.json") in names:
             add_failure(failures, "legacy_plugin_layout_in_zip", str(path))
+
+        root_skill_name = packaged_path("SKILL.md")
+        if root_skill_name in names:
+            try:
+                root_skill_text = archive.read(root_skill_name).decode("utf-8")
+            except (KeyError, UnicodeDecodeError) as exc:
+                add_failure(
+                    failures,
+                    "invalid_root_skill_entry",
+                    root_skill_name,
+                    message=str(exc),
+                )
+            else:
+                if "agents/step_*.md" in root_skill_text:
+                    add_failure(failures, "ambiguous_step_agent_wildcard", root_skill_name)
+                for runtime_path in STEP_RUNTIME_PATHS:
+                    if runtime_path not in root_skill_text:
+                        add_failure(
+                            failures,
+                            "runtime_path_undocumented",
+                            root_skill_name,
+                            target=runtime_path,
+                        )
+
+        entry_name = packaged_path(f"skills/{PROJECT_NAME}/SKILL.md")
+        if entry_name in names:
+            try:
+                entry_text = archive.read(entry_name).decode("utf-8")
+            except (KeyError, UnicodeDecodeError) as exc:
+                add_failure(
+                    failures,
+                    "invalid_codex_skill_entry",
+                    entry_name,
+                    message=str(exc),
+                )
+            else:
+                targets = re.findall(r"\]\(([^)]+SKILL\.md)\)", entry_text)
+                for target in targets:
+                    resolved = posixpath.normpath(posixpath.join(posixpath.dirname(entry_name), target))
+                    if resolved != root_skill_name:
+                        add_failure(
+                            failures,
+                            "invalid_zip_canonical_skill_reference",
+                            entry_name,
+                            target=target,
+                        )
+                if not targets:
+                    add_failure(failures, "missing_canonical_skill_reference", entry_name)
+                if "agents/step_*.md" in entry_text:
+                    add_failure(failures, "ambiguous_step_agent_wildcard", entry_name)
+                for runtime_path in STEP_RUNTIME_PATHS:
+                    if runtime_path not in entry_text:
+                        add_failure(
+                            failures,
+                            "runtime_path_undocumented",
+                            entry_name,
+                            target=runtime_path,
+                        )
         for name in names:
             if "\\" in name:
                 failures.append({"code": "windows_separator_in_zip", "path": name})

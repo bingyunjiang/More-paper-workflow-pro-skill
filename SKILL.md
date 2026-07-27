@@ -22,13 +22,21 @@ related_skills:
 - 对外只保留一个主入口 `README.md` / `SKILL.md`，用户只需要记一个入口。
 - 主名称统一为 `more-paper-workflow`；旧名称 `more-paper-workflow-pro-skill` 仅作为兼容触发别名保留。
 - 对话式工作流支持 Step 1-8 直接进入，不把前序流程当成硬门槛。
-- 快速导流先看 `references/entry-guide.md`，按任务意图选 Step，再回到对应 `agents/step_*.md`。
+- 快速导流先看 `references/entry-guide.md`，按任务意图选择下面的精确入口；不要把概括性说明推断成并不存在的统一短文件名：
+  - Step 1: `agents/step_1_entry.md` → `agents/step_1_topic.md`
+  - Step 2: `agents/step_2_outline.md`
+  - Step 3: `agents/step_3_entry.md` → `agents/step_3_search_plan.md`
+  - Step 4: `agents/step_4_search_score.md`
+  - Step 5: `agents/step_5_download.md`
+  - Step 6: `agents/step_6_entry.md` → `agents/step_6_zotero.md`
+  - Step 7: `agents/step_7_entry.md` → `agents/step_7_writing.md`
+  - Step 8: `agents/step_8_entry.md` → `agents/step_8_polishing.md`
 - 参考文件的功能分组见 `references/reference-index.md`，新增或重排 reference 前先更新索引。
 - Cross-agent entry vocabulary lives in `references/entry-routing-index.md`.
 - Full trigger vocabulary lives in `references/trigger-catalog.md`.
 - Scientific figure backend selection and strict reproduction live in `references/scientific-figure-reproduction.md`.
 - Platform-specific launch hints live in thin adapter files such as `agents/openai.yaml` and `.claude-plugin/marketplace.json`.
-- Step-specific runtime contracts remain in `agents/step_*.md` and `references/*.md`.
+- Step-specific runtime contracts use only the exact `agents/` paths listed above plus the references routed by each entry file. If an exact file is absent, report an incomplete installation; do not invent a shortened filename.
 - Raster/PDF numeric recovery follows `inspect → spec-review → explicit spec confirmation → candidates.csv → quality assessment → review-decisions.json → observations.csv → formal data.csv → VisualSpec → render/QA`. Candidate or observation files never enter VisualSpec.
 - Step 7 figure work starts with `scripts/build_figure_asset_check.py`; MinerU candidates degrade through `manifest.json -> full.md -> images/ -> PDF direct`, and only selected original assets are materialized into the project.
 
@@ -99,7 +107,7 @@ Step 4 public sequence: 4.4 筛选依据 → 4.5 五维 → 4.6 T1-T4 → 4.7 �
 
 ## Public-first entry examples
 
-README 首屏只保留 public-first entry examples；运行时细则仍以本文件和 `agents/step_*.md` 为准。
+README 首屏只保留 public-first entry examples；运行时细则仍以本文件和上方列出的精确 `agents/` 路径为准。
 
 - Step 1: use the topic-clarification entry prompt in `README.md`
 - Step 5: use the direct download entry prompt in `README.md`

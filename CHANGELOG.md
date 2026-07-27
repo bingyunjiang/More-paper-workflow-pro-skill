@@ -10,6 +10,12 @@
 
 ## v1.0.22-20260724 (2026-07-24)
 
+### 安装入口与运行时路径完整性
+
+- 将 `SKILL.md` 中容易被误展开的 `agents/step_*.md` 改为 Step 1–8 精确入口表，明确 Step 7 使用 `agents/step_7_entry.md` 与 `agents/step_7_writing.md`，禁止推断不存在的 `agents/step_7.md`。
+- Codex 插件发现入口同步列出精确路由，并在安装不完整时返回缺失路径，而不是继续猜测文件名。
+- 包校验器现同时验证根目录与 ZIP 中的全部 Step 运行时合同、关键 references/scripts、插件入口回跳和路径文档；新增删除 Step 7 合同后的失败回归测试。
+
 ### 八步全局合同与跨步骤加固
 
 - 新增 `workflow-contract-registry.json`、`workflow-run-envelope.schema.json` 和原子写入 CLI，统一 Step 1-8 的轴、执行档位、领域状态与全局 readiness。
