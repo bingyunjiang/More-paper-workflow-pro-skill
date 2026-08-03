@@ -16,6 +16,7 @@
 - [ ] `references/polish-modes.md` — 🆕 revision scope 约束
 - [ ] `references/step8-rewrite-scope.md` — 🆕 Writing Read、rewrite_scope / rewrite_level 与保真/残留味回读
 - [ ] `references/protected-spans.md` — 🆕 引用、图表、公式、术语、参数和证据边界保护区
+- [ ] `references/equation-writing-contract.md` — 公式签名保真、源码残留与 DOCX 原生公式终验
 - [ ] `references/academic-ai-trace-index.md` — 🆕 学术 AI 痕迹轻量索引；只定位 Top 5-10 个最影响读感和可核验性的模式
 - [ ] `references/ai-trace-taxonomy.md` — 🆕 机械化表达风险参考
 - [ ] `references/deterministic-writing-diagnostics.md` — 🆕 AI 味确定性检查规则族与映射边界
@@ -212,6 +213,7 @@ Step 8 不允许：
 | 修改对照表 | .md/.csv | 位置 / 原文 / 修改后 / 修改类型 / 修改原因 / 涉及规则 |
 | 术语一致性报告 | .md | 术语修改数、新增术语数、Main Term 变更数 |
 | 润色质量报告 | .md | 最终风险、降级说明、验证结果、人工复核项 |
+| 公式审计与登记 | `.json` + `.md` | 公式相关稿件必须刷新 `equation_audit` / `equation_register`，并记录润色前后公式签名与 DOCX 原生公式状态 |
 
 **AI 味检查结果并入规则：**
 
@@ -239,8 +241,8 @@ Step 8 不允许：
 | 2 | 分层润色 | 初稿 + 任务清单 | Level 1 默认执行；Level 2-3 按诊断命中执行；Level 4 仅在用户要求或已有 `style_profile` 时执行 | 润色正文草案 |
 | 3 | 问题闭环账本 | 原文 + 润色正文草案 + 诊断任务清单 | 记录每个问题的允许动作、修订建议、验证结果与最终状态 | `revision_ledger.json` + `revision_ledger.md` |
 | 4 | 对照表生成 | 原文 + 润色正文草案 | 抽取代表性修改，按固定字段记录原因 | 修改对照表 |
-| 5 | 术语终验 | 润色正文草案 + `.skill-state/term_aliases.md` | 逐章校验 Main Term、Aliases 和新术语 | 术语一致性报告 |
-| 6 | DOCX 导出 | `论文润色稿.md` | 转换为 `.docx`，沿用 Step 7/项目既有样式 | `论文润色稿.docx` |
+| 5 | 术语与公式终验 | 润色正文草案 + `.skill-state/term_aliases.md` + 公式登记 | 校验 Main Term，并运行公式签名/缺失/源码残留审计 | 术语一致性报告 + `equation_audit/register` |
+| 6 | DOCX 导出 | 已通过公式预检的 `论文润色稿.md` | 转换为 `.docx`，沿用 Step 7/项目既有样式，并回读 OMML 原生公式 | `论文润色稿.docx` |
 | 7 | 日志回写 | 质量报告、术语报告、修改对照表 | 仅回写可复用错误和结构性决策 | `.skill-state/` 更新摘要 |
 
 ### 职责边界
@@ -567,9 +569,10 @@ Step 8 的问题闭环主工件为：
 ### 8.8. DOCX 导出
 
 1. 将终验后的正文保存为 `论文润色稿.md`
-2. 使用项目既有 Markdown → DOCX 转换方式生成 `论文润色稿.docx`
-3. 导出时保持 Step 7 既有样式、标题层级、图表编号和引用格式
-4. 如果 DOCX 生成失败，保留 `.md` 终稿，并在润色质量报告中记录失败原因和可复现命令
+2. 先运行 `scripts/equation_guard.py 论文润色稿.md --output-dir .`；公式缺失、纯文本数学或裸 LaTeX/矩阵源码未关闭时禁止导出
+3. 使用 `scripts/md_to_docx.py` 生成 `论文润色稿.docx`，保持 Step 7 既有样式、标题层级、图表/公式编号和引用格式
+4. 导出后回读 DOCX：源稿有公式时必须存在对应 OMML/Word 原生公式对象，且不得出现 `T(omega)`、`F_{i+1}`、`X_in` 或 `\\begin{bmatrix}` 等纯文本残留
+5. 如果 DOCX 生成或公式回读失败，保留 `.md` 终稿，并在润色质量报告中记录失败原因和可复现命令
 
 ---
 
@@ -603,6 +606,7 @@ Step 8 的问题闭环主工件为：
 - [ ] 表达风险检查已输出发现项、已修复项、保留项和保留原因
 - [ ] `meaning_audit_required=true` 的改动已完成轻量含义审计或转人工复核
 - [ ] `polish_fidelity_audit.json/md` 已生成；硬失败为 0，warning 已人工确认或保留为未关闭项
+- [ ] 公式相关稿件的 `equation_audit.json/md` 与 `equation_register.json/md` 已刷新；润色前后公式签名一致，DOCX 公式对象回读通过
 - [ ] 标题、段落论证单元、claim 边界、待补证据标记和全文修改幅度已通过 argument fidelity 检查
 - [ ] 如提供 `claim_evidence_audit.json`：稿件哈希一致且未关闭风险为 0；未提供时已明确 direct-entry 审计边界
 - [ ] `authorial_revision_record.json` 已区分语言编辑、作者确认与待作者输入；高风险智识修改未确认时不输出 `ready_for_finalize`
@@ -620,6 +624,7 @@ Step 8 的问题闭环主工件为：
 - [ ] `diagnostic_summary.md` 已生成
 - [ ] `论文润色稿.md` 已生成
 - [ ] `论文润色稿.docx` 已自动生成
+- [ ] DOCX 中矩阵、分式、上下标、希腊字母和编号已作为原生公式显示，无 LaTeX 源码或纯文本数学残留
 - [ ] 修改对照表（位置 / 原文 / 修改后 / 修改类型 / 修改原因 / 涉及规则）已产出
 - [ ] 润色质量报告已产出（最终风险、降级说明、验证结果、人工复核项）
 

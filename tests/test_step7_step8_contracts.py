@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 
@@ -10,6 +11,34 @@ def read_rel(path: str) -> str:
 
 
 class Step7Step8ContractsTest(unittest.TestCase):
+    def test_step7_numbering_is_contiguous_and_cross_references_are_current(self):
+        text = read_rel("agents/step_7_writing.md")
+        main_numbers = [
+            int(match.group(1))
+            for match in re.finditer(r"(?m)^### 7\.(\d+)\. ", text)
+        ]
+        evidence_subnumbers = [
+            int(match.group(1))
+            for match in re.finditer(r"(?m)^#### 7\.2\.(\d+)\. ", text)
+        ]
+        table_main_numbers = [
+            int(match.group(1))
+            for match in re.finditer(r"(?m)^\| 7\.(\d+) \|", text)
+        ]
+
+        self.assertEqual(main_numbers, list(range(1, 18)))
+        self.assertEqual(evidence_subnumbers, list(range(1, 8)))
+        self.assertEqual(table_main_numbers, list(range(1, 17)))
+        for stale_number in ("7.2.0", "7.2.1.1", "7.2.1.2", "Step 7.3-0"):
+            self.assertNotIn(stale_number, text)
+        for current_reference in (
+            "实时引文支撑（7.10）",
+            "同行评审仿真 + Rebuttal 预演（7.12）",
+            "7.7.3 章节级论证计划",
+            "7.10 实时引文支撑应生成同一类 claim-to-citation 映射",
+        ):
+            self.assertIn(current_reference, text)
+
     def test_step7_public_modes_are_consistent(self):
         step7 = read_rel("agents/step_7_writing.md")
         skill = read_rel("SKILL.md")

@@ -32,6 +32,9 @@ import argparse
 import subprocess
 import shutil
 import time
+from pathlib import Path
+
+from equation_guard import audit_paths as audit_equations
 
 
 # ── 依赖检查 ──────────────────────────────────────────────────
@@ -81,11 +84,23 @@ def md_to_docx(input_path: str, output_path: str,
     Returns:
         生成的 .docx 文件绝对路径
     """
-    pandoc = check_pandoc()
-
     if not os.path.exists(input_path):
         print(f"❌ 文件不存在: {input_path}", flush=True)
         sys.exit(1)
+
+    source_audit, _ = audit_equations([Path(input_path)], "markdown")
+    source_summary = source_audit["summary"]
+    if source_summary["status"] == "fail":
+        print("❌ DOCX 导出已阻断：Markdown 公式预检失败。", flush=True)
+        for finding in source_audit["findings"][:10]:
+            print(
+                f"   {finding['code']} line {finding['line']}: {finding['message']}",
+                flush=True,
+            )
+        print("   请先运行 scripts/equation_guard.py 并修复报告中的错误。", flush=True)
+        sys.exit(1)
+
+    pandoc = check_pandoc()
 
     cmd = [
         pandoc,
@@ -128,6 +143,25 @@ def md_to_docx(input_path: str, output_path: str,
         for line in result.stderr.strip().split('\n'):
             if line.strip():
                 print(f"   ⚠️ {line.strip()}", flush=True)
+
+    docx_audit, _ = audit_equations([Path(output_path)], "docx")
+    docx_summary = docx_audit["summary"]
+    expected_equations = int(source_summary["equation_count"])
+    native_equations = int(docx_summary["native_math_count"])
+    transfer_failed = expected_equations > native_equations
+    if docx_summary["status"] == "fail" or transfer_failed:
+        print("❌ DOCX 已生成，但公式回读未通过；该文件不能作为正式交付。", flush=True)
+        if transfer_failed:
+            print(
+                f"   源稿公式数 {expected_equations}，DOCX 原生公式对象数 {native_equations}。",
+                flush=True,
+            )
+        for finding in docx_audit["findings"][:10]:
+            print(
+                f"   {finding['code']} paragraph {finding['line']}: {finding['message']}",
+                flush=True,
+            )
+        sys.exit(1)
 
     size_kb = os.path.getsize(output_path) // 1024
     print(f"✅ DOCX 已生成: {output_path} ({size_kb} KB, {elapsed:.1f}s)",

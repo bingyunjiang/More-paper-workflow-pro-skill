@@ -35,7 +35,7 @@ class CheckSkillUpdateScriptTest(unittest.TestCase):
         self.assertEqual(payload["suggested_action"], "continue")
         self.assertFalse(payload["should_prompt"])
         self.assertEqual(payload["prompt_options"], [])
-        self.assertEqual(payload["skill_version"], "v1.0.22-20260724")
+        self.assertEqual(payload["skill_version"], "v1.0.23-20260803")
 
     def test_parse_skill_version_reads_skill_metadata_body(self):
         import scripts.check_skill_update as check_skill_update

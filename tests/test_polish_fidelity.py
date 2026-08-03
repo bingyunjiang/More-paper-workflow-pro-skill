@@ -35,6 +35,16 @@ class PolishFidelityAuditTest(unittest.TestCase):
         self.assertEqual(payload["summary"]["status"], "warn")
         self.assertEqual(payload["summary"]["warning_count"], 1)
 
+    def test_formula_signature_drift_is_a_hard_failure(self):
+        payload = audit_fidelity(
+            "传递函数为 $T(\\omega)=F_{i+1}(\\omega)$。",
+            "传递函数为 $T(\\omega)=F_i(\\omega)$。",
+        )
+        rule_ids = {item["rule_id"] for item in payload["issues"]}
+
+        self.assertEqual(payload["summary"]["status"], "fail")
+        self.assertIn("protected_span.equation_signature", rule_ids)
+
     def test_fails_when_evidence_placeholder_is_removed(self):
         payload = audit_fidelity("该结论仍需核验。[待补证据: 参数来源]", "该结论已经明确。")
         rule_ids = {item["rule_id"] for item in payload["issues"]}

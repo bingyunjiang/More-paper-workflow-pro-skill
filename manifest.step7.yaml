@@ -55,6 +55,7 @@ always_load:
   - static/core/workflow-run-envelope.md
   - references/genre-style-axis.md
   - references/writing-modes.md
+  - references/equation-writing-contract.md
 
 mode_routes:
   full-document: references/section-blueprint-workflow.md

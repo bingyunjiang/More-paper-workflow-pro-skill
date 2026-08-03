@@ -64,9 +64,10 @@ Step 8 若存在 `$CWD/.skill-state/ai_trace_diagnostics.json`，应把它视为
 4. `references/polish-modes.md`
 5. `references/step8-rewrite-scope.md`
 6. `references/protected-spans.md`
-7. `references/academic-ai-trace-index.md`
-8. `references/ai-trace-taxonomy.md`
-9. `agents/step_8_polishing.md`
+7. `references/equation-writing-contract.md`
+8. `references/academic-ai-trace-index.md`
+9. `references/ai-trace-taxonomy.md`
+10. `agents/step_8_polishing.md`
 
 ## 输出要求
 

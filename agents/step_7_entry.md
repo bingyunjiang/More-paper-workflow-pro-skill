@@ -108,7 +108,8 @@ Artifact graph 只负责登记当前可用材料和可确认关系，不强制�
 3. `references/genre-style-axis.md`
 4. `references/writing-modes.md`
 5. mode 与 operation 对应 reference
-6. `agents/step_7_writing.md`
+6. `references/equation-writing-contract.md`
+7. `agents/step_7_writing.md`
 
 ## 输出要求
 
@@ -118,6 +119,7 @@ Step 7 的正式输出应显式说明：
 - `operation`
 - `target_genre`
 - `figure_mode`
+- 公式任务的 `equation_audit_status / unresolved_equation_count / needs_author_check`
 - `figure_backend`
 - `figure_asset_action`
 - `evidence_basis`

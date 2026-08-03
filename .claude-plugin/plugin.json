@@ -1,6 +1,6 @@
 {
   "name": "more-paper-workflow",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "description": "中文/双语论文的证据闭环学术工作流：从定题、检索、下载、Zotero 到写作与引用审计，全程基于真实文献。",
   "author": {
     "name": "Dr. Jiang Bingyun"

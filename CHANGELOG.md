@@ -8,6 +8,17 @@
 
 ---
 
+## v1.0.23-20260803 (2026-08-03)
+
+### 公式写作、渲染与终验增强
+
+- 新增 `references/equation-writing-contract.md`，把公式缺失、变量/单位/假设登记、编号引用、证据锚点及 Markdown/LaTeX/DOCX/PDF 渲染要求纳入 Step 7/8 正式合同。
+- 新增 `scripts/equation_guard.py` 与 `equation_audit.json/md`、`equation_register.json/md`，检测 `T(omega)`、`F_{i+1}`、`X_in`、非规范 `\\(...\\)`、裸 LaTeX 命令、矩阵源码、单反斜杠矩阵行和公式引用断链。
+- Step 7 输出校验器直接执行公式审计；`draft_ready` 阻断公式缺失和源码残留，公式稿进入 `ready_for_step8` 时要求审计/登记工件与当前稿件 SHA-256 一致。
+- Step 8 保真审计新增公式签名硬门；Markdown 转 DOCX 在转换前执行公式预检，转换后回读 OMML/Word 原生公式对象，防止公式退化为普通文本。
+- 新增 Markdown、矩阵、DOCX OMML、Step 7 集成和润色公式漂移回归测试，并将公式合同与脚本纳入插件包完整性校验。
+- 重排 `agents/step_7_writing.md` 子步骤编号：主流程统一为 `7.1–7.17`，证据组织子节统一为 `7.2.1–7.2.7`，同步修正流程表、质量门和正文交叉引用，并新增连续性回归测试。
+
 ## v1.0.22-20260724 (2026-07-24)
 
 ### 安装入口与运行时路径完整性

@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey)](LICENSE)
 [![Zotero](https://img.shields.io/badge/Zotero-CC2936?logo=zotero&logoColor=white)]()
 
-# more-paper-workflow `v1.0.22-20260724`
+# more-paper-workflow `v1.0.23-20260803`
 
 > 从研究问题到可核验论文：一套支持任意步骤直达、证据分级和质量闭环的学术论文工作流。
 >
@@ -190,6 +190,7 @@ python3 scripts/run_step8_ai_trace.py --project-root examples/demo/step8-ai-trac
 - `full-document / review-only / abstract-only / chapter-only / continue-existing / revision-only` 是公开写作模式。
 - `continue-existing`、`chapter-only` 和 `revision-only` 都允许直达，但不能跳过证据确认。
 - 图表证据子链区分原图插入、可信数据新图和 source-locked 重绘/数字化；曲线数字化固定经过 `candidates → observations → formal data.csv → VisualSpec`，线型只影响渲染，不改变数据连续性。
+- 公式写作通过 `equation_guard.py` 阻断公式缺失、`T(omega)` / `F_{i+1}` / `X_in` 纯文本退化和 LaTeX/矩阵源码残留，并在 DOCX 导出后回读 Word 原生公式对象。
 - 用户仍保留自己的写作策略和表达风格。
 
 ### Step 8 只做保守修订 / Conservative revision only
@@ -313,7 +314,7 @@ See the [first-run examples](examples/first-run/README.md), [workflow diagrams](
 
 ## 📋 版本历史
 
-当前版本：`v1.0.22-20260724`。完整记录见 [`CHANGELOG.md`](CHANGELOG.md)。
+当前版本：`v1.0.23-20260803`。完整记录见 [`CHANGELOG.md`](CHANGELOG.md)。
 
 ## 作者与许可
 

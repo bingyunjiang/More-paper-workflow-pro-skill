@@ -30,7 +30,7 @@
 - [ ] `references/section-blueprint-template.md` — 章节蓝图字段规范，含 `claim_strength / required_evidence / evidence_anchor`
 - [ ] `references/scientific-writing-quality-rubric.md` — 通用科学写作质量 rubric；用于句子主谓、旧新信息、段落功能和图表先行论证顺序检查
 - [ ] `references/section-quality-gates.md` — 摘要/引言/讨论/结论专项写作门；仅检查章节功能，不替代引用审计
-- [ ] `references/mechanism-analysis-writing-contract.md` — 🆕 机理分析写作契约
+- [ ] `references/mechanism-analysis-writing-contract.md` / `references/equation-writing-contract.md` — 机理分析与公式登记、渲染、审计契约
 - [ ] `references/domain-packs/materials-mechanics-writing.md` — 材料/机械/工程领域增强包；仅在任务命中材料、机械、热变形、显微组织或工程机理时加载
 - [ ] `references/domain-packs/materials-journal-style.md` — 材料/机械目标期刊与体裁风格包；仅在目标期刊或体裁明确时加载
 - [ ] `references/domain-packs/power-electronics-ev-energy-writing.md` — 电力电子/充电/储能/EMS/V2G/快充/无线充电/超级电容领域增强包；仅在任务命中这些方向时加载
@@ -65,8 +65,8 @@
 - 撰写或续写学位论文、课程论文、会议论文、期刊论文的指定章节
 - 基于已有草稿补写、改写、扩写其中一部分章节
 - 解读审稿意见并生成修稿路线图、逐条回应骨架、证据缺口清单
-- 实时引文支撑（7.9）
-- 同行评审仿真 + Rebuttal 预演（7.11）
+- 实时引文支撑（7.10）
+- 同行评审仿真 + Rebuttal 预演（7.12）
 - 科研图表生成（7.15）
 - 写后引用审计（7.16）
 
@@ -109,10 +109,10 @@
 | MinerU ZIP 缓存 | Zotero 附件 / 用户提供 | `LLM-for-Zotero-MinerU-cache-*.zip` | 可选；图文增强层 |
 | 证据包 | 用户提供 / 项目目录 | PDF、BibTeX、CSL JSON、报告、数据、草稿、标准文件、图片目录 | 无 Zotero/MinerU 时推荐 |
 | 已有草稿/指定章节 | 用户提供 | .md/.docx/章节文本 | 可选 |
-| 综述矩阵 | Step 7.1 | .csv/.md | 写作前生成 |
-| 目标体裁/文档风格画像 | Step 7.2 | `.md` / `.json` | 🆕 |
-| 章节蓝图 | Step 7.2 | `.md` / `.json` | 🆕 |
-| `section_blueprints.json` / `writing_blueprints` | Step 2 / Step 7.2 | `.json` / `.md` | 前者是可选不可变结构基线；后者是保留 lineage 的写作派生层，direct-entry 可独立生成 |
+| 综述矩阵 | Step 7.2 | .csv/.md | 写作前生成 |
+| 目标体裁/文档风格画像 | Step 7.3 | `.md` / `.json` | 🆕 |
+| 章节蓝图 | Step 7.3 | `.md` / `.json` | 🆕 |
+| `section_blueprints.json` / `writing_blueprints` | Step 2 / Step 7.3 | `.json` / `.md` | 前者是可选不可变结构基线；后者是保留 lineage 的写作派生层，direct-entry 可独立生成 |
 | MinerU 图文资产 | Zotero 附件 / 用户提供 | `LLM-for-Zotero-MinerU-cache-*.zip` 或等价图文资产包 | `auto_insert_figures=true` 时必选 |
 
 > Step 7 不再直接把 `paper-temp/*.pdf` 当作唯一知识库。PDF 可以来自 Step 5、原有文件、后续补下载、手动整理目录、Zotero 条目附件或用户证据包。若 `pdf-附件池索引.json` 不存在，但 Zotero 条目已带 PDF 附件，则以 Zotero MCP 的 `zotero_get_item_children` / `zotero_get_attachment_path` / `zotero_get_item_fulltext` 为准，必要时再生成临时 `pdf-附件池索引.json` 供审计复用。
@@ -264,8 +264,9 @@ Step 7 可以借用“导师式预审”的组织方式，但必须服务于本�
 | 证据缺口清单 | .md | `evidence_gap_list.md`，需回退 Step 4/6/7.2 的证据问题 |
 | 中→英术语对照表 | .md | zh-to-en 模式额外产出 |
 | 写作风险摘要 | .md | `draft_risk_summary.md`，记录反模式、证据空洞与需回退问题 |
-| 评审报告 + rebuttal-预演 | .md → .pdf | 7.11 质量门产出 |
-| 图表 | SVG/PDF/TIFF/JPG/PNG | 7.14 产出或从 MinerU ZIP/证据包复制，保存到 `figures/` |
+| 公式登记与审计 | `.json` + `.md` | `equation_register` + `equation_audit`；绑定稿件哈希，阻断公式缺失、纯文本数学和 LaTeX/矩阵源码残留 |
+| 评审报告 + rebuttal-预演 | .md → .pdf | 7.12 质量门产出 |
+| 图表 | SVG/PDF/TIFF/JPG/PNG | 7.15 产出或从 MinerU ZIP/证据包复制，保存到 `figures/` |
 | 引用审计报告 | .md → .pdf | 7.16 产出 |
 | 状态卡 | .md block / 对话块 | 当前 Step、entry_mode、route_mode、输入依据、证据风险、下一步推荐 |
 
@@ -355,24 +356,24 @@ Step 7 是写作生产层。它可以在正文生成过程中完成基础可读�
 
 | 子步骤 | 核心功能 | 主要输入 | 主要输出 |
 |--------|----------|----------|----------|
-| 7.1 | 生成文献证据矩阵 | Zotero 条目/笔记/标注、PDF 附件、对照 JSON | `综述矩阵.csv/.md` |
-| 7.2 | 学习目标体裁/文档风格并生成统一写作工件 | 目标样本文献/学位论文规范/已有草稿、Step 2 大纲、综述矩阵 | `style_profile.md/json` + `writing_blueprints.md/json` + `writing_rationale_matrix.md/json` |
-| 7.3 | 写作反模式闸门 | 已有草稿、写作蓝图、证据矩阵 | 反模式风险与回退要求 |
-| 7.4 | 论文类型、目标体裁与语言识别 | 研究主题、大纲、投稿/毕业/课程目标 | paper_type + target_genre + language |
-| 7.5 | 写作范围识别 | 写作范围、已有草稿、用户任务 | full-document / chapter-only / continue-existing / abstract-only / review-only / revision-only |
-| 7.6 | 写作模式、语言规则与章节级论证计划 | `section_blueprints`、综述矩阵、已有草稿、章节范围 | `argument_plan.md/json` |
-| 7.7 | 内部写作流水线 | `argument_plan`、章节蓝图、证据矩阵 | 可读性整形后的正文单元 |
-| 7.8 | 章节级写作规则 | 大纲、矩阵、风格画像、已有草稿 | `论文初稿.md/.docx` 或指定章节草稿 |
-| 7.9 | 实时引文支撑 | 已入库 Zotero 文献为主，新文献走回流闭环 | 段落引用匹配报告 |
-| 7.10 | 防幻觉机制 | 引用、证据等级、JSON 追溯 | 引用安全规则 |
-| 7.11 | 同行评审仿真与修稿闭环 | 初稿、矩阵、风格画像、审稿意见 | `评审报告.md` + `rebuttal-预演.md` + `revision_roadmap.md` |
-| 7.12 | `revision-only` 修订执行 | 已有草稿、审稿意见、证据状态和写作蓝图 | 修订后正文 + 修订日志 |
-| 7.13 | 复评 | `评审报告.md`、`revision_roadmap.md`、修订后正文、`引用审计报告.md` | `rereview_report.md` |
-| 7.14 | 科研图表生成 | 初稿、数据文件、图表规范 | `figures/` + 图表清单 |
-| 7.15 | 图表意图与证据约束 | 初稿、图文资产、图表意图、MinerU ZIP / `deep_read_cards` | `figure_index.json` + `figure_evidence_report.md/json` + 带引出句的正文段落；执行 `scripts/resolve_figure_refs.py` 解析标记 |
+| 7.1 | 入口判定 | 用户任务、已有材料、目标体裁 | `target_genre` + `writing_mode` + `writing_axes` |
+| 7.2 | 生成文献证据矩阵 | Zotero 条目/笔记/标注、PDF 附件、对照 JSON | `综述矩阵.csv/.md` |
+| 7.3 | 学习目标体裁/文档风格并生成统一写作工件 | 目标样本文献/学位论文规范/已有草稿、Step 2 大纲、综述矩阵 | `style_profile.md/json` + `writing_blueprints.md/json` + `writing_rationale_matrix.md/json` |
+| 7.4 | 写作反模式闸门 | 已有草稿、写作蓝图、证据矩阵 | 反模式风险与回退要求 |
+| 7.5 | 论文类型、目标体裁与语言识别 | 研究主题、大纲、投稿/毕业/课程目标 | paper_type + target_genre + language |
+| 7.6 | 写作范围识别 | 写作范围、已有草稿、用户任务 | full-document / chapter-only / continue-existing / abstract-only / review-only / revision-only |
+| 7.7 | 写作模式、语言规则与章节级论证计划 | `section_blueprints`、综述矩阵、已有草稿、章节范围 | `argument_plan.md/json` |
+| 7.8 | 内部写作流水线 | `argument_plan`、章节蓝图、证据矩阵 | 可读性整形后的正文单元 |
+| 7.9 | 章节级写作提示 | 大纲、矩阵、风格画像、已有草稿 | `论文初稿.md/.docx` 或指定章节草稿 |
+| 7.10 | 实时引文支撑 | 已入库 Zotero 文献为主，新文献走回流闭环 | 段落引用匹配报告 |
+| 7.11 | 防幻觉机制 | 引用、证据等级、JSON 追溯 | 引用安全规则 |
+| 7.12 | 同行评审仿真与修稿闭环 | 初稿、矩阵、风格画像、审稿意见 | `评审报告.md` + `rebuttal-预演.md` + `revision_roadmap.md` |
+| 7.13 | `revision-only` 修订执行 | 已有草稿、审稿意见、证据状态和写作蓝图 | 修订后正文 + 修订日志 |
+| 7.14 | 复评 | `评审报告.md`、`revision_roadmap.md`、修订后正文、`引用审计报告.md` | `rereview_report.md` |
+| 7.15 | 图表意图、生成与证据约束 | 初稿、数据/图文资产、图表意图、MinerU ZIP / `deep_read_cards` | `figures/` + `figure_index.json` + `figure_evidence_report.md/json` |
+| 7.15.1 | 图文联合插图 | 初稿、图文资产、图表意图、MinerU ZIP / `deep_read_cards` | 带引出句的正文段落；执行 `scripts/resolve_figure_refs.py` 解析标记 |
 | 7.16 | 写后引用审计 | 初稿、Zotero 条目、PDF/笔记/标注证据 | `引用审计报告.md` |
 | 7.16.1 | 写作质量与审稿缺陷审计 | 初稿、argument_plan、图表/证据审计结果 | `scientific_writing_quality_audit.*`、`engineering_claim_audit.*`、`reviewer_defect_report.md` |
-| 7.15.1 | 图文联合插图 | 初稿、图文资产、图表意图、MinerU ZIP / `deep_read_cards` | `figure_index.json` + `figure_evidence_report.md/json` + 带引出句的正文段落；执行 `scripts/resolve_figure_refs.py` 解析标记 |
 
 ### 7.1. 入口判定：target_genre、writing_mode 与 writing_axes
 
@@ -457,7 +458,7 @@ Step 7 的默认输出顺序固定为：
 
 > 不要一上来就读 PDF 全文。优先用 `文献-Zotero架构对照.json` 确定 T1/T2/T3、集合归属、Zotero item key 和 PDF 状态；如存在 `retrieval_candidates.json`，只把它视为 `retrieved_candidate` 候选，不得直接写入正文或矩阵；必须再回到笔记、标注、元数据或 PDF 原文确认。`.md` 只用于人工审阅。
 
-#### 7.2.0. 大纲-集合锁定取证
+#### 7.2.1. 大纲-集合锁定取证
 
 - Step 7 默认按“大纲片段 -> Zotero 子集合/条目映射”读取证据，不扫整个 Zotero 文库。
 - 当本轮任务是 `chapter-only` 或用户明确指定 `1.1 / 1.1.1 / 2.3` 等节号时，只读取当前节号对应的集合、子集合、条目和附件。
@@ -466,7 +467,7 @@ Step 7 的默认输出顺序固定为：
 - 不得因为“文库里还有很多相关文献”就提前读取后续小节集合，更不得把后续节的论证提前写入当前节。
 - 如果用户已经给出等价的章节-集合映射，直接使用该映射，不要求回跑 Step 6。
 
-#### 7.2.1.1. deep_read_refine 章节级深读
+#### 7.2.2. deep_read_refine 章节级深读
 
 `deep_read_refine` 是 Step 7 的内部证据整形子模式，不是新的公开 Step、独立 CLI 或最终稿生成器。它只用于当前章节/小节的 1-5 篇核心文献深读，服务后续章节写作、7.10 实时引文支撑和 7.16 引用审计。
 
@@ -524,7 +525,7 @@ Step 7 保留并鼓励对核心文献读全文，但全文 PDF/MinerU 不作为�
 - 图表只进入候选清单；是否可支撑正文 claim 仍由 `figure_evidence_report.md/json` 确认。
 - `deep_read_refine` 结果不得直接越过 `reading_depth` 规则写入强 claim；`abstract_only` 只能做背景、候选或待补全文提示。
 
-#### 7.2.1.2. mechanism_analysis 机理分析预处理
+#### 7.2.3. mechanism_analysis 机理分析预处理
 
 `mechanism_analysis` 是 Step 7 的内部写作准备层，不是新的公开 Step，也不是新的用户模式。每次进入正文写作、续写或图文联合写作前，都必须记录 `mechanism_trigger_decision`。
 
@@ -536,7 +537,7 @@ Step 7 保留并鼓励对核心文献读全文，但全文 PDF/MinerU 不作为�
 - 机制分析可读取图表候选和 MinerU/PDF 资产，但无锚点时不得写强视觉判断。
 - 降级项必须写入 `evidence_gap_list.md` 或在正文中降强度后，才允许进入 Step 8。
 
-#### 7.2.1. PDF 读取模式
+#### 7.2.4. PDF 读取模式
 
 Step 7 默认遵循 `references/pdf-processing-policy.md`，固定使用以下三档模式：
 
@@ -547,7 +548,7 @@ Step 7 默认遵循 `references/pdf-processing-policy.md`，固定使用以下�
 - `batch-fulltext`
   只用于综述批读、章节预研或用户明确要求的批量全文处理，不作为所有写作任务的默认起点。
 
-#### 7.2.2. 从元数据层升级到全文层的触发条件
+#### 7.2.5. 从元数据层升级到全文层的触发条件
 
 满足任一条件即可从 `metadata-first` 升级到 `selective-fulltext` 或 `batch-fulltext`：
 
@@ -561,7 +562,7 @@ Step 7 默认遵循 `references/pdf-processing-policy.md`，固定使用以下�
 
 若只是主题归类、研究脉络说明、低风险综述句或候选定位，不应默认升级到全文层。
 
-#### 7.2.3. 全文提取结果的使用约束
+#### 7.2.6. 全文提取结果的使用约束
 
 若使用 `scripts/prepare_pdf_for_llm.py` 或其他等价方式提取 PDF 文本，产物至少应保留：
 
@@ -604,7 +605,7 @@ Step 7 默认遵循 `references/pdf-processing-policy.md`，固定使用以下�
 
 > 摘要可以派上用场，但不能被当作全文。它适合判断“这篇文献研究什么、用了什么大类方法、与主题是否相关”，不适合支撑“作者具体发现了多少、参数如何设置、机制如何证明”这类强断言。
 
-#### 7.2.4. 高风险内容回 PDF 规则
+#### 7.2.7. 高风险内容回 PDF 规则
 
 以下内容不得仅凭提取文本直接进入最终引用或强结论，必须回到原 PDF 或可核验的 Zotero 原文层确认：
 
@@ -651,11 +652,11 @@ style_profile / section_blueprints / writing_rationale_matrix 是当前落点。
 
 **工作流：**
 ```
-Step 7.2-0: 样本盘点      → style_sample_status.md/json (样本来源、数量、缺口、回退策略；辅助元数据)
-Step 7.2-1: 风格剖析      → style_profile.md/json         (统一风格画像 schema)
-Step 7.2-2: 写作蓝图      → writing_blueprints.md/json    (从 Step 2 基线派生，保留 lineage 与章节功能矩阵字段)
-Step 7.2-3: 写作逻辑矩阵  → writing_rationale_matrix.md/json (统一单元级理由 schema)
-Step 7.2-4: LaTeX 校验    → latex_check.md（可选）
+Step 7.3.1: 样本盘点      → style_sample_status.md/json (样本来源、数量、缺口、回退策略；辅助元数据)
+Step 7.3.2: 风格剖析      → style_profile.md/json         (统一风格画像 schema)
+Step 7.3.3: 写作蓝图      → writing_blueprints.md/json    (从 Step 2 基线派生，保留 lineage 与章节功能矩阵字段)
+Step 7.3.4: 写作逻辑矩阵  → writing_rationale_matrix.md/json (统一单元级理由 schema)
+Step 7.3.5: LaTeX 校验    → latex_check.md（可选）
 ```
 
 **`style_profile` 最小统一字段：**
@@ -756,7 +757,7 @@ python3 scripts/generate_writing_rationale.py research_dossier/writing_blueprint
 | `course-paper` | `目标风格样本 / 课程论文-{课程名}` | 课程要求、评分 rubrics、已有材料 |
 | `existing-draft` | `目标风格样本 / 已有草稿-{项目名}` | 用户草稿、已定稿章节、导师修改稿 |
 
-> 集合名只是推荐约定，不是硬性要求；如果用户直接提供目录、文件或草稿，也可以作为样本源。但 7.2 必须把实际使用的样本写入 `style_sample_status.md/json`。
+> 集合名只是推荐约定，不是硬性要求；如果用户直接提供目录、文件或草稿，也可以作为样本源。但 7.3 必须把实际使用的样本写入 `style_sample_status.md/json`。
 
 **样本来源规则：**
 1. 优先使用用户指定的样本 PDF、Zotero 集合、学校模板、投稿模板或已有草稿。
@@ -887,7 +888,7 @@ Step 7 在正文生成前，必须先确定本轮写作模式，并为目标章�
 
 #### 7.7.3. 章节级论证计划
 
-**目的：** 在 `7.2` 风格工件与 `7.8` 正文生成之间，先锁定每个目标章节的核心 claim、所需证据、图表约束和弱点边界，避免写到一半才发现证据不够。
+**目的：** 在 `7.3` 风格工件与 `7.8` 正文生成之间，先锁定每个目标章节的核心 claim、所需证据、图表约束和弱点边界，避免写到一半才发现证据不够。
 
 **适用范围：**
 - `chapter-only`
@@ -1181,7 +1182,7 @@ Step 7 可以根据 `section_blueprints`、`argument_plan`、`target_genre` 和�
 
 **新增引用回流规则：**
 - 如果现有 Zotero 文库无法支撑某个 claim，不允许现场编造或只凭网页摘要引用。
-- 新引用必须走 Step 4/6 小闭环：检索/评分 → 加入 `文献库.bib` 或增量 bib → 补充中文元数据 → PDF 下载/附件池匹配 → Zotero 入库 → 更新 `文献-Zotero架构对照.json` → 再进入 7.9。
+- 新引用必须走 Step 4/6 小闭环：检索/评分 → 加入 `文献库.bib` 或增量 bib → 补充中文元数据 → PDF 下载/附件池匹配 → Zotero 入库 → 更新 `文献-Zotero架构对照.json` → 再进入 7.10。
 - 紧急写作时可在段落中保留 `[待补引用: claim]`，但不得进入最终稿。
 - 候选召回命中的片段只能标记为 `retrieved_candidate`；若原文确认失败，必须继续保持回退状态，不得因召回分数高而强行引用。
 - `retrieval_candidates.json` 应按章节→claim 组织，便于章节级确认和 `argument_plan` 回写。
@@ -1442,7 +1443,7 @@ python3 scripts/citation_audit.py 论文初稿.md \
 
 **引用对应表契约：**
 
-写后引用审计和 7.9 实时引文支撑应生成同一类 claim-to-citation 映射，便于定位“哪一句 claim 被哪篇文献支撑”。每条记录至少包含：
+写后引用审计和 7.10 实时引文支撑应生成同一类 claim-to-citation 映射，便于定位“哪一句 claim 被哪篇文献支撑”。每条记录至少包含：
 
 | 字段 | 说明 |
 |------|------|
@@ -1610,17 +1611,17 @@ required_confirmation:
 ## 质量门槛 (Quality Gates)
 
 - [ ] paper_type 和 language 已识别
-- [ ] 7.1 文献证据矩阵：13 列完整，证据优先级规则已遵循
-- [ ] 7.2 目标体裁/文档风格：`style_sample_status.md/json` 已生成，Flash 或 Pro 模式已完成，style_profile.md 已生成
-- [ ] 7.6.3 章节级论证计划：`argument_plan.md/json` 已生成（适用时）
+- [ ] 7.2 文献证据矩阵：13 列完整，证据优先级规则已遵循
+- [ ] 7.3 目标体裁/文档风格：`style_sample_status.md/json` 已生成，Flash 或 Pro 模式已完成，style_profile.md 已生成
+- [ ] 7.7.3 章节级论证计划：`argument_plan.md/json` 已生成（适用时）
 - [ ] 防幻觉机制：每处引用均来自 Zotero 条目和实际 PDF/笔记/标注证据
 - [ ] 如输入含 Step 6 T1/T2/T3 映射：矩阵覆盖当前写作范围内相关条目，T3 用途已标明；direct-entry 不要求补跑 Step 6
 - [ ] 如输入含 Step 4 可信度字段：关键 claim 遵守 `VERIFIED / VERIFIED_LOCAL / WARN / REJECT` 边界；direct-entry 使用当前证据入口自身的 reading_depth/evidence_level
-- [ ] 7.8.1 段落自查：每段一个工作 / 从证据向外写 / 动词校准 / 无虚假新颖性 / 段落流
+- [ ] 7.8.1 段落自查：每段一个工作 / 从证据向外写 / 动词校准 / 无虚假新颖性 / 段落流；公式任务已通过 `equation-writing-contract` 与 `equation_guard.py`
 - [ ] 🆕 术语对齐：核心术语与 `.skill-state/term_aliases.md` 一致
-- [ ] 7.11 同行评审：`reviewer_scorecard.json` 已生成；`technical_soundness / evidence_adequacy >= 4`，其余三维 `>= 3`，`critical_issues=0`，且每项含 `evidence_locations / reason`
+- [ ] 7.12 同行评审：`reviewer_scorecard.json` 已生成；`technical_soundness / evidence_adequacy >= 4`，其余三维 `>= 3`，`critical_issues=0`，且每项含 `evidence_locations / reason`
 - [ ] 7.12.1 修稿教练：如存在外部审稿意见，`revision_roadmap.md`、`response_letter_skeleton.md`、`evidence_gap_list.md` 已生成
-- [ ] 7.13 复评：如完成修稿，`rereview_report.md` 已生成，且旧问题关闭状态明确
+- [ ] 7.14 复评：如完成修稿，`rereview_report.md` 已生成，且旧问题关闭状态明确
 - [ ] 7.16 引用审计：❌ 不支撑引用已移除或替换
 - [ ] 博士目标：`doctoral_thesis_map.json` 已覆盖 RQ→结果→贡献、可复现性、反证边界与跨章综合；`draft_ready` 可为 provisional，`evidence_closed / ready_for_step8` 必须为当前稿件的 `doctoral_ready`
 
@@ -1629,7 +1630,7 @@ required_confirmation:
 ## 收尾检查 (Closing Checks)
 
 ### 产出完整性
-- [ ] 当前模式的目标草稿已生成；`论文初稿.md/docx` 只对 `full-document` 必选
+- [ ] 当前模式的目标草稿已生成；`论文初稿.md/docx` 只对 `full-document` 必选；涉及公式时 `equation_audit.json/md` 与 `equation_register.json/md` 已生成并绑定当前稿件
 - [ ] `综述矩阵.csv/md` 仅在本轮写作范围需要综述矩阵时必选；其他 direct-entry 模式使用最小证据映射
 - [ ] 目标体裁/文档风格产出：`research_dossier/` 目录完整，含 `style_sample_status.md/json`
 - [ ] `评审报告.md` + `rebuttal-预演.md` 已生成
@@ -1669,7 +1670,7 @@ required_confirmation:
 
 ### 失败分流
 - 写不出来：先按 `references/failure-triage.md` 判定是证据层问题还是蓝图层问题
-- 引用支撑弱：优先回 7.1/7.2 或 Step 4/6 小闭环，不让模型硬写
+- 引用支撑弱：优先回 7.2/7.3 或 Step 4/6 小闭环，不让模型硬写
 - 体裁不稳：先修 style profile / section blueprint，再改正文
 
 ---
@@ -1678,7 +1679,7 @@ required_confirmation:
 
 常见问题参见 `agents/known_pitfalls.md`。本 Step 特有的问题：
 
-- **引用不足**：运行 7.9 扩展搜索补充引用；检查引用密度指南
+- **引用不足**：运行 7.10 扩展搜索补充引用；检查引用密度指南
 - **现有 Zotero 文库不能支撑 claim**：回到 Step 4/6 小闭环补文献、补 PDF、补入库，再继续写作
 - **表达明显机械或重复**：7.8.1 做轻量可读性整理；Step 8 Level 3 做表达风险清理
 - **引用审计大量不支撑**：7.16 逐条处理，❌ 级别优先替换或移除

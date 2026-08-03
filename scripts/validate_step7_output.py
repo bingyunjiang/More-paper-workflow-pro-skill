@@ -24,6 +24,8 @@ from pathlib import Path
 
 from PIL import Image
 
+from equation_guard import AUDIT_SCHEMA, REGISTER_SCHEMA, audit_paths as audit_equations
+
 
 MECHANISM_TERMS = [
     "机理",
@@ -615,6 +617,57 @@ def _validate_claim_evidence_audit(root: Path, draft_sha256: str) -> tuple[list[
     return findings, payload
 
 
+def _validate_equation_artifacts(
+    root: Path,
+    draft_sha256: str,
+    equation_count: int,
+    require_current_artifacts: bool,
+) -> list[Finding]:
+    if not require_current_artifacts or equation_count == 0:
+        return []
+
+    findings: list[Finding] = []
+    audit_path = root / "equation_audit.json"
+    register_path = root / "equation_register.json"
+    if not audit_path.exists():
+        findings.append(Finding(
+            "fail",
+            "missing_equation_audit",
+            "ready_for_step8 requires equation_audit.json for formula-bearing drafts",
+        ))
+    else:
+        audit = _load_json(audit_path)
+        summary = audit.get("summary") if isinstance(audit, dict) else None
+        if not isinstance(summary, dict) or summary.get("schema_version") != AUDIT_SCHEMA:
+            findings.append(Finding("fail", "invalid_equation_audit", "equation_audit.json has an invalid schema"))
+        else:
+            if summary.get("draft_sha256") != draft_sha256:
+                findings.append(Finding("fail", "stale_equation_audit", "equation audit does not match the current draft"))
+            if summary.get("status") != "pass":
+                findings.append(Finding("fail", "equation_audit_not_passed", "equation audit contains unresolved findings"))
+
+    if not register_path.exists():
+        findings.append(Finding(
+            "fail",
+            "missing_equation_register",
+            "ready_for_step8 requires equation_register.json for formula-bearing drafts",
+        ))
+    else:
+        register = _load_json(register_path)
+        if not isinstance(register, dict) or register.get("schema_version") != REGISTER_SCHEMA:
+            findings.append(Finding("fail", "invalid_equation_register", "equation_register.json has an invalid schema"))
+        else:
+            if register.get("draft_sha256") != draft_sha256:
+                findings.append(Finding("fail", "stale_equation_register", "equation register does not match the current draft"))
+            if register.get("record_count") != equation_count:
+                findings.append(Finding(
+                    "fail",
+                    "equation_register_count_mismatch",
+                    "equation register count does not match equations detected in the current draft",
+                ))
+    return findings
+
+
 def validate(root: Path, target_state: str = "auto") -> tuple[list[Finding], dict[str, object]]:
     findings: list[Finding] = []
     drafts = _find_drafts(root)
@@ -626,6 +679,32 @@ def validate(root: Path, target_state: str = "auto") -> tuple[list[Finding], dic
     task_text = "\n".join([card_text, combined_draft_text])
     mechanism_task = _contains_mechanism_terms(task_text)
     decision = _mechanism_decision(root, card_text)
+    equation_audit: dict[str, object] = {}
+    equation_register: dict[str, object] = {}
+
+    if drafts:
+        equation_audit, equation_register = audit_equations(drafts)
+        for issue in equation_audit.get("findings", []):
+            if not isinstance(issue, dict):
+                continue
+            source = Path(str(issue.get("source") or "draft")).name
+            line = issue.get("line") or "?"
+            findings.append(Finding(
+                "fail" if issue.get("severity") == "error" else "warn",
+                str(issue.get("code") or "equation_audit_issue"),
+                f"{source}:{line}: {issue.get('message') or 'equation audit issue'}",
+            ))
+
+        equation_summary = equation_audit.get("summary")
+        equation_count = int(equation_summary.get("equation_count", 0)) if isinstance(equation_summary, dict) else 0
+        findings.extend(_validate_equation_artifacts(
+            root,
+            draft_hash,
+            equation_count,
+            requested_state == "ready_for_step8",
+        ))
+    else:
+        equation_count = 0
 
     if drafts and not (root / "step7_execution_card.md").exists():
         findings.append(Finding("fail", "missing_execution_card", "draft exists but step7_execution_card.md is missing"))
@@ -729,6 +808,13 @@ def validate(root: Path, target_state: str = "auto") -> tuple[list[Finding], dic
         "target_state": requested_state,
         "completion_state": completion_state,
         "claim_audit_present": bool(claim_audit),
+        "equation_count": equation_count,
+        "equation_audit_status": (
+            equation_audit.get("summary", {}).get("status", "not_applicable")
+            if isinstance(equation_audit.get("summary"), dict)
+            else "not_applicable"
+        ),
+        "equation_register_count": equation_register.get("record_count", 0),
         "status": "pass" if not has_failures else "fail",
     }
     return findings, summary
@@ -747,6 +833,8 @@ def render(findings: list[Finding], summary: dict[str, object]) -> str:
         f"target_state: {summary['target_state']}",
         f"completion_state: {summary['completion_state']}",
         f"draft_sha256: {summary['draft_sha256'] or '-'}",
+        f"equation_count: {summary['equation_count']}",
+        f"equation_audit_status: {summary['equation_audit_status']}",
     ]
     for item in findings:
         lines.append(f"{item.severity.upper()}: {item.code}: {item.message}")

@@ -125,6 +125,7 @@
 - `semantic_near_pass` 必须公开偏差；`render_only / not_strict / failed` 不得作为复现完成态
 - 图片曲线数字化只有在规格确认哈希有效、`review-decisions.json` 完整、`observations.csv` 与正式 `data.csv` 血缘一致、VisualSpec 绑定同一 `data.csv` 哈希时，才可标记 `extraction_status=formal_data_ready / review_status=complete`；候选提取或重绘成功均不能提升这两个状态
 - 图形复现状态不得替代 claim evidence audit；复现通过不能自动证明正文 claim 获得支持
+- 所有分层状态均不得残留 `missing_equation`、纯文本数学表达或裸 LaTeX/矩阵源码；`ready_for_step8` 的 `equation_audit.json` 与 `equation_register.json` 必须绑定当前稿件哈希并通过 `references/equation-writing-contract.md`
 
 ### Step 8：保守修订完成
 
@@ -136,6 +137,7 @@
 - `quick-polish` 只按局部润色稿、修改说明、protected spans 和风险提醒验收；`audited-polish` 才要求完整 ledger、对照表、术语报告、质量报告和请求范围内导出文件
 - 自动化使用 `run_step8_ai_trace.py --strict` 时，readiness blocked 必须返回非零；默认诊断模式可返回 0 以保留阻塞报告
 - 保真审计已覆盖标题、段落论证单元、claim/限定边界和待补证据标记；若提供 Step 7 结构化审计，其未关闭或过期风险已阻止定稿
+- 公式签名、编号、上下标和矩阵结构在润色前后保持一致；DOCX 公式为原生公式对象，且无纯文本数学或 LaTeX 源码残留
 
 ---
 

@@ -6,7 +6,7 @@ description: >-
 
 ## Skill metadata
 
-version: v1.0.22-20260724 (2026-07-24)
+version: v1.0.23-20260803 (2026-08-03)
 author: Dr. Jiang Bingyun（江博士）
 wechat: Bingyunjiang
 category: research

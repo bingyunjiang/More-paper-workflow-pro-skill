@@ -46,6 +46,7 @@ This index groups the reference files by function so the workflow contracts are 
 - `zotero-structure-template.md`
 - `zotero-output-contract.md`
 - `mechanism-analysis-writing-contract.md`
+- `equation-writing-contract.md`：Step 7 公式登记、缺失/源码残留审计、Markdown/LaTeX/DOCX 渲染与 Step 8 保真门。
 
 ## Platform and compatibility
 

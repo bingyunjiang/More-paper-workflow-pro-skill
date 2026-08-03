@@ -59,6 +59,39 @@ class ValidateStep7OutputTest(unittest.TestCase):
         self.assertNotIn("missing_evidence_mapping", result.stdout)
         self.assertNotIn("missing_citation_audit", result.stdout)
 
+    def test_formula_source_residue_blocks_draft_ready(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "journal_paper_draft.md").write_text(
+                "# 方法草稿\n\n状态方程可表示为：\n\nT(omega), F_{i+1}, X_in\n",
+                encoding="utf-8",
+            )
+            (out / "step7_execution_card.md").write_text(
+                "# Step 7 Execution Card\n\n- target_state: draft_ready\n- figure_mode: skip\n- risk_status: citations_pending\n",
+                encoding="utf-8",
+            )
+            result = self.run_validator(out, "draft_ready")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("missing_equation", result.stdout)
+        self.assertIn("plain_text_math_leak", result.stdout)
+
+    def test_canonical_formula_passes_draft_ready_equation_gate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "journal_paper_draft.md").write_text(
+                "# 方法草稿\n\n状态方程可表示为：\n\n$$F_{i+1}(\\omega)=X_{\\mathrm{in}}$$\n",
+                encoding="utf-8",
+            )
+            (out / "step7_execution_card.md").write_text(
+                "# Step 7 Execution Card\n\n- target_state: draft_ready\n- figure_mode: skip\n- risk_status: citations_pending\n",
+                encoding="utf-8",
+            )
+            result = self.run_validator(out, "draft_ready")
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("equation_audit_status: pass", result.stdout)
+
     def test_passes_when_required_step7_artifacts_exist(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)

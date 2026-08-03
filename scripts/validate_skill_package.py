@@ -60,11 +60,13 @@ REQUIRED_RUNTIME_PATHS = {
     "references/trigger-catalog.md",
     "references/scientific-figure-reproduction.md",
     "references/completion-gates.md",
+    "references/equation-writing-contract.md",
     "references/failure-triage.md",
     "references/agent-execution-discipline.md",
     "references/step-handoff-contract.md",
     "references/update-reminder-protocol.md",
     "scripts/build_figure_asset_check.py",
+    "scripts/equation_guard.py",
 }
 LEGACY_NAME_ALLOWLIST = {
     "SKILL.md",
@@ -341,6 +343,7 @@ def validate_repository_structure(root: Path, failures: list[dict[str, str]]) ->
     for required_reference in (
         "references/step8-rewrite-scope.md",
         "references/protected-spans.md",
+        "references/equation-writing-contract.md",
         "references/academic-ai-trace-index.md",
         "static/core/workflow-run-envelope.md",
     ):

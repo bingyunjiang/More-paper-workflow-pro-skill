@@ -50,4 +50,5 @@ always_load:
   - references/ai-trace-taxonomy.md
   - references/step8-rewrite-scope.md
   - references/protected-spans.md
+  - references/equation-writing-contract.md
   - references/academic-ai-trace-index.md

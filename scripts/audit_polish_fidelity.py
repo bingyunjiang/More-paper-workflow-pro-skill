@@ -10,6 +10,8 @@ import re
 from collections import Counter
 from pathlib import Path
 
+from equation_guard import math_signature_counter
+
 
 PRESERVED_PATTERNS = {
     "numeric_unit": re.compile(
@@ -66,6 +68,20 @@ def _paragraphs(text: str) -> list[str]:
 
 def audit_fidelity(before: str, after: str) -> dict:
     issues: list[dict[str, object]] = []
+
+    removed_equations, added_equations = _delta(
+        math_signature_counter(before),
+        math_signature_counter(after),
+    )
+    if removed_equations or added_equations:
+        issues.append({
+            "rule_id": "protected_span.equation_signature",
+            "severity": "hard",
+            "problem": "Rendered equation content or structure changed during polishing",
+            "removed": removed_equations,
+            "added": added_equations,
+            "recommended_action": "restore the original formula or verify the mathematical change in Step 7",
+        })
 
     for rule_id, pattern in PRESERVED_PATTERNS.items():
         removed, added = _delta(_counter(pattern, before), _counter(pattern, after))
