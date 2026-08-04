@@ -20,6 +20,7 @@
 - `social-carousel/social-contact-sheet.png`：八图总览联系表。
 - `social-nine-grid/grid-01-latest-update.png` 至 `grid-09-quality-gates.png`：朋友圈九图发布包，单张 1080 × 1440；上传顺序见目录内 `README.md`。
 - `more-paper-workflow-social-nine-grid.zip`：九张发布图与顺序说明的打包文件。
+- `v1.0.26-wechat-update/wechat-v1.0.26-update.png`：v1.0.23 至 v1.0.26 更新合辑朋友圈主图，1080 × 1440。
 
 ## 重新导出
 

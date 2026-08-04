@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1080, initial-scale=1">
+  <title>more-paper-workflow v1.0.26 朋友圈更新</title>
+  <style>
+    :root {
+      --bg: #eef7ff;
+      --ink: #07111f;
+      --muted: #45556f;
+      --line: rgba(28, 65, 132, .22);
+      --panel: rgba(255,255,255,.72);
+      --panel-strong: rgba(255,255,255,.9);
+      --blue: #005fce;
+      --cyan: #0089b7;
+      --violet: #5b21b6;
+      --green: #087f5b;
+      --amber: #b45309;
+      --soft-blue: rgba(186,230,253,.92);
+      --soft-green: rgba(187,247,208,.9);
+      --soft-amber: rgba(254,240,138,.9);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      width: 1080px;
+      height: 1440px;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.82) 0%, rgba(238,247,255,.66) 45%, rgba(223,237,255,.38) 100%),
+        radial-gradient(circle at 72% 24%, rgba(125,92,255,.28), transparent 30%),
+        radial-gradient(circle at 10% 12%, rgba(0,197,255,.34), transparent 30%),
+        url("academic-workflow-bg.png") center / cover no-repeat;
+    }
+
+    .poster {
+      position: relative;
+      width: 1080px;
+      height: 1440px;
+      padding: 58px 74px 46px;
+    }
+
+    .badge {
+      display: inline-flex;
+      gap: 14px;
+      align-items: center;
+      padding: 13px 20px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,.78);
+      color: #27364d;
+      box-shadow: 0 16px 36px rgba(36, 75, 139, .16);
+      backdrop-filter: blur(18px);
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    .badge b {
+      color: #0068d9;
+      font-weight: 800;
+    }
+
+    h1 {
+      margin: 32px 0 0;
+      font-size: 58px;
+      line-height: 1.08;
+      letter-spacing: 0;
+      font-weight: 850;
+      text-shadow: 0 2px 18px rgba(255,255,255,.8);
+    }
+
+    .lead {
+      margin: 22px 0 0;
+      max-width: 850px;
+      color: #334155;
+      font-size: 28px;
+      line-height: 1.46;
+      letter-spacing: 0;
+    }
+
+    .name {
+      color: #005fce;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 36px;
+      font-weight: 800;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 18px;
+      margin-top: 28px;
+    }
+
+    .card {
+      min-height: 220px;
+      padding: 22px 24px 20px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(180deg, var(--panel-strong), var(--panel));
+      box-shadow: 0 22px 48px rgba(18, 61, 128, .18);
+      backdrop-filter: blur(18px) saturate(1.35);
+    }
+
+    .card .day {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .card .tag {
+      color: #07111f;
+      border-radius: 999px;
+      padding: 7px 11px;
+      background: var(--soft-amber);
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .card:nth-child(2) .tag { background: var(--soft-blue); }
+    .card:nth-child(3) .tag { background: var(--soft-green); }
+
+    .card h2 {
+      margin: 18px 0 12px;
+      font-size: 29px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .card p {
+      margin: 0;
+      color: #344054;
+      font-size: 20px;
+      line-height: 1.45;
+      letter-spacing: 0;
+    }
+
+    .flow {
+      margin-top: 28px;
+      padding: 22px 26px 26px;
+      border-radius: 28px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, .68);
+      box-shadow: 0 22px 48px rgba(18, 61, 128, .15);
+      backdrop-filter: blur(18px) saturate(1.35);
+    }
+
+    .flow-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 18px;
+    }
+
+    .flow-title strong {
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+
+    .flow-title span {
+      color: var(--muted);
+      font-size: 20px;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .step {
+      position: relative;
+      min-height: 88px;
+      padding: 13px 10px;
+      border-radius: 18px;
+      border: 1px solid rgba(20,43,78,.14);
+      background: rgba(248,251,255,.72);
+      text-align: center;
+    }
+
+    .step:after {
+      content: "";
+      position: absolute;
+      right: -8px;
+      top: 40px;
+      width: 10px;
+      height: 10px;
+      border-top: 2px solid rgba(3,105,161,.4);
+      border-right: 2px solid rgba(3,105,161,.4);
+      transform: rotate(45deg);
+    }
+
+    .step:nth-child(4):after,
+    .step:last-child:after { display: none; }
+
+    .step b {
+      display: block;
+      color: var(--blue);
+      font-size: 19px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .step span {
+      display: block;
+      margin-top: 6px;
+      color: #344054;
+      font-size: 15px;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+
+    .proof {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+      margin-top: 20px;
+    }
+
+    .update-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .update-item {
+      min-height: 92px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.70);
+      box-shadow: 0 16px 34px rgba(18, 61, 128, .13);
+      backdrop-filter: blur(14px) saturate(1.3);
+    }
+
+    .update-item b {
+      display: block;
+      color: var(--blue);
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .update-item span {
+      display: block;
+      margin-top: 7px;
+      color: #344054;
+      font-size: 16px;
+      line-height: 1.3;
+    }
+
+    .proof-box {
+      position: relative;
+      overflow: hidden;
+      min-height: 180px;
+      padding: 0;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.86);
+      box-shadow: 0 22px 48px rgba(18, 61, 128, .18);
+      backdrop-filter: blur(18px) saturate(1.35);
+    }
+
+    .case-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 42%;
+      filter: saturate(1.28) contrast(1.06);
+    }
+
+    .case-shade {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(255,255,255,.96) 0%, rgba(255,255,255,.82) 42%, rgba(255,255,255,.10) 100%);
+    }
+
+    .case-copy {
+      position: relative;
+      z-index: 1;
+      width: 48%;
+      padding: 20px 24px;
+    }
+
+    .case-copy h3 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    .case-copy p {
+      margin: 8px 0 0;
+      color: #344054;
+      font-size: 17px;
+      line-height: 1.34;
+    }
+
+    .case-flow {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 14px;
+    }
+
+    .case-pill {
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(224,242,254,.92);
+      color: #004f91;
+      font-size: 14px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .case-arrow {
+      color: #0068d9;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .footer {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 28px;
+      align-items: end;
+      padding: 16px 18px;
+      border: 1px solid rgba(28, 65, 132, .16);
+      border-radius: 20px;
+      background: rgba(255,255,255,.68);
+      box-shadow: 0 16px 34px rgba(18, 61, 128, .12);
+      backdrop-filter: blur(16px) saturate(1.25);
+    }
+
+    .repo {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #0f3c66;
+      font-size: 20px;
+      line-height: 1.34;
+      letter-spacing: 0;
+    }
+
+    .author {
+      text-align: right;
+      color: #344054;
+      font-size: 19px;
+      line-height: 1.34;
+      letter-spacing: 0;
+    }
+
+    .author b {
+      color: #101828;
+      font-size: 22px;
+    }
+  </style>
+</head>
+<body>
+  <main class="poster">
+    <div class="badge"><b>more-paper-workflow</b><span>Academic Research Skill · v1.0.26</span></div>
+
+    <h1>从研究问题到可核验论文。</h1>
+
+    <p class="lead"><span class="name">more-paper-workflow</span> 是一套学术论文全流程 Skill：帮你把定题、大纲、检索、PDF、Zotero、写作、图表、引用审计和润色连成可追溯链路。</p>
+
+    <section class="timeline" aria-label="整体功能">
+      <article class="card">
+        <div class="day"><span>整体</span><span class="tag">8 Steps</span></div>
+        <h2>覆盖论文全链路</h2>
+        <p>从研究问题、检索计划、文献评分、PDF 下载，到 Zotero 整理、证据化写作、引用审计和保守润色。</p>
+      </article>
+      <article class="card">
+        <div class="day"><span>使用</span><span class="tag">Direct Entry</span></div>
+        <h2>已有材料可直接开始</h2>
+        <p>有 DOI、PDF、Zotero 文库、证据包或章节草稿时，不必从头重跑；但证据边界和质量门不跳过。</p>
+      </article>
+      <article class="card">
+        <div class="day"><span>交付</span><span class="tag">Evidence</span></div>
+        <h2>不是只给一段正文</h2>
+        <p>输出研究工件、证据矩阵、图表产物、公式审计、DOCX 检查和修订台账，状态可以回查。</p>
+      </article>
+    </section>
+
+    <section class="flow" aria-label="证据闭环">
+      <div class="flow-title">
+        <strong>八步主流程</strong>
+        <span>start anywhere, close every gate</span>
+      </div>
+      <div class="steps">
+        <div class="step"><b>Step 1</b><span>定题</span></div>
+        <div class="step"><b>Step 2</b><span>大纲</span></div>
+        <div class="step"><b>Step 3</b><span>检索方案</span></div>
+        <div class="step"><b>Step 4</b><span>检索评分</span></div>
+        <div class="step"><b>Step 5</b><span>PDF 下载</span></div>
+        <div class="step"><b>Step 6</b><span>Zotero</span></div>
+        <div class="step"><b>Step 7</b><span>写作与图表</span></div>
+        <div class="step"><b>Step 8</b><span>终稿润色</span></div>
+      </div>
+    </section>
+
+    <section class="update-strip" aria-label="本次更新">
+      <div class="update-item"><b>昨天补强公式</b><span>阻断纯文本数学和 LaTeX 源码残留，DOCX 回读原生公式对象。</span></div>
+      <div class="update-item"><b>今天新增流程图</b><span>Step 7 原生生成流程、架构、数据流、时序等论文技术图。</span></div>
+      <div class="update-item"><b>投稿质量门</b><span>黑白无底纹、字号、布局、哈希和外部资源检查 fail-closed。</span></div>
+    </section>
+
+    <section class="proof" aria-label="验证效果">
+      <div class="proof-box">
+        <img class="case-img" src="case-illustration.png" alt="">
+        <div class="case-shade"></div>
+        <div class="case-copy">
+          <h3>验证后的能力与效果</h3>
+          <p>从 PDF 证据提炼方法架构，生成可审阅、可投稿的黑白流程图。</p>
+          <div class="case-flow" aria-label="验证流程">
+            <span class="case-pill">PDF 原文</span>
+            <span class="case-arrow">→</span>
+            <span class="case-pill">Step 7</span>
+            <span class="case-arrow">→</span>
+            <span class="case-pill">刊发图</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="repo">GitHub<br>github.com/bingyunjiang/more-paper-workflow</div>
+      <div class="author"><b>Dr. Jiang Bingyun（江博士）</b><br>WeChat: Bingyunjiang</div>
+    </footer>
+  </main>
+</body>
+</html>
