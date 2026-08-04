@@ -31,6 +31,8 @@
 | [more-comic-digitizer](https://github.com/bingyunjiang/more-comic-digitizer) | 儿童手绘漫画数字化、审核、共创与电子出版 |
 | [more-news-briefing](https://github.com/bingyunjiang/more-news-briefing) | 新闻与行业信息收集、去重、排序、核验和简报生成 |
 
+More 系列是并列的独立 skill 目录，不是一条强绑定流水线。`more-paper-workflow` 独立拥有论文项目的 Step 1-8、证据门和完成标准；其他项目只作为选型参考或外部已验收产物来源，不会被自动调用。
+
 **English readers:** start with the [English summary and copy-ready prompts](#english).
 
 **[more 系列](#more-系列)** · **[快速开始](#快速开始)** · **[八步工作流](#八步工作流)** · **[安装](#安装)** · **[English](#english)** · **[完整流程图](docs/public-workflow-flowcharts.md)** · **[最小样例](examples/first-run/README.md)**

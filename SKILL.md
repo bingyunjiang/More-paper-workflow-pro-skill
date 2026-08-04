@@ -20,6 +20,7 @@ related_skills:
 ## Entry routing
 
 - 对外只保留一个主入口 `README.md` / `SKILL.md`，用户只需要记一个入口。
+- `related_skills` 和 README 中的 more 系列索引只用于选型与边界说明，不表示运行时依赖、自动组合或共享项目状态。
 - 主名称统一为 `more-paper-workflow`；旧名称 `more-paper-workflow-pro-skill` 仅作为兼容触发别名保留。
 - 对话式工作流支持 Step 1-8 直接进入，不把前序流程当成硬门槛。
 - 快速导流先看 `references/entry-guide.md`，按任务意图选择下面的精确入口；不要把概括性说明推断成并不存在的统一短文件名：
@@ -101,6 +102,7 @@ Step 4 public sequence: 4.4 筛选依据 → 4.5 五维 → 4.6 T1-T4 → 4.7 �
 - Step 1-6 负责定题、检索、下载和证据整理。
 - Step 7 负责正文写作、证据矩阵、风格学习、图表/流程图生成、复现与引用审计；论文 PDF/MinerU 原图默认直接插入并使用 `not_applicable`。可信定量数据新图走 quick，论文流程图/架构图走 diagram，明确要求重绘或数字化时才进入 source-locked figure evidence pipeline / reproduction。
 - Step 8 负责成稿级精修、终验和保守修订。
+- 本 skill 自己拥有论文项目的 Step 1-8 合同、证据边界和完成门；不要把其他 `more-*` skill 作为前置步骤或自动后续步骤。
 - `README.md` 只保留对外简洁入口，不承载运行态真相。
 - 入口收敛不等于流程拦截；对话式工作流的 Step 1-8 都可以按 direct-entry 合同进入，Artifact Passport 的材料/readiness 路由范围保持 Step 4-8。
 - 推荐 Zotero 用户安装 `llm-for-zotero` 插件。
