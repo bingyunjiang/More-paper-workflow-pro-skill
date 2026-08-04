@@ -88,6 +88,9 @@ def md_to_docx(input_path: str, output_path: str,
         print(f"❌ 文件不存在: {input_path}", flush=True)
         sys.exit(1)
 
+    input_path = str(Path(input_path).expanduser().resolve())
+    output_path = str(Path(output_path).expanduser().resolve())
+
     source_audit, _ = audit_equations([Path(input_path)], "markdown")
     source_summary = source_audit["summary"]
     if source_summary["status"] == "fail":
@@ -108,6 +111,7 @@ def md_to_docx(input_path: str, output_path: str,
         "-f", "markdown",
         "-t", "docx",
         "-o", output_path,
+        "--resource-path", str(Path(input_path).parent),
     ]
 
     # 参考文档

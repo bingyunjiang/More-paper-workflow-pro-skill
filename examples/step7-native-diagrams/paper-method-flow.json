@@ -1,0 +1,28 @@
+{
+  "schema_version": "morepaper.paper-diagram.v1",
+  "figure_id": "paper-method-workflow",
+  "diagram_type": "flowchart",
+  "style": "clean",
+  "title": "论文研究方法流程",
+  "caption": "从研究问题到结果审阅的可追溯方法链",
+  "canvas": {"width": 1400, "height": 1000},
+  "nodes": [
+    {"id": "question", "label": "研究问题与边界", "role": "input", "order": 1},
+    {"id": "evidence", "label": "证据与数据准备", "role": "evidence", "order": 2},
+    {"id": "model", "label_runs": [{"kind": "text", "value": "模型构建 "}, {"kind": "math", "value": "y=f(x;\\theta)"}], "role": "method", "order": 3},
+    {"id": "experiment", "label": "实验或仿真验证", "role": "method", "order": 4},
+    {"id": "analysis", "label_runs": [{"kind": "text", "value": "误差分析 "}, {"kind": "math", "value": "\\epsilon=y-\\hat{y}"}], "role": "analysis", "order": 5},
+    {"id": "review", "label": "结果审阅与边界说明", "role": "output", "order": 6}
+  ],
+  "edges": [
+    {"id": "m1", "source": "question", "target": "evidence"},
+    {"id": "m2", "source": "evidence", "target": "model"},
+    {"id": "m3", "source": "model", "target": "experiment"},
+    {"id": "m4", "source": "experiment", "target": "analysis"},
+    {"id": "m5", "source": "analysis", "target": "review"}
+  ],
+  "groups": [],
+  "annotations": [
+    {"id": "trace", "label": "每个结论均回指数据、模型和验证条件"}
+  ]
+}

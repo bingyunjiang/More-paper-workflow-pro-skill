@@ -1,0 +1,51 @@
+{
+  "schema_version": "figure-evidence.v1",
+  "records": [
+    {
+      "schema_version": "figure-evidence.v1",
+      "figure_id": "step7-native-diagram-architecture",
+      "figure_intent": "Step 7 原生论文流程图架构",
+      "evidence_basis": "author_provided_structure",
+      "evidence_status": "rendered_from_reviewable_spec",
+      "recommended_action": "insert_generated_diagram",
+      "generation_backend": "diagram",
+      "figure_asset_action": "generate_new",
+      "figure_transform_authorization": "not_required",
+      "diagram_type": "architecture",
+      "diagram_style": "review-canvas",
+      "diagram_spec_path": "step7-architecture.json",
+      "diagram_spec_sha256": "1aa4e35c244d77190ec5e817c0112e9bec0108edbe2dac7d5508df421f1b0c41",
+      "diagram_svg_path": "figures/step7-native-diagram-architecture.svg",
+      "diagram_svg_sha256": "28ad156c132a858325141f8ec7d396f7b0f63b9283c4a8e57085e68409ad152c",
+      "diagram_png_path": "figures/step7-native-diagram-architecture.png",
+      "diagram_png_sha256": "0d49c73e5aa9d7a4ee059506ef4a26328a8fc573030623fdde26c3f0be1033fd",
+      "diagram_validation_report": "figures/step7-native-diagram-architecture.diagram-check.json",
+      "diagram_validation_report_sha256": "a413320bc8d3f92670459f916c7167bfc2b9b5cb4ebd54b9c72428ee64068c77",
+      "diagram_validation_status": "pass",
+      "verification_status": "pass"
+    },
+    {
+      "schema_version": "figure-evidence.v1",
+      "figure_id": "paper-method-workflow",
+      "figure_intent": "论文研究方法流程",
+      "evidence_basis": "author_provided_structure",
+      "evidence_status": "rendered_from_reviewable_spec",
+      "recommended_action": "insert_generated_diagram",
+      "generation_backend": "diagram",
+      "figure_asset_action": "generate_new",
+      "figure_transform_authorization": "not_required",
+      "diagram_type": "flowchart",
+      "diagram_style": "clean",
+      "diagram_spec_path": "paper-method-flow.json",
+      "diagram_spec_sha256": "1e955c872bd2e7e52a87e1c40b769f05b1defcfbb738fdbdf9e83cf329728c48",
+      "diagram_svg_path": "figures/paper-method-workflow.svg",
+      "diagram_svg_sha256": "e00537d463c78dad77c63fbf6ea882555280e06f40be87226e6d879e8762cf6d",
+      "diagram_png_path": "figures/paper-method-workflow.png",
+      "diagram_png_sha256": "be27fa9cadadf5a05cab00d21a9f0a93528c49fb31277fafcd2667749f3aae87",
+      "diagram_validation_report": "figures/paper-method-workflow.diagram-check.json",
+      "diagram_validation_report_sha256": "81afa07fb8a7e7631fb2b12aa75aad416f92d41ab2c80060a1d8b34f6bf210d2",
+      "diagram_validation_status": "pass",
+      "verification_status": "pass"
+    }
+  ]
+}

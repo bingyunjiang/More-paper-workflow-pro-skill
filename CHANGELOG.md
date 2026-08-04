@@ -8,6 +8,45 @@
 
 ---
 
+## v1.0.26-20260804 (2026-08-04)
+
+### Step 7 原生论文流程图能力正式发布
+
+- 在 `scripts/paper_diagrams/` 完成独立原生流程图引擎，并通过 `scripts/generate_figures.py --backend diagram --spec ...` 接入 Step 7 唯一绘图入口；`auto` 路由继续保持已有原图、可信定量图、原生语义图和显式授权重绘/数字化之间的边界。
+- 发布 `morepaper.paper-diagram.v1` Spec、统一 Diagram IR、自动布局、正交走线、交叉桥和组合评分，覆盖 `architecture`、`agent_architecture`、`flowchart`、`data_flow`、`sequence`、`state_machine`、`timeline`、`comparison_matrix`、`er_diagram`、`use_case` 10 类论文技术图与 12 套稳定风格。
+- 普通标签保持可编辑 SVG 文本；节点、边和注释支持 `$...$` 或显式 text/math runs，数学内容以矢量轮廓写入 SVG，不支持或语义不明的公式进入 `needs_author_check`。
+- 每张图固定交付语义 SVG、Pillow PNG 和 `diagram-check.json`，审阅模式另生成 `inspect.svg`；`figure_evidence_report.json` 记录 Spec、SVG、PNG、检查报告及对应 SHA-256。
+
+### 黑白刊发模式与字号质量门
+
+- `style=minimal` 固化为纯黑白、无底纹的论文刊发模式：只允许 `#000000` 与 `#ffffff`，画布和节点为白色，分组不填充，不使用灰阶、彩色或透明底纹。
+- 字号随画布宽度缩放；`publication_profile` 记录推荐图宽 170–180 mm、180 mm 下节点字号及达到 7 pt 的最小图宽。单栏空间不足时要求简化或拆图，不允许直接缩小复杂通栏图。
+- Step 7 输出校验器拒绝节点重叠、文字裁切、越界、边穿节点、无效引用、外部资源、脚本内容、非黑白 minimal 图、字号不足及陈旧哈希；`inspect.svg` 明确为审阅产物，不得进入投稿正文。
+
+### 测试与发布验收
+
+- 新增 Diagram Spec/IR、10 类图型、12 套风格、公式 runs、布局、走线、SVG 安全、PNG 几何与 Step 7 证据闭环测试。
+- 完成代表性黑白论文架构图复核：布局评分 100，PNG 彩色像素为 0，180 mm 通栏下节点字号约 7.7 pt，Step 7 验证状态为 `pass`。
+- 全量 641 项测试通过（1 项按环境跳过），根目录及 ZIP 分发包校验均为 `ok`，禁用来源名称扫描为零。
+
+## v1.0.25-20260804 (2026-08-04)
+
+### Step 7 黑白刊发流程图质量门
+
+- `style=minimal` 固化为纯黑白、无底纹的论文刊发模式，分组不填充，避免审阅风格误入投稿图。
+- 字号随画布宽度缩放，并在 `diagram-check.json.publication_profile` 中记录 170–180 mm 通栏图的实际字号与 7 pt 最小图宽。
+- Step 7 校验器拒绝 minimal 图中的非黑白颜色、缺失刊发配置或不足 7 pt 的通栏字号；执行卡、写作协议和完成门同步更新。
+
+## v1.0.24-20260804 (2026-08-04)
+
+### Step 7 原生论文流程图引擎
+
+- 新增 `figure_backend=diagram`，自动识别原生 Diagram Spec，并与原图插入、可信数据图和显式授权的重绘/数字化保持互斥路由。
+- 新增 10 类论文技术图、12 套风格、统一 IR、自动布局、正交走线、语义 SVG、Pillow PNG 和可审阅边界覆盖层。
+- 图内普通文字保持可编辑；数学 run 以矢量路径输出，不支持或语义不明的公式进入 `needs_author_check`。
+- `figure_evidence_report.json` 新增 Diagram Spec、SVG、PNG、检查报告及 SHA-256 字段；Step 7 校验器对缺失、越界、恶意内容和陈旧哈希 fail-closed。
+- 新增全部图型×风格矩阵、公式、路由、证据和隔离运行回归测试。
+
 ## v1.0.23-20260803 (2026-08-03)
 
 ### 公式写作、渲染与终验增强

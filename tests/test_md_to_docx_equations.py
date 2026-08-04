@@ -3,7 +3,10 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
+
+from PIL import Image
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -54,6 +57,24 @@ class MarkdownToDocxEquationTest(unittest.TestCase):
             self.assertFalse(output.exists())
         finally:
             temp_dir.cleanup()
+
+    def test_relative_diagram_image_is_embedded_from_markdown_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            figures = root / "figures"
+            figures.mkdir()
+            Image.new("RGB", (80, 50), "white").save(figures / "method.png")
+            source = root / "paper.md"
+            output = root / "paper.docx"
+            source.write_text("# 方法\n\n![方法流程](figures/method.png)\n", encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(SCRIPTS / "md_to_docx.py"), str(source), "-o", str(output)],
+                cwd=ROOT, text=True, capture_output=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertNotIn("Could not fetch resource", result.stdout + result.stderr)
+            with zipfile.ZipFile(output) as archive:
+                self.assertTrue(any(name.startswith("word/media/") for name in archive.namelist()))
 
 
 if __name__ == "__main__":

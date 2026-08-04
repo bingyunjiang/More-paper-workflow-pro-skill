@@ -59,6 +59,7 @@ REQUIRED_RUNTIME_PATHS = {
     "references/entry-routing-index.md",
     "references/trigger-catalog.md",
     "references/scientific-figure-reproduction.md",
+    "references/paper-diagram-contract.md",
     "references/completion-gates.md",
     "references/equation-writing-contract.md",
     "references/failure-triage.md",
@@ -66,6 +67,11 @@ REQUIRED_RUNTIME_PATHS = {
     "references/step-handoff-contract.md",
     "references/update-reminder-protocol.md",
     "scripts/build_figure_asset_check.py",
+    "scripts/paper_diagrams/__init__.py",
+    "scripts/paper_diagrams/model.py",
+    "scripts/paper_diagrams/render.py",
+    "scripts/paper_diagrams/engine.py",
+    "schemas/paper-diagram-v1.schema.json",
     "scripts/equation_guard.py",
 }
 LEGACY_NAME_ALLOWLIST = {

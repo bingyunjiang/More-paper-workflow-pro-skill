@@ -40,9 +40,14 @@ import re
 import csv
 import importlib.util
 import subprocess
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
+
+_matplotlib_cache = Path(tempfile.gettempdir()) / "morepaper-matplotlib-cache"
+_matplotlib_cache.mkdir(parents=True, exist_ok=True)
+os.environ.setdefault("MPLCONFIGDIR", str(_matplotlib_cache))
 
 # Import shared figure utilities
 from figure_utils import (
@@ -51,6 +56,8 @@ from figure_utils import (
     radar_chart, gridspec_figure,
     NATURE_RCPARAMS, NATURE_PASTEL_6,
 )
+from paper_diagrams import DIAGRAM_TYPES, STYLE_IDS, DiagramSpecError, is_diagram_spec
+from paper_diagrams.engine import failure_report, render_from_file
 
 
 # ── Chart Type Registry ──────────────────────────────────────────────────────
@@ -149,10 +156,12 @@ def select_figure_backend(
     source_path: str | os.PathLike[str] | None = None,
 ) -> str:
     """Resolve the CLI backend without weakening an explicit user choice."""
-    if requested in {"quick", "reproduction"}:
+    if requested in {"quick", "reproduction", "diagram"}:
         return requested
     if source_path or is_visualspec(spec_path):
         return "reproduction"
+    if is_diagram_spec(spec_path):
+        return "diagram"
     return "quick"
 
 
@@ -522,8 +531,8 @@ def main() -> int:
         help="Generate a test figure of given type and exit",
     )
     parser.add_argument(
-        "--backend", choices=["auto", "quick", "reproduction"], default="auto",
-        help="Figure backend. Auto selects reproduction for VisualSpec or --source inputs.",
+        "--backend", choices=["auto", "quick", "reproduction", "diagram"], default="auto",
+        help="Figure backend. Auto recognizes native paper-diagram specs, VisualSpec, and ordinary charts.",
     )
     parser.add_argument(
         "--source",
@@ -546,6 +555,10 @@ def main() -> int:
         choices=["explicit_user_request"],
         help="Required for reproduction; records that the user explicitly requested redraw or digitization.",
     )
+    parser.add_argument(
+        "--inspect", action="store_true",
+        help="For diagram backend, also emit a review overlay with node bounds and stable IDs.",
+    )
 
     args = parser.parse_args()
 
@@ -554,6 +567,11 @@ def main() -> int:
         print("── 可用图表类型 ──")
         for key, info in CHART_TYPES.items():
             print(f"  {key:20s} {info['name']:10s} {info['description']}")
+        print("\n── 原生论文流程图类型 ──")
+        for key in sorted(DIAGRAM_TYPES):
+            print(f"  {key}")
+        print("\n── 原生流程图风格 ──")
+        print("  " + ", ".join(sorted(STYLE_IDS)))
         return 0
 
     # --preview-colors
@@ -627,6 +645,26 @@ def main() -> int:
     )
     if backend == "reproduction":
         return run_reproduction_backend(args)
+    if backend == "diagram":
+        if not args.spec:
+            print("ERROR: diagram backend requires --spec with a native paper-diagram JSON file.", file=sys.stderr)
+            return 2
+        try:
+            result = render_from_file(args.spec, args.output, inspect=args.inspect)
+        except DiagramSpecError as exc:
+            report = failure_report(args.spec, args.output, exc)
+            status = "needs_author_check" if exc.needs_author_check else "fail"
+            print(f"ERROR: diagram {status}: {exc} (report: {report})", file=sys.stderr)
+            return 2
+        except Exception as exc:
+            error = DiagramSpecError("render_failed", str(exc))
+            report = failure_report(args.spec, args.output, error)
+            print(f"ERROR: diagram render failed: {exc} (report: {report})", file=sys.stderr)
+            return 2
+        print(f"✅ 原生论文流程图: {result['svg']} {result['png']}")
+        print(f"✅ 布局检查: {result['check']}")
+        print(f"✅ 图形证据: {result['evidence']}")
+        return 0
 
     # Main flow
     specs = []

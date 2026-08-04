@@ -35,6 +35,7 @@ This index groups the reference files by function so the workflow contracts are 
 - `style-learning-workflow.md`
 - `step7-figure-marker-syntax.md`
 - `scientific-figure-reproduction.md`：普通数据出图与严格复现后端的自动选择、VisualSpec、QA、bundle 和状态边界。
+- `paper-diagram-contract.md`：Step 7 原生论文流程图/架构图 Spec、10 类图型、12 套风格、公式 run、产物和质量门。
 - `polish-modes.md`
 
 ## Writing and evidence templates

@@ -1,0 +1,36 @@
+{
+  "schema_version": "morepaper.paper-diagram.v1",
+  "figure_id": "step7-native-diagram-architecture",
+  "diagram_type": "architecture",
+  "style": "review-canvas",
+  "title": "Step 7 原生论文流程图架构",
+  "caption": "从图形意图路由到规范产物与证据闭环",
+  "canvas": {"width": 1600, "height": 1200},
+  "nodes": [
+    {"id": "intent", "label": "图形意图与资产检查", "role": "input", "order": 1},
+    {"id": "router", "label": "Step 7 原生路由", "role": "decision", "shape": "diamond", "order": 2},
+    {"id": "spec", "label": "Paper Diagram Spec", "role": "contract", "order": 3},
+    {"id": "ir", "label": "统一 Diagram IR", "role": "model", "order": 4},
+    {"id": "contracts", "label_runs": [{"kind": "text", "value": "语义与公式契约 "}, {"kind": "math", "value": "y=f(x)"}], "role": "gate", "order": 5},
+    {"id": "layout", "label": "布局、正交走线与组合评分", "role": "engine", "order": 6},
+    {"id": "outputs", "label": "语义 SVG 与 PNG", "role": "output", "order": 7},
+    {"id": "evidence", "label": "检查报告与图形证据", "role": "gate", "order": 8},
+    {"id": "validator", "label": "Step 7 完成状态验证", "role": "output", "order": 9}
+  ],
+  "edges": [
+    {"id": "a1", "source": "intent", "target": "router"},
+    {"id": "a2", "source": "router", "target": "spec", "label": "diagram"},
+    {"id": "a3", "source": "spec", "target": "ir"},
+    {"id": "a4", "source": "ir", "target": "contracts"},
+    {"id": "a5", "source": "contracts", "target": "layout"},
+    {"id": "a6", "source": "layout", "target": "outputs"},
+    {"id": "a7", "source": "outputs", "target": "evidence"},
+    {"id": "a8", "source": "evidence", "target": "validator"}
+  ],
+  "groups": [
+    {"id": "render-core", "label": "原生渲染核心", "node_ids": ["spec", "ir", "contracts", "layout", "outputs"]}
+  ],
+  "annotations": [
+    {"id": "rule", "label": "任何缺失、重叠、越界或哈希漂移均 fail-closed"}
+  ]
+}

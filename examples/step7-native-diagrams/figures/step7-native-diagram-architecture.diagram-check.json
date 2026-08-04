@@ -1,0 +1,18 @@
+{
+  "schema_version": "morepaper.diagram-check.v1",
+  "figure_id": "step7-native-diagram-architecture",
+  "status": "pass",
+  "diagram_type": "architecture",
+  "diagram_style": "review-canvas",
+  "spec_path": "step7-architecture.json",
+  "spec_sha256": "1aa4e35c244d77190ec5e817c0112e9bec0108edbe2dac7d5508df421f1b0c41",
+  "svg_path": "figures/step7-native-diagram-architecture.svg",
+  "svg_sha256": "28ad156c132a858325141f8ec7d396f7b0f63b9283c4a8e57085e68409ad152c",
+  "png_path": "figures/step7-native-diagram-architecture.png",
+  "png_sha256": "0d49c73e5aa9d7a4ee059506ef4a26328a8fc573030623fdde26c3f0be1033fd",
+  "inspect_path": "figures/step7-native-diagram-architecture.inspect.svg",
+  "node_count": 9,
+  "edge_count": 8,
+  "composition_score": 100.0,
+  "findings": []
+}

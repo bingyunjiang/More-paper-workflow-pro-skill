@@ -41,6 +41,12 @@ class GenerateFiguresBackendTest(unittest.TestCase):
     def test_auto_preserves_legacy_quick_inputs(self) -> None:
         self.assertEqual("quick", generate_figures.select_figure_backend("auto"))
 
+    def test_auto_routes_native_diagram_spec(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "diagram.json"
+            path.write_text(json.dumps({"schema_version": "morepaper.paper-diagram.v1"}), encoding="utf-8")
+            self.assertEqual("diagram", generate_figures.select_figure_backend("auto", spec_path=path))
+
     def test_explicit_backend_overrides_detection(self) -> None:
         self.assertEqual(
             "quick",
@@ -48,6 +54,9 @@ class GenerateFiguresBackendTest(unittest.TestCase):
                 "quick", spec_path="visualspec.json", source_path="source.png"
             ),
         )
+
+    def test_explicit_diagram_backend_is_preserved(self) -> None:
+        self.assertEqual("diagram", generate_figures.select_figure_backend("diagram", spec_path="anything.json"))
 
     def test_missing_dependencies_fail_without_fallback(self) -> None:
         args = type(

@@ -9,6 +9,8 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "validate_step7_output.py"
+sys.path.insert(0, str(ROOT / "scripts"))
+from paper_diagrams.engine import render_from_file  # noqa: E402
 
 
 class ValidateStep7OutputTest(unittest.TestCase):
@@ -305,6 +307,75 @@ class ValidateStep7OutputTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("figure_backend: reproduction", result.stdout)
+
+    def test_native_diagram_record_passes_and_stale_hash_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            self.write_minimum_artifacts(out, figure_backend="diagram")
+            spec = out / "method-diagram.json"
+            spec.write_text(json.dumps({
+                "schema_version": "morepaper.paper-diagram.v1",
+                "figure_id": "fig-method",
+                "diagram_type": "flowchart",
+                "style": "clean",
+                "title": "方法流程",
+                "canvas": {"width": 1000, "height": 700},
+                "nodes": [{"id": "a", "label": "输入"}, {"id": "b", "label": "输出"}],
+                "edges": [{"id": "e1", "source": "a", "target": "b"}],
+                "groups": [],
+                "annotations": [],
+            }, ensure_ascii=False), encoding="utf-8")
+            rendered = render_from_file(spec, out / "figures")
+            (out / "journal_paper_draft.md").write_text(
+                "# 方法\n\n原生方法流程。\n\n![方法流程](figures/fig-method.png)\n",
+                encoding="utf-8",
+            )
+            passing = self.run_validator(out, "draft_ready")
+            self.assertEqual(passing.returncode, 0, passing.stdout + passing.stderr)
+            self.assertIn("figure_backend: diagram", passing.stdout)
+
+            Path(rendered["svg"]).write_text("<svg/>", encoding="utf-8")
+            stale = self.run_validator(out, "draft_ready")
+            self.assertNotEqual(stale.returncode, 0)
+            self.assertIn("stale_diagram_artifact", stale.stdout)
+
+    def test_minimal_diagram_requires_black_white_publication_profile(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            self.write_minimum_artifacts(out, figure_backend="diagram")
+            spec = out / "publication-diagram.json"
+            spec.write_text(json.dumps({
+                "schema_version": "morepaper.paper-diagram.v1",
+                "figure_id": "fig-publication",
+                "diagram_type": "flowchart",
+                "style": "minimal",
+                "title": "Publication workflow",
+                "canvas": {"width": 1200, "height": 800},
+                "nodes": [{"id": "a", "label": "Input"}, {"id": "b", "label": "Output"}],
+                "edges": [{"id": "e1", "source": "a", "target": "b"}],
+                "groups": [],
+                "annotations": [],
+            }), encoding="utf-8")
+            rendered = render_from_file(spec, out / "figures")
+            (out / "journal_paper_draft.md").write_text(
+                "# Method\n\n![Publication workflow](figures/fig-publication.png)\n",
+                encoding="utf-8",
+            )
+            passing = self.run_validator(out, "draft_ready")
+            self.assertEqual(passing.returncode, 0, passing.stdout + passing.stderr)
+
+            report_path = Path(rendered["check"])
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            report["publication_profile"]["no_tinted_background"] = False
+            report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            evidence_path = out / "figure_evidence_report.json"
+            evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+            evidence["records"][0]["diagram_validation_report_sha256"] = hashlib.sha256(report_path.read_bytes()).hexdigest()
+            evidence_path.write_text(json.dumps(evidence, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+            failing = self.run_validator(out, "draft_ready")
+            self.assertNotEqual(failing.returncode, 0)
+            self.assertIn("invalid_publication_diagram_profile", failing.stdout)
 
     def test_digitized_reproduction_rejects_unreviewed_candidate_delivery(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -38,7 +38,7 @@
 ## 图文与资产轴
 
 - `figure_mode=auto_insert|post_write|skip`：决定是否以及何时插图。
-- `figure_backend=auto|quick|reproduction|not_applicable`：决定需要生成新图时的执行后端。
+- `figure_backend=auto|quick|diagram|reproduction|not_applicable`：决定需要生成新图时的执行后端；语义流程图和架构图使用 `diagram`。
 - `figure_asset_action=insert_original|generate_new|redraw|digitize`：决定对已有或待生成图形采取的动作。
 
 三个轴互相独立：插入论文原图通常为 `post_write/auto_insert + not_applicable + insert_original`；只有明确授权生成、重绘或数字化时才进入对应动作。

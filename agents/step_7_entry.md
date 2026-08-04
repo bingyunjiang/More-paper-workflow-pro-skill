@@ -41,6 +41,7 @@
 
 - `auto`：先判断是否需要生成新图，再按输入和交付要求选择后端
 - `quick`：从可信结构化数据生成普通论文图表
+- `diagram`：从可审阅结构生成论文流程图、架构图、数据流图、时序图等语义图形
 - `reproduction`：重绘、数字化、视觉对齐、语义审计或可复现交付
 - `not_applicable`：只筛选并插入已有图，不运行绘图代码
 
@@ -67,10 +68,11 @@
 - 用户说“自动插图/同步插图/写完顺手补图” -> 进入 Step 7 图文联合链路，默认 `figure_mode=auto_insert`
 - 只插入 MinerU/PDF/本地已有论文原图 -> `figure_backend=not_applicable`；这是图文联合的默认路径，不重绘、不数字化
 - 用户明确要求基于 CSV、实验数据或统计结果生成普通新图 -> `figure_backend=quick`
+- 用户要求新建流程图、架构图、数据流、时序、状态、时间线、ER、用例或对比矩阵 -> `figure_backend=diagram`
 - 只有用户明确要求“重绘/复现/恢复曲线数值/转成可编辑矢量/严格图形 QA”时 -> `figure_backend=reproduction`
 - `reproduction` 中如果需要从图片/PDF恢复数值，必须完成 `inspect → spec-review/用户确认 → candidates → 自动诊断 → review-decisions → observations → data → VisualSpec`；只有 `extraction_status=formal_data_ready`、`review_status=complete` 后才交给 reproduction。只做视觉重绘、不恢复数值时不需要该前置链。
 - 发现参考图、截图、裁剪图或 VisualSpec 本身不构成重绘授权；必须记录 `figure_transform_authorization=explicit_user_request`
-- 用户显式指定 `quick/reproduction` 时覆盖默认插图路径；严格后端缺依赖时中止并提示安装，不得静默降级
+- 用户显式指定 `quick/diagram/reproduction` 时覆盖默认插图路径；严格后端缺依赖时中止并提示安装，不得静默降级
 
 ## Artifact Passport 读取规则
 
@@ -100,6 +102,7 @@ Artifact graph 只负责登记当前可用材料和可确认关系，不强制�
 - `figure_mode` 决定是否及何时插图，`figure_backend` 决定需要生成新图时使用哪条代码路径；二者不得混用。
 - 原图插入完成后，在本次任务的图表交付说明中提醒一次：“已按论文原图插入。本 skill 也支持图表重绘、曲线数字化、可编辑 SVG/PDF 和严格 QA；如需启用，请明确指定要重绘的图及目标。”提醒不构成授权，不得因此自动启动 quick/reproduction。
 - 选择 `reproduction` 时按需加载 `references/scientific-figure-reproduction.md`。
+- 选择 `diagram` 时加载 `references/paper-diagram-contract.md`；规范 SVG、PNG、布局检查和证据记录必须同时通过。用户要求黑白、无底纹或论文刊发版时，固定使用 `style=minimal` 和通栏字号门，审阅覆盖层不得进入投稿稿件。
 
 ## 加载顺序
 

@@ -190,6 +190,7 @@ def _figure_backend(root: Path, card_text: str) -> str:
         "auto",
         "quick",
         "reproduction",
+        "diagram",
         "not_applicable",
     }:
         return str(asset_payload["figure_backend"])
@@ -199,7 +200,7 @@ def _figure_backend(root: Path, card_text: str) -> str:
         if path.exists():
             texts.append(_read_text(path))
     for text in texts:
-        match = re.search(r"figure_backend\s*[:=]\s*(auto|quick|reproduction|not_applicable)", text)
+        match = re.search(r"figure_backend\s*[:=]\s*(auto|quick|reproduction|diagram|not_applicable)", text)
         if match:
             return match.group(1)
     return ""
@@ -212,8 +213,8 @@ def _validate_figure_evidence_report(
     require_evidence_closure: bool,
 ) -> list[Finding]:
     path = root / "figure_evidence_report.json"
-    if figure_backend == "reproduction" and not path.exists():
-        return [Finding("fail", "missing_figure_evidence_report", "reproduction backend requires figure_evidence_report.json")]
+    if figure_backend in {"reproduction", "diagram"} and not path.exists():
+        return [Finding("fail", "missing_figure_evidence_report", f"{figure_backend} backend requires figure_evidence_report.json")]
     if not path.exists():
         return []
     payload = _load_json(path)
@@ -229,11 +230,106 @@ def _validate_figure_evidence_report(
         "reproduction_status", "qa_profile", "verification_status",
     }
     complete_statuses = {"semantic_strict_pass", "semantic_validated_pass", "semantic_near_pass"}
+
+    def resolve_artifact(value: object, field: str, index: int) -> Path | None:
+        if not isinstance(value, str) or not value:
+            findings.append(Finding("fail", "incomplete_diagram_record", f"figure record {index} lacks {field}"))
+            return None
+        candidate = Path(value)
+        resolved = candidate.resolve() if candidate.is_absolute() else (root / candidate).resolve()
+        try:
+            resolved.relative_to(root.resolve())
+        except ValueError:
+            findings.append(Finding("fail", "diagram_artifact_outside_root", f"figure record {index} {field} escapes the output root"))
+            return None
+        if not resolved.is_file():
+            findings.append(Finding("fail", "missing_diagram_artifact", f"figure record {index} {field} is missing"))
+            return None
+        return resolved
+
+    def file_hash(path: Path) -> str:
+        digest = hashlib.sha256()
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
+
     for index, record in enumerate(records, 1):
         if not isinstance(record, dict):
             findings.append(Finding("fail", "invalid_figure_evidence_record", f"figure record {index} is not an object"))
             continue
-        if record.get("generation_backend") != "reproduction":
+        generation_backend = record.get("generation_backend")
+        if generation_backend == "diagram":
+            if record.get("figure_asset_action") != "generate_new":
+                findings.append(Finding("fail", "diagram_without_generate_action", f"figure record {index} must use generate_new"))
+            if record.get("figure_transform_authorization") != "not_required":
+                findings.append(Finding("fail", "diagram_authorization_conflict", f"figure record {index} must not claim transform authorization"))
+            required_values = {
+                "diagram_type", "diagram_style", "diagram_spec_path", "diagram_spec_sha256",
+                "diagram_svg_path", "diagram_svg_sha256", "diagram_png_path", "diagram_png_sha256",
+                "diagram_validation_report", "diagram_validation_report_sha256", "diagram_validation_status",
+                "verification_status",
+            }
+            missing_values = sorted(field for field in required_values if not record.get(field))
+            if missing_values:
+                findings.append(Finding("fail", "incomplete_diagram_record", f"figure record {index} lacks {', '.join(missing_values)}"))
+                continue
+            paths = {
+                "spec": resolve_artifact(record.get("diagram_spec_path"), "diagram_spec_path", index),
+                "svg": resolve_artifact(record.get("diagram_svg_path"), "diagram_svg_path", index),
+                "png": resolve_artifact(record.get("diagram_png_path"), "diagram_png_path", index),
+                "report": resolve_artifact(record.get("diagram_validation_report"), "diagram_validation_report", index),
+            }
+            expected_hashes = {
+                "spec": str(record.get("diagram_spec_sha256")),
+                "svg": str(record.get("diagram_svg_sha256")),
+                "png": str(record.get("diagram_png_sha256")),
+                "report": str(record.get("diagram_validation_report_sha256")),
+            }
+            for name, artifact in paths.items():
+                if artifact is not None and file_hash(artifact) != expected_hashes[name]:
+                    findings.append(Finding("fail", "stale_diagram_artifact", f"figure record {index} {name} hash does not match"))
+            report = _load_json(paths["report"]) if paths["report"] is not None else None
+            if not isinstance(report, dict) or report.get("schema_version") != "morepaper.diagram-check.v1" or report.get("status") != "pass":
+                findings.append(Finding("fail", "invalid_diagram_validation_report", f"figure record {index} lacks a passing native diagram report"))
+            elif (
+                report.get("spec_sha256") != record.get("diagram_spec_sha256")
+                or report.get("svg_sha256") != record.get("diagram_svg_sha256")
+                or report.get("png_sha256") != record.get("diagram_png_sha256")
+            ):
+                findings.append(Finding("fail", "diagram_report_hash_mismatch", f"figure record {index} report is not bound to current artifacts"))
+            if paths["svg"] is not None:
+                svg_text = _read_text(paths["svg"])
+                if re.search(r"<\s*script|javascript:|file://|(?:href|src)\s*=\s*['\"]https?://|<\s*(?:image|use)\b[^>]*href=", svg_text, flags=re.IGNORECASE):
+                    findings.append(Finding("fail", "unsafe_diagram_svg", f"figure record {index} SVG contains executable or external content"))
+                if 'class="node"' not in svg_text or 'data-node-id=' not in svg_text:
+                    findings.append(Finding("fail", "missing_diagram_semantics", f"figure record {index} SVG lacks semantic node metadata"))
+                if record.get("diagram_style") == "minimal":
+                    colors = {value.lower() for value in re.findall(r"#[0-9a-fA-F]{6}", svg_text)}
+                    if not colors.issubset({"#000000", "#ffffff"}):
+                        findings.append(Finding("fail", "non_monochrome_publication_diagram", f"figure record {index} minimal SVG contains non-black-white colors"))
+            if record.get("diagram_style") == "minimal" and isinstance(report, dict):
+                profile = report.get("publication_profile")
+                valid_profile = (
+                    isinstance(profile, dict)
+                    and profile.get("mode") == "black_white_full_width"
+                    and profile.get("black_white_only") is True
+                    and profile.get("no_tinted_background") is True
+                    and isinstance(profile.get("node_font_pt_at_180mm"), (int, float))
+                    and float(profile["node_font_pt_at_180mm"]) >= 7.0
+                )
+                if not valid_profile:
+                    findings.append(Finding("fail", "invalid_publication_diagram_profile", f"figure record {index} minimal diagram lacks a readable black-white publication profile"))
+            if paths["png"] is not None:
+                try:
+                    with Image.open(paths["png"]) as image:
+                        image.verify()
+                except Exception:
+                    findings.append(Finding("fail", "invalid_diagram_png", f"figure record {index} PNG is unreadable"))
+            if record.get("diagram_validation_status") != "pass" or record.get("verification_status") != "pass":
+                findings.append(Finding("fail", "diagram_not_verified", f"figure record {index} is not verified"))
+            continue
+        if generation_backend != "reproduction":
             continue
         asset_action = str(record.get("figure_asset_action") or "")
         transform_authorization = str(

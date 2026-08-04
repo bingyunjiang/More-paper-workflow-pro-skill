@@ -122,6 +122,8 @@
 - 图表自动匹配不得插入零关键词或低来源质量候选；`ready_for_step8` 的图表解析报告不得有未解决项
 - 生成新图时必须记录 `figure_backend`；只插入已有资产用 `not_applicable`，不得伪装成已执行绘图
 - `figure_backend=reproduction` 时，只有 `run_report.status=ok`、manifest 状态合格且 bundle `verify.py` 通过，才能声明复现完成
+- `figure_backend=diagram` 时，Spec、语义 SVG、PNG、`diagram-check.json` 与 `figure_evidence_report.json` 的 SHA-256 必须一致，且检查状态为 `pass`
+- `diagram_style=minimal` 时，SVG 只能使用纯黑与纯白且无底纹；`publication_profile` 必须通过黑白模式与通栏字号检查，审阅用 `inspect.svg` 不得插入投稿正文
 - `semantic_near_pass` 必须公开偏差；`render_only / not_strict / failed` 不得作为复现完成态
 - 图片曲线数字化只有在规格确认哈希有效、`review-decisions.json` 完整、`observations.csv` 与正式 `data.csv` 血缘一致、VisualSpec 绑定同一 `data.csv` 哈希时，才可标记 `extraction_status=formal_data_ready / review_status=complete`；候选提取或重绘成功均不能提升这两个状态
 - 图形复现状态不得替代 claim evidence audit；复现通过不能自动证明正文 claim 获得支持

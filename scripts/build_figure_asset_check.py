@@ -40,6 +40,7 @@ def build_asset_check(
     figure_action: str,
     figure_mode: str,
     transform_authorization: str,
+    figure_kind: str = "auto",
 ) -> dict[str, Any]:
     zip_records: list[dict[str, Any]] = []
     for zip_path in mineru_zips:
@@ -88,7 +89,7 @@ def build_asset_check(
         backend = "not_applicable"
         authorization = "not_required"
     elif action == "generate_new":
-        backend = "quick"
+        backend = "diagram" if figure_kind == "diagram" else "quick"
         authorization = "not_required"
     elif action in {"redraw", "digitize"}:
         backend = "reproduction"
@@ -123,6 +124,7 @@ def build_asset_check(
         "figure_asset_action": action,
         "figure_backend": backend,
         "figure_transform_authorization": authorization,
+        "figure_kind": figure_kind,
         "original_assets_available": original_assets_available,
         "direct_original_candidates": direct_original_candidates,
         "pdf_direct_fallback_available": readable_pdf_available,
@@ -148,6 +150,8 @@ def build_asset_check(
             if action == "insert_original" and direct_original_candidates
             else "pdf_direct_candidate_pending_manual_check"
             if action == "insert_original" and readable_pdf_available
+            else "explicit_new_diagram_request"
+            if action == "generate_new" and figure_kind == "diagram"
             else "explicit_new_figure_request"
             if action == "generate_new"
             else "explicit_transform_request"
@@ -170,6 +174,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
             f"- figure_backend: {payload['figure_backend']}",
             "- figure_transform_authorization: "
             + payload["figure_transform_authorization"],
+            f"- figure_kind: {payload['figure_kind']}",
             f"- original_assets_available: {str(payload['original_assets_available']).lower()}",
             f"- mineru_zip_count: {len(checked['mineru_zips'])}",
             f"- mineru_candidate_count: {sum(item['candidate_count'] for item in checked['mineru_zips'])}",
@@ -209,6 +214,11 @@ def main() -> int:
         choices=["not_required", "explicit_user_request"],
         default="not_required",
     )
+    parser.add_argument(
+        "--figure-kind",
+        choices=["auto", "chart", "diagram"],
+        default="auto",
+    )
     parser.add_argument("--output-json", default="figure_asset_check.json", type=Path)
     parser.add_argument("--output-md", default="figure_asset_check.md", type=Path)
     args = parser.parse_args()
@@ -221,6 +231,7 @@ def main() -> int:
         figure_action=args.figure_action,
         figure_mode=args.figure_mode,
         transform_authorization=args.transform_authorization,
+        figure_kind=args.figure_kind,
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_json.write_text(

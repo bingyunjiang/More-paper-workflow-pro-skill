@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "morepaper.paper-diagram.v1",
+  "title": "Step 7 native paper diagram",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "figure_id", "diagram_type", "nodes"],
+  "properties": {
+    "schema_version": {"const": "morepaper.paper-diagram.v1"},
+    "figure_id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,127}$"},
+    "diagram_type": {"enum": ["architecture", "agent_architecture", "flowchart", "data_flow", "sequence", "state_machine", "timeline", "comparison_matrix", "er_diagram", "use_case"]},
+    "style": {"enum": ["clean", "terminal", "blueprint", "notebook", "glass", "editorial", "minimal", "dark", "review-canvas", "cloud", "event-stream", "operations"]},
+    "title": {"type": "string"},
+    "caption": {"type": "string"},
+    "canvas": {
+      "type": "object", "additionalProperties": false,
+      "properties": {"width": {"type": "integer", "minimum": 640, "maximum": 5000}, "height": {"type": "integer", "minimum": 480, "maximum": 5000}}
+    },
+    "layout_locked": {"type": "boolean"},
+    "nodes": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/node"}},
+    "edges": {"type": "array", "items": {"$ref": "#/$defs/edge"}},
+    "groups": {"type": "array", "items": {"$ref": "#/$defs/group"}},
+    "annotations": {"type": "array", "items": {"$ref": "#/$defs/annotation"}}
+  },
+  "$defs": {
+    "run": {"type": "object", "additionalProperties": false, "required": ["kind", "value"], "properties": {"kind": {"enum": ["text", "math"]}, "value": {"type": "string"}}},
+    "node": {
+      "type": "object", "additionalProperties": false, "required": ["id"],
+      "properties": {"id": {"type": "string"}, "label": {"type": "string"}, "label_runs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/run"}}, "role": {"type": "string"}, "group": {"type": "string"}, "order": {"type": "integer"}, "x": {"type": "number"}, "y": {"type": "number"}, "width": {"type": "number"}, "height": {"type": "number"}, "shape": {"enum": ["rounded", "rectangle", "diamond", "ellipse"]}, "metadata": {"type": "object"}}
+    },
+    "edge": {
+      "type": "object", "additionalProperties": false, "required": ["source", "target"],
+      "properties": {"id": {"type": "string"}, "source": {"type": "string"}, "target": {"type": "string"}, "label": {"type": "string"}, "label_runs": {"type": "array", "items": {"$ref": "#/$defs/run"}}, "kind": {"type": "string"}, "order": {"type": "integer"}, "metadata": {"type": "object"}}
+    },
+    "group": {"type": "object", "additionalProperties": false, "required": ["id", "node_ids"], "properties": {"id": {"type": "string"}, "label": {"type": "string"}, "node_ids": {"type": "array", "items": {"type": "string"}}, "role": {"type": "string"}}},
+    "annotation": {"type": "object", "additionalProperties": false, "properties": {"id": {"type": "string"}, "label": {"type": "string"}, "label_runs": {"type": "array", "items": {"$ref": "#/$defs/run"}}, "anchor": {"type": "string"}, "role": {"type": "string"}}}
+  }
+}

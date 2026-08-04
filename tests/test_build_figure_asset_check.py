@@ -15,6 +15,16 @@ from build_figure_asset_check import build_asset_check  # noqa: E402
 
 
 class FigureAssetCheckTest(unittest.TestCase):
+    def test_generate_new_diagram_routes_to_native_backend(self) -> None:
+        payload = build_asset_check(
+            mineru_zips=[], figure_index=None, image_dirs=[], pdfs=[],
+            figure_action="generate_new", figure_mode="auto",
+            transform_authorization="not_required", figure_kind="diagram",
+        )
+        self.assertEqual("diagram", payload["figure_backend"])
+        self.assertEqual("post_write", payload["figure_mode"])
+        self.assertEqual("explicit_new_diagram_request", payload["routing_reason"])
+
     def test_mineru_assets_route_to_original_insertion(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

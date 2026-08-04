@@ -115,6 +115,7 @@
 - `figure_mode=skip` 时不运行绘图；只插入已有资产时使用 `generation_backend=not_applicable`
 - 论文 PDF/MinerU/本地原图默认直接插入：`figure_asset_action=insert_original`、`generation_backend=not_applicable`、`figure_transform_authorization=not_required`
 - 用户明确要求从可信数据生成新图时使用 `generation_backend=quick`
+- 用户要求新建流程图、架构图、数据流图、时序图、状态图、时间线、ER 图、用例图或对比矩阵时使用 `generation_backend=diagram`，并按 `paper-diagram-contract.md` 生成 Spec、SVG、PNG 和检查报告
 - 用户明确要求论文原图/截图重绘、数字化、严格 QA 或可复现交付时使用 `generation_backend=reproduction`，并记录 `figure_transform_authorization=explicit_user_request`
 - 原图插入完成后应提醒用户本 skill 具有图表重绘、曲线数字化、可编辑 SVG/PDF 和严格 QA 能力；提醒只出现一次且不构成重绘授权
 - 原图解析使用 `resolve_figure_refs.py` 时，必须保留源 ZIP、ZIP 内部路径、源图哈希、物化文件哈希和稿件相对路径；只复制最终选中的图片
@@ -133,7 +134,7 @@
 
 ```json
 {
-  "generation_backend": "quick|reproduction|not_applicable",
+  "generation_backend": "quick|diagram|reproduction|not_applicable",
   "visualspec_path": "visualspec.json",
   "reproduction_bundle": "figures/fig_1_bundle",
   "manifest_path": "figures/fig_1_bundle/reproduction_manifest.json",
@@ -154,5 +155,7 @@
   "value_delivery_authorized": false
 }
 ```
+
+`generation_backend=diagram` 另记录 `diagram_type / diagram_style / diagram_spec_path / diagram_spec_sha256 / diagram_svg_path / diagram_svg_sha256 / diagram_png_path / diagram_png_sha256 / diagram_validation_report / diagram_validation_report_sha256 / diagram_validation_status`。这些字段必须绑定当前产物；流程图不是 source-locked 重绘，不需要 transform authorization。
 
 `semantic_near_pass` 必须带视觉偏差；`render_only/not_strict/failed` 不得声明复现完成。原图能否支撑正文 claim 继续由图注、正文锚点、panel 绑定和来源证据共同决定。

@@ -37,6 +37,12 @@
 
 - figure_asset_check:
 - figure_mode: auto_insert | post_write | skip
+- figure_backend: auto | quick | diagram | reproduction | not_applicable
+- figure_asset_action: insert_original | generate_new | redraw | digitize
+- figure_kind: auto | chart | diagram
+- diagram_output_profile: review | publication_bw_full_width
+- target_figure_width_mm:
+- figure_transform_authorization: not_required | explicit_user_request
 - checked_assets:
   - zotero_child_attachments:
   - mineru_zip:
@@ -75,4 +81,3 @@
 - blocked_until:
 - missing_artifacts:
 - user_confirmation_needed:
-

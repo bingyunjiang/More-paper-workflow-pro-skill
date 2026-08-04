@@ -1379,8 +1379,8 @@ Step 7 可以根据 `section_blueprints`、`argument_plan`、`target_genre` 和�
 本阶段记录 `figure_intent / evidence_basis / candidate_specs /
 human_selected_candidate / figure_risk_note`，并把每张图绑定到 `figure_id /
 caption / claim_binding / section_id`。详细接口统一读取
-`references/figure-writing-interface.md`。
-
+`references/figure-writing-interface.md`。需要新建论文流程图、系统/Agent 架构图、数据流图、时序图、状态图、时间线、对比矩阵、ER 图或用例图时，使用 `figure_backend=diagram` 并加载 `references/paper-diagram-contract.md`。先形成可审阅 Spec，再由 `scripts/generate_figures.py --backend diagram` 同时生成语义 SVG、PNG、布局检查和证据记录；不得手写未校验 SVG 冒充原生流程图。图内公式使用 math run 或 `$...$`，并服从 Step 7 公式合同。
+若目标期刊要求黑白、无底纹，使用 `style=minimal`：图中只能出现纯黑和纯白，分组不填充，并在 `diagram-check.json.publication_profile` 中验证通栏 170–180 mm 下节点字号不低于 7 pt。单栏空间不足时先简化或拆图，不得直接缩小复杂图；`inspect.svg` 只用于审阅。
 论文 PDF、MinerU ZIP 或本地已有原图默认使用
 `figure_asset_action=insert_original`、`figure_backend=not_applicable` 和
 `figure_transform_authorization=not_required`。只有用户明确要求重绘、数字化或

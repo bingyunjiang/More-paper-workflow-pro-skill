@@ -6,7 +6,7 @@ description: >-
 
 ## Skill metadata
 
-version: v1.0.23-20260803 (2026-08-03)
+version: v1.0.26-20260804 (2026-08-04)
 author: Dr. Jiang Bingyun（江博士）
 wechat: Bingyunjiang
 category: research
@@ -35,6 +35,8 @@ related_skills:
 - Cross-agent entry vocabulary lives in `references/entry-routing-index.md`.
 - Full trigger vocabulary lives in `references/trigger-catalog.md`.
 - Scientific figure backend selection and strict reproduction live in `references/scientific-figure-reproduction.md`.
+- Native Step 7 process, architecture, data-flow and sequence diagrams use `references/paper-diagram-contract.md`.
+- 黑白刊发图使用该合同的 `style=minimal`：纯黑白、无底纹，并通过通栏字号门；`inspect.svg` 仅用于审阅，不得作为投稿图。
 - Platform-specific launch hints live in thin adapter files such as `agents/openai.yaml` and `.claude-plugin/marketplace.json`.
 - Step-specific runtime contracts use only the exact `agents/` paths listed above plus the references routed by each entry file. If an exact file is absent, report an incomplete installation; do not invent a shortened filename.
 - Raster/PDF numeric recovery follows `inspect → spec-review → explicit spec confirmation → candidates.csv → quality assessment → review-decisions.json → observations.csv → formal data.csv → VisualSpec → render/QA`. Candidate or observation files never enter VisualSpec.
@@ -89,7 +91,7 @@ related_skills:
   - Locked execution discipline: preserve the existing source order and phase order; all download/CDP phases remain serial, and deprecated parallel flags remain ignored.
   - Manual recovery: after user-provided PDFs, run `scripts/step5_reconcile_pdf_pool.py --output <dir>` to reconcile without changing filenames.
 - Step 6: Zotero organization and attachment consistency
-- Step 7: writing, evidence matrix, style learning, original-figure-first insertion, explicit quick/reproduction figure routing, citation audit
+- Step 7: writing, evidence matrix, style learning, original-figure-first insertion, native paper diagrams, explicit quick/reproduction figure routing, citation audit
 - Step 8: conservative polishing and verification
 
 Step 4 public sequence: 4.4 筛选依据 → 4.5 五维 → 4.6 T1-T4 → 4.7 引文扩展 → 4.8 饱和 → 4.9 报告生成与完成检查。
@@ -97,7 +99,7 @@ Step 4 public sequence: 4.4 筛选依据 → 4.5 五维 → 4.6 T1-T4 → 4.7 �
 ## Step boundaries
 
 - Step 1-6 负责定题、检索、下载和证据整理。
-- Step 7 负责正文写作、证据矩阵、风格学习、图表生成/复现与引用审计；论文 PDF/MinerU 原图默认直接插入并使用 `not_applicable`，不触发绘图。只有用户明确要求生成新图时走 quick，明确要求重绘或数字化时才进入 source-locked figure evidence pipeline / reproduction。
+- Step 7 负责正文写作、证据矩阵、风格学习、图表/流程图生成、复现与引用审计；论文 PDF/MinerU 原图默认直接插入并使用 `not_applicable`。可信定量数据新图走 quick，论文流程图/架构图走 diagram，明确要求重绘或数字化时才进入 source-locked figure evidence pipeline / reproduction。
 - Step 8 负责成稿级精修、终验和保守修订。
 - `README.md` 只保留对外简洁入口，不承载运行态真相。
 - 入口收敛不等于流程拦截；对话式工作流的 Step 1-8 都可以按 direct-entry 合同进入，Artifact Passport 的材料/readiness 路由范围保持 Step 4-8。

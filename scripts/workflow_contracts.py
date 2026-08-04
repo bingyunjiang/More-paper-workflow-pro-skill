@@ -906,6 +906,17 @@ class FigureEvidenceRecord:
     data_sha256: str = ""
     visualspec_data_sha256: str = ""
     value_delivery_authorized: bool = False
+    diagram_type: str = ""
+    diagram_style: str = ""
+    diagram_spec_path: str = ""
+    diagram_spec_sha256: str = ""
+    diagram_svg_path: str = ""
+    diagram_svg_sha256: str = ""
+    diagram_png_path: str = ""
+    diagram_png_sha256: str = ""
+    diagram_validation_report: str = ""
+    diagram_validation_report_sha256: str = ""
+    diagram_validation_status: str = ""
 
 
 def infer_download_hint(doi: str, source: str, article_url: str) -> str:

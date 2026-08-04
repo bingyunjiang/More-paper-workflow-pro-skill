@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.2.1
 name: step7-writing
 description: Router manifest for Step 7 writing and evidence-to-draft workflows.
 
@@ -40,6 +40,7 @@ axes:
       - auto
       - quick
       - reproduction
+      - diagram
       - not_applicable
     default: not_applicable
   figure_asset_action:

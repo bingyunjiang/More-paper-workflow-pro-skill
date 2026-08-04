@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey)](LICENSE)
 [![Zotero](https://img.shields.io/badge/Zotero-CC2936?logo=zotero&logoColor=white)]()
 
-# more-paper-workflow `v1.0.23-20260803`
+# more-paper-workflow `v1.0.26-20260804`
 
 > 从研究问题到可核验论文：一套支持任意步骤直达、证据分级和质量闭环的学术论文工作流。
 >
@@ -16,7 +16,9 @@
   <img src="docs/assets/marketing/more-paper-workflow-slide-16x9.png" alt="more-paper-workflow：从研究问题到可核验论文" width="100%">
 </p>
 
-`more-paper-workflow` 不把论文简化成“一键生成文本”。它把定题、大纲、检索、PDF、Zotero、写作、科研图表、引用审计和保守润色连成一条可追溯链路。
+`more-paper-workflow` 不把论文简化成“一键生成文本”。它把定题、大纲、检索、PDF、Zotero、写作、科研图表、论文流程图、引用审计和保守润色连成一条可追溯链路。
+
+它面向的是“能继续写、能审、能投稿”的论文项目：先把研究问题、证据来源、章节任务和图表意图落成可核验工件，再进入写作、绘图和润色。Step 7 既能保留论文原图，也能基于可信数据生成科研图表，并内置原生论文流程图/架构图引擎，输出语义 SVG、PNG 预览、布局检查和证据哈希；刊发模式默认支持纯黑白、无底纹和字号门控。
 
 已有 DOI、PDF、Zotero 文库或草稿？你可以直接进入对应 Step，不必机械重跑前序流程；但证据边界、Checkpoint 和 Completion Gate 不会被跳过。
 
@@ -24,7 +26,7 @@
 
 | 项目 | 主要用途 |
 | --- | --- |
-| **[more-paper-workflow](https://github.com/bingyunjiang/more-paper-workflow)**（当前项目） | 论文定题、文献检索、证据组织、写作、科研图表与引用审计 |
+| **[more-paper-workflow](https://github.com/bingyunjiang/more-paper-workflow)**（当前项目） | 论文定题、文献检索、证据组织、写作、科研图表、论文流程图与引用审计 |
 | [more-sci-figure](https://github.com/bingyunjiang/more-sci-figure) | 科研图表数据提取、人工复核、论文级重绘与交付验证 |
 | [more-comic-digitizer](https://github.com/bingyunjiang/more-comic-digitizer) | 儿童手绘漫画数字化、审核、共创与电子出版 |
 | [more-news-briefing](https://github.com/bingyunjiang/more-news-briefing) | 新闻与行业信息收集、去重、排序、核验和简报生成 |
@@ -189,7 +191,7 @@ python3 scripts/run_step8_ai_trace.py --project-root examples/demo/step8-ai-trac
 - Step 7 按大纲对应的 Zotero 子集合逐节读取证据，不扫整个文库。
 - `full-document / review-only / abstract-only / chapter-only / continue-existing / revision-only` 是公开写作模式。
 - `continue-existing`、`chapter-only` 和 `revision-only` 都允许直达，但不能跳过证据确认。
-- 图表证据子链区分原图插入、可信数据新图和 source-locked 重绘/数字化；曲线数字化固定经过 `candidates → observations → formal data.csv → VisualSpec`，线型只影响渲染，不改变数据连续性。
+- 图表证据子链区分原图插入、可信数据新图、原生论文流程图/架构图和 source-locked 重绘/数字化；原生语义图同时交付 SVG、PNG、布局检查与证据哈希，并提供纯黑白、无底纹、通栏字号受检的刊发模式；曲线数字化固定经过 `candidates → observations → formal data.csv → VisualSpec`。
 - 公式写作通过 `equation_guard.py` 阻断公式缺失、`T(omega)` / `F_{i+1}` / `X_in` 纯文本退化和 LaTeX/矩阵源码残留，并在 DOCX 导出后回读 Word 原生公式对象。
 - 用户仍保留自己的写作策略和表达风格。
 
@@ -210,7 +212,7 @@ Step 8 先做 **AI 味确定性检查**和**载体清洁度检查**，再把问�
 - PDF 下载清单、尝试日志、失败分类和附件池
 - Zotero 集合方案、条目映射、PDF 索引和能力索引
 - 证据矩阵、`writing_blueprints`、论证计划、章节或全文草稿
-- 科研图表、图形复现包和引用审计报告
+- 科研图表、原生论文流程图、图形复现包和引用审计报告
 - 润色稿、质量报告和修订台账
 
 展示样例：[`examples/showcase/README.md`](examples/showcase/README.md)
@@ -314,7 +316,16 @@ See the [first-run examples](examples/first-run/README.md), [workflow diagrams](
 
 ## 📋 版本历史
 
-当前版本：`v1.0.23-20260803`。完整记录见 [`CHANGELOG.md`](CHANGELOG.md)。
+当前版本：`v1.0.26-20260804`。
+
+### 今日更新：Step 7 原生论文流程图
+
+- 新增 `figure_backend=diagram`，支持流程图、系统/Agent 架构图、数据流图、时序图、状态图、时间线、对比矩阵、ER 图和用例图。
+- 统一生成可编辑语义 SVG、Pillow PNG、布局检查、可选审阅覆盖层及 SHA-256 证据记录；公式标签支持 text/math runs，不明确的公式会阻断完成并请求作者确认。
+- `style=minimal` 固化为纯黑白、无底纹的刊发模式；字号随画布宽度缩放，并按 170–180 mm 通栏图检查节点文字不低于 7 pt。
+- Step 7 校验器对重叠、裁切、越界、边穿节点、外部资源、非黑白刊发图和陈旧哈希 fail-closed；全量 641 项测试及根目录/ZIP 包校验通过。
+
+完整记录见 [`CHANGELOG.md`](CHANGELOG.md)。
 
 ## 作者与许可
 

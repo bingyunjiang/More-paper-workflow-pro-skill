@@ -1,0 +1,18 @@
+{
+  "schema_version": "morepaper.diagram-check.v1",
+  "figure_id": "paper-method-workflow",
+  "status": "pass",
+  "diagram_type": "flowchart",
+  "diagram_style": "clean",
+  "spec_path": "paper-method-flow.json",
+  "spec_sha256": "1e955c872bd2e7e52a87e1c40b769f05b1defcfbb738fdbdf9e83cf329728c48",
+  "svg_path": "figures/paper-method-workflow.svg",
+  "svg_sha256": "e00537d463c78dad77c63fbf6ea882555280e06f40be87226e6d879e8762cf6d",
+  "png_path": "figures/paper-method-workflow.png",
+  "png_sha256": "be27fa9cadadf5a05cab00d21a9f0a93528c49fb31277fafcd2667749f3aae87",
+  "inspect_path": "figures/paper-method-workflow.inspect.svg",
+  "node_count": 6,
+  "edge_count": 5,
+  "composition_score": 100.0,
+  "findings": []
+}
