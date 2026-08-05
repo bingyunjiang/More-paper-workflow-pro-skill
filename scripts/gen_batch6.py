@@ -7,11 +7,19 @@ try:
 except Exception:
     pass
 
+import argparse
 import json
+from pathlib import Path
 
-with open('/Users/Bing/WorkSpace/cad-cae-copilot-main/.understand-anything/tmp/ua-file-extract-results-6.json', encoding='utf-8') as f:
+parser = argparse.ArgumentParser(description="Generate batch-6 knowledge graph nodes/edges from extraction results.")
+parser.add_argument("--extract-results", type=Path, required=True)
+parser.add_argument("--analyzer-input", type=Path, required=True)
+parser.add_argument("--output", type=Path, required=True)
+args = parser.parse_args()
+
+with args.extract_results.open(encoding="utf-8") as f:
     extract = json.load(f)
-with open('/Users/Bing/WorkSpace/cad-cae-copilot-main/.understand-anything/tmp/ua-file-analyzer-input-6.json', encoding='utf-8') as f:
+with args.analyzer_input.open(encoding="utf-8") as f:
     analyzer_input = json.load(f)
 
 import_data = analyzer_input.get('batchImportData', {})
@@ -151,6 +159,7 @@ calls_n = len([e for e in edges if e['type']=='calls'])
 print(f'Nodes: {len(nodes)} (file={file_n}, func={func_n}, class={class_n})')
 print(f'Edges: {len(edges)} (contains={cont_n}, imports={imp_n}, calls={calls_n})')
 
-with open('/Users/Bing/WorkSpace/cad-cae-copilot-main/.understand-anything/intermediate/batch-6.json', 'w', encoding='utf-8') as f:
+args.output.parent.mkdir(parents=True, exist_ok=True)
+with args.output.open("w", encoding="utf-8") as f:
     json.dump({'nodes': nodes, 'edges': edges}, f, ensure_ascii=False, indent=2)
-print('Done.')
+print(f"Saved to {args.output}")

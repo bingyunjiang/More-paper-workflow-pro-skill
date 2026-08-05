@@ -118,11 +118,17 @@ class FastCoreTests(ScientificFigureReproductionTestBase):
             with zipfile.ZipFile(built, "r") as archive:
                 names = archive.namelist()
             self.assertTrue(all("\\" not in name for name in names))
+            self.assertFalse(any("/.codex/" in name for name in names))
             self.assertTrue(all("__pycache__" not in name and not name.endswith(".pyc") for name in names))
+
+    def test_font_discovery_includes_cross_platform_cjk_candidates(self) -> None:
+        fonts = load_module("font_discovery", SCRIPTS / "font_discovery.py")
+        candidates = fonts.cjk_family_candidates()
+        for expected in ["Microsoft YaHei", "SimSun", "Source Han Sans SC", "Noto Sans CJK SC", "WenQuanYi Micro Hei"]:
+            self.assertIn(expected, candidates)
 
     def test_check_environment_reports_fonts_and_required_modules(self) -> None:
         env = load_module("check_environment", SCRIPTS / "check_environment.py")
         result = env.check_environment()
         self.assertIn("matplotlib", result["required_modules"])
         self.assertIn("fonts_available", result)
-

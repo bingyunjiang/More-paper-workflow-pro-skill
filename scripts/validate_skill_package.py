@@ -18,8 +18,25 @@ FORBIDDEN_TERMS = [
     "".join(map(chr, [67, 79, 77, 32, 97, 117, 116, 111, 109, 97, 116, 105, 111, 110])),
 ]
 
-IGNORED_DIRS = {"__pycache__", ".pytest_cache"}
+IGNORED_DIRS = {"__pycache__", ".pytest_cache", ".claude", ".codex"}
 TEXT_SUFFIXES = {".md", ".py", ".json", ".yaml", ".yml", ".r", ".toml", ".txt"}
+SECURITY_IGNORED_PREFIXES = (
+    "tests/tmp-pdf-drill/",
+)
+FORBIDDEN_PACKAGE_ENTRIES = {
+    ".codex/config.toml",
+}
+SECRET_ASSIGNMENT_RE = re.compile(
+    r"(?P<key>ZOTERO_API_KEY|ZOTERO_LIBRARY_ID|ZOTERO_USER_ID)\s*=\s*['\"](?P<value>[^'\"]+)['\"]"
+)
+AUTHOR_LOCAL_PATH_RE = re.compile(
+    r"(?:"
+    + re.escape("/" + "Users" + "/" + "Bing" + "/")
+    + r"|"
+    + re.escape("C:" + "\\" + "Users" + "\\" + "Bing" + "\\")
+    + r")",
+    re.IGNORECASE,
+)
 PROJECT_NAME = "more-paper-workflow"
 LEGACY_NAME = "more-paper-workflow" + "-pro-skill"
 PUBLIC_STEP7_MODES = {
@@ -60,6 +77,12 @@ REQUIRED_RUNTIME_PATHS = {
     "references/trigger-catalog.md",
     "references/scientific-figure-reproduction.md",
     "references/paper-diagram-contract.md",
+    "references/step7-evidence-intake.md",
+    "references/step7-drafting-contract.md",
+    "references/step7-citation-audit.md",
+    "references/step7-figure-workflow.md",
+    "references/step7-pre-review.md",
+    "references/step7-completion-validation.md",
     "references/completion-gates.md",
     "references/equation-writing-contract.md",
     "references/failure-triage.md",
@@ -103,6 +126,37 @@ def add_failure(failures: list[dict[str, str]], code: str, path: str, **details:
     failures.append({"code": code, "path": path, **details})
 
 
+def _is_placeholder_secret(value: str) -> bool:
+    normalized = value.strip().lower()
+    return (
+        not normalized
+        or normalized.isdigit()
+        or normalized.startswith("${")
+        or "your" in normalized
+        or "example" in normalized
+        or "placeholder" in normalized
+        or "你的" in value
+    )
+
+
+def scan_text_security(text: str, relative: str, failures: list[dict[str, str]]) -> None:
+    normalized_relative = relative.replace("\\", "/")
+    if any(normalized_relative.startswith(prefix) for prefix in SECURITY_IGNORED_PREFIXES):
+        return
+    if normalized_relative in FORBIDDEN_PACKAGE_ENTRIES:
+        add_failure(failures, "local_codex_config_present", normalized_relative)
+    for match in SECRET_ASSIGNMENT_RE.finditer(text):
+        if not _is_placeholder_secret(match.group("value")):
+            add_failure(
+                failures,
+                "committed_secret_value",
+                normalized_relative,
+                key=match.group("key"),
+            )
+    if AUTHOR_LOCAL_PATH_RE.search(text):
+        add_failure(failures, "author_local_path", normalized_relative)
+
+
 def read_json(path: Path, failures: list[dict[str, str]]) -> dict[str, Any]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -137,6 +191,23 @@ def yaml_axis_allowed(text: str, axis: str) -> list[str]:
                 continue
             if line.strip() and len(line) - len(line.lstrip()) <= 4:
                 break
+    return values
+
+
+def yaml_top_level_sequence(text: str, section: str) -> list[str]:
+    lines = text.splitlines()
+    in_section = False
+    values: list[str] = []
+    for line in lines:
+        if re.fullmatch(rf"{re.escape(section)}:\s*", line):
+            in_section = True
+            continue
+        if in_section and line and not line.startswith((" ", "\t")):
+            break
+        if in_section:
+            match = re.fullmatch(r"  -\s+(.+?)\s*", line)
+            if match:
+                values.append(match.group(1).strip("'\""))
     return values
 
 
@@ -600,7 +671,9 @@ def scan_skill(root: Path) -> dict[str, Any]:
         if path.suffix.lower() in {".pyc", ".pyo"}:
             failures.append({"code": "bytecode_present", "path": str(path)})
         if path.is_file() and path.suffix.lower() in TEXT_SUFFIXES:
+            relative = path.relative_to(root).as_posix()
             text = path.read_text(encoding="utf-8", errors="ignore")
+            scan_text_security(text, relative, failures)
             for term in FORBIDDEN_TERMS:
                 if term in text:
                     failures.append({"code": "forbidden_term", "term": term, "path": str(path)})
@@ -706,12 +779,23 @@ def scan_zip(path: Path) -> dict[str, Any]:
                 failures.append({"code": "windows_separator_in_zip", "path": name})
             if "__pycache__" in name or name.endswith((".pyc", ".pyo")):
                 failures.append({"code": "cache_in_zip", "path": name})
+            relative_name = name[len(package_root) + 1 :] if package_root and name.startswith(f"{package_root}/") else name
+            if relative_name in FORBIDDEN_PACKAGE_ENTRIES or relative_name.startswith(".codex/"):
+                add_failure(failures, "local_codex_config_in_zip", name)
+            suffix = Path(relative_name).suffix.lower()
             try:
                 with archive.open(name) as handle:
                     while handle.read(1024 * 64):
                         pass
             except Exception as exc:
                 failures.append({"code": "zip_entry_unreadable", "path": name, "message": str(exc)})
+                continue
+            if suffix in TEXT_SUFFIXES | {".html", ".svg"}:
+                try:
+                    text = archive.read(name).decode("utf-8")
+                except UnicodeDecodeError:
+                    continue
+                scan_text_security(text, relative_name, failures)
     return {
         "schema": "morepaper.zip_package_validation.v1",
         "zip": str(path),

@@ -466,12 +466,9 @@ def _hex(color: str) -> str:
 
 def _font(size: int):
     from PIL import ImageFont
-    candidates = [
-        "/System/Library/Fonts/PingFang.ttc",
-        "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ]
-    for candidate in candidates:
+    from font_discovery import pil_font_path_candidates
+
+    for candidate in pil_font_path_candidates():
         try:
             return ImageFont.truetype(candidate, size)
         except OSError:

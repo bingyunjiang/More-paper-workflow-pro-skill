@@ -33,6 +33,12 @@ This index groups the reference files by function so the workflow contracts are 
 - `section-blueprint-workflow.md`
 - `writing-quality-borrowing-plan.md`
 - `style-learning-workflow.md`
+- `step7-evidence-intake.md`：Step 7 Zotero/PDF/BibTeX/evidence pack/MinerU direct-entry 证据等级与 intake 输出。
+- `step7-drafting-contract.md`：Step 7 正文生成、章节蓝图、段落纪律和轻量整理边界。
+- `step7-citation-audit.md`：Step 7 claim/evidence 对照、引用风险和证据缺口输出。
+- `step7-figure-workflow.md`：Step 7 原图插入、quick、diagram、reproduction 分流与授权边界。
+- `step7-pre-review.md`：Step 7 审稿人视角预审、缺陷清单和修订路线。
+- `step7-completion-validation.md`：Step 7 `draft_ready / evidence_closed / ready_for_step8` 分层完成门。
 - `step7-figure-marker-syntax.md`
 - `scientific-figure-reproduction.md`：普通数据出图与严格复现后端的自动选择、VisualSpec、QA、bundle 和状态边界。
 - `paper-diagram-contract.md`：Step 7 原生论文流程图/架构图 Spec、10 类图型、12 套风格、公式 run、产物和质量门。

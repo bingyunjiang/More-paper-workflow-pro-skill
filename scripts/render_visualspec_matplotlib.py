@@ -13,7 +13,7 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import font_manager
+from matplotlib.font_manager import FontProperties
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
@@ -24,6 +24,7 @@ from visualspec import load_json, make_manifest, manifest_overall_status, requir
 
 from portable_paths import portable_path
 from audit_semantics import extract_matplotlib_semantics
+from font_discovery import resolve_matplotlib_families
 
 
 def _series(data: dict[str, Any], key: str, *, base_dir: Path | None = None) -> list[float]:
@@ -213,18 +214,9 @@ def _draw_annotation(ax: Any, annotation: dict[str, Any]) -> None:
 def _lock_rcparams(spec: dict[str, Any]) -> None:
     theme = spec.get("theme") or {}
     font = theme.get("font") or {}
-    candidates = font.get("family_candidates") or [font.get("family"), "Liberation Sans", "DejaVu Sans", "STIXGeneral"]
-    candidates = [item for item in candidates if item]
-    available: list[str] = []
-    for candidate in candidates:
-        try:
-            font_manager.findfont(candidate, fallback_to_default=False)
-            available.append(candidate)
-        except Exception:
-            continue
-    if not available:
-        available = ["DejaVu Sans"]
-    resolved = font_manager.FontProperties(family=available).get_name()
+    candidates = font.get("family_candidates") or [font.get("family")]
+    available = resolve_matplotlib_families(item for item in candidates if item)
+    resolved = FontProperties(family=available).get_name()
     plt.rcParams.update(
         {
             "font.family": available,

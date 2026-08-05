@@ -110,9 +110,9 @@ Artifact graph 只负责登记当前可用材料和可确认关系，不强制�
 2. `static/core/output-contract.md`
 3. `references/genre-style-axis.md`
 4. `references/writing-modes.md`
-5. mode 与 operation 对应 reference
-6. `references/equation-writing-contract.md`
-7. `agents/step_7_writing.md`
+5. `agents/step_7_writing.md` 轻量总合同
+6. `references/step7-evidence-intake.md` 与 `references/step7-completion-validation.md`
+7. mode、operation、figure_backend 与公式任务对应的 reference
 
 ## 输出要求
 

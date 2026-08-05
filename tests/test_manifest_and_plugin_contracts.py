@@ -56,6 +56,38 @@ class ManifestAndPluginContractsTest(unittest.TestCase):
         result = package_validator.scan_skill(ROOT)
         self.assertEqual(result["status"], "ok", result["failures"])
 
+    def test_step7_always_load_stays_lightweight(self):
+        manifest = (ROOT / "manifest.step7.yaml").read_text(encoding="utf-8")
+        always_load = package_validator.yaml_top_level_sequence(manifest, "always_load")
+        self.assertLessEqual(len(always_load), 4)
+        self.assertNotIn("references/equation-writing-contract.md", always_load)
+        self.assertIn("conditional_load:", manifest)
+
+    def test_security_scan_rejects_local_codex_config_and_author_paths(self):
+        failures = []
+        local_path = "/" + "Users" + "/" + "Bing" + "/.local/bin/zotero-mcp"
+        api_key_name = "ZOTERO" + "_API_KEY"
+        package_validator.scan_text_security(
+            f'{api_key_name} = "real-looking-token"\ncommand = "{local_path}"\n',
+            ".codex/config.toml",
+            failures,
+        )
+        codes = {failure["code"] for failure in failures}
+        self.assertIn("local_codex_config_present", codes)
+        self.assertIn("committed_secret_value", codes)
+        self.assertIn("author_local_path", codes)
+
+    def test_security_scan_allows_documented_placeholders(self):
+        failures = []
+        api_key_name = "ZOTERO" + "_API_KEY"
+        library_id_name = "ZOTERO" + "_LIBRARY_ID"
+        package_validator.scan_text_security(
+            f'{api_key_name} = "your_key_here"\n{library_id_name} = "${{{library_id_name}}}"\n',
+            "docs/ZOTERO_MCP_SETUP.md",
+            failures,
+        )
+        self.assertEqual([], failures)
+
     def test_zip_validation_rejects_missing_step7_runtime_contract(self):
         with tempfile.TemporaryDirectory() as tmp:
             temp_root = Path(tmp)

@@ -1,11 +1,13 @@
 [mcp_servers.zotero]
-command = "/Users/Bing/.local/bin/zotero-mcp"
+command = "zotero-mcp"
 args = ["serve"]
 
 [mcp_servers.zotero.env]
 ZOTERO_LOCAL = "true"
-ZOTERO_API_KEY = "Q6VubmLTB23pUSYtNysGMgnW"
-ZOTERO_LIBRARY_ID = "10165543"
+# For Web API mode, set these in your shell or Codex secret store instead of
+# committing them here:
+# ZOTERO_API_KEY = "${ZOTERO_API_KEY}"
+# ZOTERO_LIBRARY_ID = "${ZOTERO_LIBRARY_ID}"
 no_proxy = "localhost,127.0.0.1,::1"
 NO_PROXY = "localhost,127.0.0.1,::1"
 

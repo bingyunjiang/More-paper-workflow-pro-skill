@@ -91,6 +91,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run scientific figure release acceptance for more-paper-workflow.")
     parser.add_argument("--json-out", type=Path)
     args = parser.parse_args()
+    output = args.json_out or ROOT / "release_acceptance.json"
+    if output.exists():
+        output.unlink()
 
     skill_text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
     version_match = re.search(r"^version:\s*([^\s(]+)", skill_text, flags=re.MULTILINE)
@@ -157,7 +160,6 @@ def main() -> int:
         ),
         "missing_dependencies": missing_dependencies,
     }
-    output = args.json_out or ROOT / "release_acceptance.json"
     write_json(output, report)
     print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
     return 0 if status == "pass" else 2

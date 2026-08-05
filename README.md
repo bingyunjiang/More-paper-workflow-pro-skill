@@ -320,12 +320,17 @@ See the [first-run examples](examples/first-run/README.md), [workflow diagrams](
 
 当前版本：`v1.0.26-20260804`。
 
-### 今日更新：Step 7 原生论文流程图
+### 今日更新：Step 7 原生论文流程图、安全加固与轻量化
 
 - 新增 `figure_backend=diagram`，支持流程图、系统/Agent 架构图、数据流图、时序图、状态图、时间线、对比矩阵、ER 图和用例图。
 - 统一生成可编辑语义 SVG、Pillow PNG、布局检查、可选审阅覆盖层及 SHA-256 证据记录；公式标签支持 text/math runs，不明确的公式会阻断完成并请求作者确认。
 - `style=minimal` 固化为纯黑白、无底纹的刊发模式；字号随画布宽度缩放，并按 170–180 mm 通栏图检查节点文字不低于 7 pt。
-- Step 7 校验器对重叠、裁切、越界、边穿节点、外部资源、非黑白刊发图和陈旧哈希 fail-closed；全量 641 项测试及根目录/ZIP 包校验通过。
+- Step 7 校验器对重叠、裁切、越界、边穿节点、外部资源、非黑白刊发图和陈旧哈希 fail-closed；发布基线包含根目录/ZIP 包校验。
+- 移除仓库内真实 `.codex/config.toml`，新增无凭据的 `config/codex-config.example.toml`；Zotero API key、library id 和本机可执行路径必须通过本地环境或 secret 管理。
+- 包构建和校验新增本机状态与敏感信息拦截，防止 `.codex/`、`.codegraph/`、`.skill-state/`、`.claude/`、测试临时产物、明文 Zotero 凭据或作者本机路径进入发布包。
+- 新增统一中文字体发现逻辑，PNG/Matplotlib/Pillow 渲染覆盖 Windows 微软雅黑、宋体、黑体，Linux 思源黑体、Noto Sans CJK、文泉驿，以及 macOS PingFang/STHeiti。
+- Step 7 写作合同改为轻量入口加按需 references：证据 intake、正文合同、引用审计、图表工作流、预审和完成验收分文件加载，`manifest.step7.yaml` 只保留最小 `always_load`。
+- `release_acceptance.json` 已同步为 `v1.0.26-20260804`，官方样例 `semantic_strict_pass`；本次复验 21 项 focused tests、根目录/临时 ZIP 包校验和 release acceptance 均通过。
 
 完整记录见 [`CHANGELOG.md`](CHANGELOG.md)。
 

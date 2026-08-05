@@ -56,7 +56,6 @@ always_load:
   - static/core/workflow-run-envelope.md
   - references/genre-style-axis.md
   - references/writing-modes.md
-  - references/equation-writing-contract.md
 
 mode_routes:
   full-document: references/section-blueprint-workflow.md
@@ -67,7 +66,20 @@ mode_routes:
   revision-only: commands/revision-roadmap.md
 
 operation_routes:
-  write: references/section-blueprint-workflow.md
-  citation-audit: references/citation-audit-contract.md
-  figure: references/figure-writing-interface.md
-  pre-review: references/reviewer-protocol.md
+  write: references/step7-drafting-contract.md
+  citation-audit: references/step7-citation-audit.md
+  figure: references/step7-figure-workflow.md
+  pre-review: references/step7-pre-review.md
+
+conditional_load:
+  evidence_intake:
+    - references/step7-evidence-intake.md
+  completion_validation:
+    - references/step7-completion-validation.md
+  formulas:
+    - references/equation-writing-contract.md
+  figure_backend:
+    diagram:
+      - references/paper-diagram-contract.md
+    reproduction:
+      - references/scientific-figure-reproduction.md

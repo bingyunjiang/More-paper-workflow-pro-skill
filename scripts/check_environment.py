@@ -10,6 +10,8 @@ from pathlib import Path
 
 from matplotlib import font_manager
 
+from font_discovery import cjk_family_candidates
+
 
 def module_version(name: str) -> str | None:
     try:
@@ -32,7 +34,7 @@ def font_available(name: str) -> bool:
 
 
 def check_environment() -> dict[str, object]:
-    candidates = ["Arial", "Liberation Sans", "DejaVu Sans", "STIXGeneral", "STIX Two Text"]
+    candidates = cjk_family_candidates(["STIX Two Text"])
     fonts = {name: font_available(name) for name in candidates}
     required = {
         "matplotlib": module_version("matplotlib"),

@@ -38,6 +38,7 @@ RUNTIME_FILES = [
     "capabilities.py",
     "data_resolver.py",
     "visualspec.py",
+    "font_discovery.py",
     "render_visualspec_matplotlib.py",
     "audit_semantics.py",
     "score_iteration.py",

@@ -24,6 +24,8 @@ import matplotlib.ticker as ticker
 from contextlib import contextmanager
 from typing import Optional
 
+from font_discovery import cjk_family_candidates
+
 
 # ── Publication rcParams ─────────────────────────────────────────────────────
 
@@ -67,7 +69,7 @@ NATURE_RCPARAMS = {
 }
 
 # For Chinese text support (appended to font.sans-serif when needed)
-CJK_FONTS = ["SimHei", "Microsoft YaHei", "Noto Sans CJK SC", "WenQuanYi Micro Hei"]
+CJK_FONTS = cjk_family_candidates()
 
 
 @contextmanager

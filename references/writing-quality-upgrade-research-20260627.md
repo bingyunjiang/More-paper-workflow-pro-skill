@@ -4,7 +4,7 @@
 
 来源：
 
-- 用户附件：`/Users/Bing/Desktop/MorePaper改进建议与写作资料参考整理.docx`
+- 用户附件：`$HOME/Desktop/MorePaper改进建议与写作资料参考整理.docx`
 - 当前仓库：`SKILL.md`、`agents/step_7_writing.md`、`agents/step_8_polishing.md`、`references/mechanism-analysis-writing-contract.md`、`references/figure-writing-interface.md`、`references/writing-quality-borrowing-plan.md`
 - 外部链接：见本文末尾。
 

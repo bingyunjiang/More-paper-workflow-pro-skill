@@ -33,6 +33,23 @@
 
 - README 与 `SKILL.md` 补充 More 系列独立边界，明确 `related_skills` 和系列索引只用于选型与边界说明，不表示运行时依赖、自动组合或共享项目状态；`more-paper-workflow` 继续独立拥有 Step 1-8 合同、证据门和完成标准。
 
+### 发布安全与跨平台安装加固
+
+- 删除仓库内真实 `.codex/config.toml`，新增 `config/codex-config.example.toml` 作为无凭据模板；Zotero API key、library id 和本机 `zotero-mcp` 路径必须由环境变量、Codex secret 或用户本机配置提供。
+- `.gitignore`、`scripts/build_skill_package.py` 和 `scripts/validate_skill_package.py` 增加发行安全门，排除 `.codex/`、`.codegraph/`、`.skill-state/`、`.claude/`、测试临时产物和本机批处理脚本，并在源码树与 ZIP 校验中拦截明文 Zotero 凭据、真实本机配置和作者本机路径。
+- `scripts/gen_batch6.py` 从硬编码本机路径改为参数化 CLI，避免生成型辅助脚本携带作者工作目录。
+
+### 中文 PNG 字体与 Step 7 轻量化
+
+- 新增 `scripts/font_discovery.py`，统一 Matplotlib、VisualSpec、Pillow PNG 和环境预检的中文字体候选；覆盖 Windows 微软雅黑、宋体、黑体，Linux 思源黑体、Noto Sans CJK、文泉驿，以及 macOS PingFang/STHeiti。
+- `agents/step_7_writing.md` 从超长主合同压缩为轻量总合同，并拆出 `references/step7-evidence-intake.md`、`references/step7-drafting-contract.md`、`references/step7-citation-audit.md`、`references/step7-figure-workflow.md`、`references/step7-pre-review.md` 和 `references/step7-completion-validation.md`。
+- `manifest.step7.yaml` 将 `always_load` 收敛为输出合同、run envelope、体裁轴和写作模式，公式、证据 intake、图表后端、预审和完成验收改为按任务条件加载。
+
+### 验收元数据同步
+
+- 重新生成 `release_acceptance.json`，版本同步为 `v1.0.26-20260804`，状态为 `pass`，官方样例为 `semantic_strict_pass`。
+- 新增 release acceptance 版本一致性断言、Step 7 轻量加载测试、跨平台中文字体候选测试和 secret/本机路径扫描测试；`pytest tests/test_manifest_and_plugin_contracts.py tests/scientific_figures/test_fast_core.py tests/scientific_figures/test_acceptance_examples.py` 为 21 项通过，根目录与临时 ZIP 包校验均为 `ok`。
+
 ## v1.0.25-20260804 (2026-08-04)
 
 ### Step 7 黑白刊发流程图质量门
