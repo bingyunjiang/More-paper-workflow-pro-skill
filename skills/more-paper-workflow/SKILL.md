@@ -4,16 +4,23 @@ description: >-
   Use when the user asks for more-paper-workflow or its legacy names more-paper-workflow-pro-skill and more paper workflow pro skill (more paper, more-paper, more_paper, morepaper): research topic clarification, outline and keyword generation, structured literature search plans, multi-source literature search and scoring, paper PDF download routing, Zotero library organization, review matrices, paper writing, native paper flowcharts or architecture diagrams, scientific figure generation or reproduction, plot digitization, figure QA, citation audit, or polishing.
 ---
 
-# more-paper-workflow Codex entry
+# more-paper-workflow Codex discovery shim
 
-This is the Codex plugin discovery entry. Before acting, read the complete
-[canonical runtime contract](../../SKILL.md). Resolve every relative path in
-that contract from the repository root two levels above this file, which is
-also this plugin's root.
+This file exists only because `.codex-plugin/plugin.json` declares
+`"skills": "./skills/"`, so Codex plugin discovery expects an entry at
+`skills/more-paper-workflow/SKILL.md`. It is a thin adapter, not a second
+runtime contract and not a Claude Code requirement.
+
+For every real workflow rule, read the complete
+[canonical runtime contract](../../SKILL.md) before acting. Resolve every
+relative path in that contract from the repository root two levels above this
+file, which is also this plugin's root.
 
 The canonical contract routes into `agents/`, `references/`, `scripts/`,
 `static/`, and `commands/`; all of those directories are packaged with this
-root plugin.
+root plugin. Claude Code-style direct use should enter from the root
+`SKILL.md`; Codex plugin installation keeps this shim so discovery can find the
+same canonical contract.
 
 Before routing, verify that `../../SKILL.md` and the selected exact entry below
 exist. If either is absent, report `incomplete_plugin_installation` with the
