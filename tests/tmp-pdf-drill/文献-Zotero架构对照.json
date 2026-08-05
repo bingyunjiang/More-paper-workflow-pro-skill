@@ -44,12 +44,12 @@
       ],
       "import_method": "bibtex",
       "import_status": "ready",
-      "pdf_path": "/Users/Bing/.hermes/skills/more-paper-workflow/tests/tmp-pdf-drill/example.pdf",
+      "pdf_path": "tests/tmp-pdf-drill/example.pdf",
       "pdf_source": "manual",
       "pdf_match_confidence": "high",
       "matched_pdf_candidates": [
         {
-          "path": "/Users/Bing/.hermes/skills/more-paper-workflow/tests/tmp-pdf-drill/example.pdf",
+          "path": "tests/tmp-pdf-drill/example.pdf",
           "filename": "example.pdf",
           "size_bytes": 1275,
           "md5": "8688a9c4678c4b187ccce86953174d67",
@@ -62,10 +62,10 @@
         }
       ],
       "prepared_pdf_artifacts": {
-        "raw_md": "/Users/Bing/.hermes/skills/more-paper-workflow/tests/tmp-pdf-drill/pdf-prepared/example.raw.md",
-        "clean_md": "/Users/Bing/.hermes/skills/more-paper-workflow/tests/tmp-pdf-drill/pdf-prepared/example.clean.md",
-        "chunks_json": "/Users/Bing/.hermes/skills/more-paper-workflow/tests/tmp-pdf-drill/pdf-prepared/example.chunks.json",
-        "extraction_report_json": "/Users/Bing/.hermes/skills/more-paper-workflow/tests/tmp-pdf-drill/pdf-prepared/example.extraction_report.json",
+        "raw_md": "tests/tmp-pdf-drill/pdf-prepared/example.raw.md",
+        "clean_md": "tests/tmp-pdf-drill/pdf-prepared/example.clean.md",
+        "chunks_json": "tests/tmp-pdf-drill/pdf-prepared/example.chunks.json",
+        "extraction_report_json": "tests/tmp-pdf-drill/pdf-prepared/example.extraction_report.json",
         "evidence_level": "pdf_fulltext_supported",
         "must_check_pdf": true,
         "risk_flags": [

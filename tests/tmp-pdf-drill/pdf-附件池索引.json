@@ -4,9 +4,9 @@
   "warnings": [],
   "pdfs": [
     {
-      "path": "/Users/Bing/.hermes/skills/more-paper-workflow/tests/tmp-pdf-drill/example.pdf",
+      "path": "tests/tmp-pdf-drill/example.pdf",
       "filename": "example.pdf",
-      "source_dir": "/Users/Bing/.hermes/skills/more-paper-workflow/tests/tmp-pdf-drill",
+      "source_dir": "tests/tmp-pdf-drill",
       "size_bytes": 1275,
       "md5": "8688a9c4678c4b187ccce86953174d67",
       "match_status": "found",

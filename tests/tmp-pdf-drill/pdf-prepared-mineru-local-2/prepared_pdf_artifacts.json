@@ -1,7 +1,7 @@
 {
   "artifacts": [
     {
-      "source_pdf": "/Users/Bing/.hermes/skills/more-paper-workflow/tests/tmp-pdf-drill/example.pdf",
+      "source_pdf": "tests/tmp-pdf-drill/example.pdf",
       "paper_title": "Example Paper",
       "citekey": "wang2024example",
       "zotero_item_key": "",
@@ -13,10 +13,10 @@
         "当前文档属于高风险版面，MinerU 更适合处理。 风险标记：multi_column_or_fragmented_layout。 如未安装 MinerU，可先参考官方仓库的 Local Deployment / Online Experience 说明。",
         "MinerU local 不可用，已自动回退到 PyMuPDF 轻量解析链路。 原因：MinerU CLI not found on PATH"
       ],
-      "raw_md": "/Users/Bing/.hermes/skills/more-paper-workflow/tests/tmp-pdf-drill/pdf-prepared-mineru-local-2/example.raw.md",
-      "clean_md": "/Users/Bing/.hermes/skills/more-paper-workflow/tests/tmp-pdf-drill/pdf-prepared-mineru-local-2/example.clean.md",
-      "chunks_json": "/Users/Bing/.hermes/skills/more-paper-workflow/tests/tmp-pdf-drill/pdf-prepared-mineru-local-2/example.chunks.json",
-      "extraction_report_json": "/Users/Bing/.hermes/skills/more-paper-workflow/tests/tmp-pdf-drill/pdf-prepared-mineru-local-2/example.extraction_report.json",
+      "raw_md": "tests/tmp-pdf-drill/pdf-prepared-mineru-local-2/example.raw.md",
+      "clean_md": "tests/tmp-pdf-drill/pdf-prepared-mineru-local-2/example.clean.md",
+      "chunks_json": "tests/tmp-pdf-drill/pdf-prepared-mineru-local-2/example.chunks.json",
+      "extraction_report_json": "tests/tmp-pdf-drill/pdf-prepared-mineru-local-2/example.extraction_report.json",
       "evidence_level": "pdf_fulltext_supported",
       "must_check_pdf": true,
       "risk_flags": [
