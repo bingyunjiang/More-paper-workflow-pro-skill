@@ -6,6 +6,7 @@
 
 - `more-paper-workflow-wechat-long.png`：公众号长图，1080 × 3200。
 - `more-paper-workflow-slide-16x9.png`：16:9 演示页，1920 × 1080。
+- `more-paper-workflow-readme-hero-v1.0.26.png`：README 首屏主视觉，1920 × 1080；对应可编辑源文件为 `more-paper-workflow-readme-hero-v1.0.26.html`，Imagen 背景保存在同目录。
 - `more-paper-workflow-bilingual-poster.png`：中英双语海报，1080 × 1440。
 - `more-paper-workflow-x-bilingual.png`：X.com 横版双语发布图，1672 × 941。
 - `x-carousel/x-01-cover.png` 至 `x-04-start.png`：X.com 首发四图组，单张 1672 × 941。

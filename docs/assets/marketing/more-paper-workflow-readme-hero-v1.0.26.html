@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>more-paper-workflow README hero</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: #0b1d48;
+      background: #f8fbff;
+    }
+    .hero {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      padding: 74px 86px 58px;
+      background:
+        linear-gradient(90deg, rgba(250,253,255,.99) 0%, rgba(250,253,255,.97) 36%, rgba(250,253,255,.60) 51%, rgba(250,253,255,.02) 72%),
+        url("more-paper-workflow-readme-hero-background-v1.0.26.png") center / cover no-repeat;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(31,70,180,.07));
+      pointer-events: none;
+    }
+    .content { position: relative; z-index: 2; width: 880px; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 19px;
+      border: 1px solid rgba(42,86,218,.18);
+      border-radius: 999px;
+      background: rgba(255,255,255,.76);
+      box-shadow: 0 12px 34px rgba(47,90,188,.10);
+      color: #244fc2;
+      font-size: 22px;
+      font-weight: 760;
+      letter-spacing: .02em;
+    }
+    .dot {
+      width: 11px; height: 11px; border-radius: 50%;
+      background: linear-gradient(135deg, #135cff, #a22cff);
+      box-shadow: 0 0 0 6px rgba(60,91,255,.10);
+    }
+    h1 {
+      margin: 36px 0 20px;
+      font-size: 86px;
+      line-height: 1.05;
+      letter-spacing: -.055em;
+      font-weight: 880;
+      color: #091b49;
+    }
+    h1 .gradient {
+      color: transparent;
+      background: linear-gradient(92deg, #1557e8 4%, #6637db 58%, #b326d0 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+    .lead {
+      margin: 0;
+      width: 780px;
+      color: #405378;
+      font-size: 31px;
+      line-height: 1.55;
+      font-weight: 520;
+    }
+    .lead strong { color: #152b5a; font-weight: 780; }
+    .features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 13px;
+      margin-top: 30px;
+      width: 790px;
+    }
+    .feature {
+      padding: 12px 18px;
+      border-radius: 13px;
+      border: 1px solid rgba(46,85,172,.16);
+      background: rgba(255,255,255,.78);
+      color: #263e70;
+      font-size: 21px;
+      font-weight: 700;
+      box-shadow: 0 10px 26px rgba(32,72,152,.08);
+    }
+    .feature b { color: #1557e8; }
+    .workflow {
+      position: absolute;
+      z-index: 3;
+      left: 86px;
+      right: 86px;
+      bottom: 92px;
+      height: 148px;
+      padding: 22px 24px 20px;
+      border: 1px solid rgba(72,104,178,.18);
+      border-radius: 26px;
+      background: rgba(255,255,255,.86);
+      box-shadow: 0 24px 70px rgba(33,70,150,.16);
+      backdrop-filter: blur(18px);
+    }
+    .workflow-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin: 0 4px 14px;
+      color: #253b68;
+      font-size: 18px;
+      font-weight: 760;
+      letter-spacing: .02em;
+    }
+    .workflow-title span:last-child { color: #65779a; font-weight: 600; }
+    .steps { display: grid; grid-template-columns: repeat(8, 1fr); gap: 11px; }
+    .step {
+      position: relative;
+      min-height: 69px;
+      padding: 12px 12px 10px 50px;
+      border-radius: 16px;
+      background: linear-gradient(145deg, rgba(239,245,255,.98), rgba(250,247,255,.98));
+      border: 1px solid rgba(69,99,186,.11);
+      color: #1e3567;
+    }
+    .step-no {
+      position: absolute;
+      left: 12px; top: 14px;
+      width: 29px; height: 29px;
+      display: grid; place-items: center;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #1758e9, #7139dc);
+      color: white;
+      font-size: 15px;
+      font-weight: 850;
+      box-shadow: 0 7px 18px rgba(54,70,207,.22);
+    }
+    .step strong { display: block; font-size: 18px; line-height: 1.2; }
+    .step small { display: block; margin-top: 4px; color: #6d7e9f; font-size: 13px; font-weight: 600; }
+    .footer {
+      position: absolute;
+      z-index: 4;
+      left: 90px; right: 90px; bottom: 34px;
+      display: flex; align-items: center; justify-content: space-between;
+      color: #526789;
+      font-size: 19px;
+      font-weight: 620;
+    }
+    .brand { color: #143fba; font-weight: 820; }
+    .github { color: #243c68; }
+  </style>
+</head>
+<body>
+  <main class="hero">
+    <section class="content">
+      <div class="eyebrow"><span class="dot"></span> more-paper-workflow · v1.0.26</div>
+      <h1>AI 写论文，<br><span class="gradient">先跑通证据链。</span></h1>
+      <p class="lead">一套支持<strong>任意步骤直达</strong>的学术论文全流程 Skill。把定题、检索、PDF、Zotero、写作、图表、引用审计与润色，连成可回查的研究链路。</p>
+      <div class="features">
+        <div class="feature"><b>8 Steps</b> 全流程</div>
+        <div class="feature"><b>Direct Entry</b> 任意步骤直达</div>
+        <div class="feature"><b>Evidence Gates</b> 质量门不跳过</div>
+        <div class="feature">公式 · 科研图表 · 论文流程图</div>
+      </div>
+    </section>
+
+    <section class="workflow" aria-label="八步论文工作流">
+      <div class="workflow-title"><span>FROM RESEARCH QUESTION TO VERIFIABLE PAPER</span><span>证据可追溯 · 过程可审阅 · 产物可核验</span></div>
+      <div class="steps">
+        <div class="step"><span class="step-no">1</span><strong>定题</strong><small>研究问题</small></div>
+        <div class="step"><span class="step-no">2</span><strong>大纲</strong><small>结构与关键词</small></div>
+        <div class="step"><span class="step-no">3</span><strong>检索计划</strong><small>来源与策略</small></div>
+        <div class="step"><span class="step-no">4</span><strong>搜索评分</strong><small>筛选与报告</small></div>
+        <div class="step"><span class="step-no">5</span><strong>PDF</strong><small>下载与对账</small></div>
+        <div class="step"><span class="step-no">6</span><strong>Zotero</strong><small>文库与附件</small></div>
+        <div class="step"><span class="step-no">7</span><strong>写作绘图</strong><small>证据与引用</small></div>
+        <div class="step"><span class="step-no">8</span><strong>润色终验</strong><small>保守修订</small></div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span><span class="brand">Dr. Jiang Bingyun（江博士）</span> · WeChat: Bingyunjiang</span>
+      <span class="github">github.com/bingyunjiang/more-paper-workflow</span>
+    </footer>
+  </main>
+</body>
+</html>

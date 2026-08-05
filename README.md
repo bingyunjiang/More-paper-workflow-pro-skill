@@ -13,7 +13,7 @@
 > From research question to verifiable paper: start from any Step, keep evidence visible, and close every quality gate.
 
 <p align="center">
-  <img src="docs/assets/marketing/more-paper-workflow-slide-16x9.png" alt="more-paper-workflow：从研究问题到可核验论文" width="100%">
+  <img src="docs/assets/marketing/more-paper-workflow-readme-hero-v1.0.26.png" alt="more-paper-workflow：AI 写论文，先跑通证据链。八步论文工作流支持任意步骤直达、证据追溯与质量门核验" width="100%">
 </p>
 
 `more-paper-workflow` 不把论文简化成“一键生成文本”。它把定题、大纲、检索、PDF、Zotero、写作、科研图表、论文流程图、引用审计和保守润色连成一条可追溯链路。
