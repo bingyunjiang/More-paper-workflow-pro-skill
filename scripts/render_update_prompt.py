@@ -37,6 +37,9 @@ def load_payload(args: argparse.Namespace) -> dict:
 
 
 def build_prompt(payload: dict) -> str:
+    if not payload.get("should_prompt"):
+        return ""
+
     skill_version = payload.get("skill_version") or "unknown"
     remote_head = short_sha(payload.get("remote_head"))
     update_command = payload.get("update_command") or "git pull --ff-only"
@@ -78,7 +81,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.json:
         json.dump({"prompt": prompt}, sys.stdout, ensure_ascii=False, indent=2)
         sys.stdout.write("\n")
-    else:
+    elif prompt:
         sys.stdout.write(prompt + "\n")
     return 0
 

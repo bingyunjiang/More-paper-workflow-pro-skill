@@ -15,6 +15,7 @@ SCRIPT = ROOT / "scripts" / "render_update_prompt.py"
 class RenderUpdatePromptTest(unittest.TestCase):
     def test_renders_standard_prompt_from_json_file(self):
         payload = {
+            "should_prompt": True,
             "skill_version": "v1.0.14-20260618",
             "remote_head": "abcdef1234567890",
             "update_command": "cd /tmp/repo && git pull --ff-only",
@@ -43,6 +44,24 @@ class RenderUpdatePromptTest(unittest.TestCase):
             "3. 今日不再提醒",
         ]:
             self.assertIn(token, text)
+
+    def test_renders_nothing_when_prompt_is_not_requested(self):
+        payload = {
+            "should_prompt": False,
+            "skill_version": "v1.0.26-20260804",
+            "remote_head": None,
+            "update_command": None,
+        }
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT)],
+            cwd=ROOT,
+            input=json.dumps(payload, ensure_ascii=False),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "")
 
 
 if __name__ == "__main__":

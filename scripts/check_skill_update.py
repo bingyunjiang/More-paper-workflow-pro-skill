@@ -79,6 +79,45 @@ def run_git(root: Path, args: list[str], timeout: int = REMOTE_TIMEOUT_SECONDS) 
     return result.stdout.strip()
 
 
+def run_git_status(root: Path, args: list[str], timeout: int = REMOTE_TIMEOUT_SECONDS) -> int | None:
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return result.returncode
+
+
+def remote_has_update(root: Path, local_head: str | None, remote_head: str | None) -> bool:
+    if not local_head or not remote_head or local_head == remote_head:
+        return False
+
+    remote_known = run_git_status(root, ["cat-file", "-e", f"{remote_head}^{{commit}}"], timeout=2)
+    if remote_known == 0:
+        remote_is_ancestor = run_git_status(
+            root,
+            ["merge-base", "--is-ancestor", remote_head, local_head],
+            timeout=2,
+        )
+        if remote_is_ancestor == 0:
+            return False
+        local_is_ancestor = run_git_status(
+            root,
+            ["merge-base", "--is-ancestor", local_head, remote_head],
+            timeout=2,
+        )
+        if local_is_ancestor == 0:
+            return True
+
+    return True
+
+
 def state_path() -> Path:
     cache_root = os.environ.get("XDG_CACHE_HOME")
     if cache_root:
@@ -167,7 +206,7 @@ def main(argv: list[str] | None = None) -> int:
     root = skill_dir()
     state_file = state_path()
     state = load_state(state_file)
-    if not should_check(state_file, args.interval_hours, args.force):
+    if not args.record_choice and not should_check(state_file, args.interval_hours, args.force):
         if args.json:
             emit_json({"enabled": True, "skipped": True, "reason": "throttled", "state_file": str(state_file)})
         return 0
@@ -196,7 +235,7 @@ def main(argv: list[str] | None = None) -> int:
         remote_raw = run_git(root, ["ls-remote", "origin", "HEAD"], timeout=REMOTE_TIMEOUT_SECONDS)
         if remote_raw:
             remote_head = remote_raw.split()[0]
-            if remote_head and remote_head != local_head:
+            if remote_has_update(root, local_head, remote_head):
                 remote_update_available = True
                 lines.append(f"- 远程仓库已有新提交：本地 {local_head[:7]}，远程 {remote_head[:7]}。")
                 lines.append(f"- 更新命令：cd {root} && git pull --ff-only")
@@ -207,12 +246,13 @@ def main(argv: list[str] | None = None) -> int:
 
     choice_recorded = None
     if args.record_choice:
+        choice_remote_head = remote_head or state.get("last_prompted_remote_head") or state.get("remote_head")
         choice_recorded = args.record_choice
         state["last_user_choice"] = args.record_choice
         state["last_choice_at"] = now_ts
-        state["last_prompted_remote_head"] = remote_head
-        if args.record_choice == "snooze_today" and remote_head:
-            state["suppressed_remote_head"] = remote_head
+        state["last_prompted_remote_head"] = choice_remote_head
+        if args.record_choice == "snooze_today" and choice_remote_head:
+            state["suppressed_remote_head"] = choice_remote_head
             state["suppress_until"] = now_ts + args.suppress_hours * 3600
         elif args.record_choice == "upgrade":
             state.pop("suppressed_remote_head", None)
@@ -221,6 +261,8 @@ def main(argv: list[str] | None = None) -> int:
             # skip_once only affects the current host session; leave no long-lived suppression marker.
             state.pop("suppressed_remote_head", None)
             state.pop("suppress_until", None)
+    elif should_prompt:
+        state["last_prompted_remote_head"] = remote_head
 
     payload = {
         "enabled": True,
@@ -256,7 +298,7 @@ def main(argv: list[str] | None = None) -> int:
             "readme_version": readme_version,
             "changelog_version": changelog_version,
             "local_head": local_head,
-            "remote_head": remote_head,
+            "remote_head": remote_head or state.get("remote_head"),
         }
     )
     save_state(state_file, state)

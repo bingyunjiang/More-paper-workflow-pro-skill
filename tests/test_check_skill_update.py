@@ -4,6 +4,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -79,6 +80,84 @@ class CheckSkillUpdateScriptTest(unittest.TestCase):
             self.assertTrue(second_payload["suppressed"])
             self.assertEqual(second_payload["suppress_reason"], "snoozed_for_today")
             self.assertFalse(second_payload["should_prompt"])
+
+    def test_record_choice_bypasses_throttle_and_uses_cached_remote_head(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cache_root = Path(tmp)
+            state_file = cache_root / "more-paper-workflow" / "update-check.json"
+            state_file.parent.mkdir(parents=True)
+            state_file.write_text(
+                json.dumps(
+                    {
+                        "last_checked": time.time(),
+                        "last_prompted_remote_head": "abcdef1234567890",
+                        "remote_head": "abcdef1234567890",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--json",
+                    "--no-network",
+                    "--record-choice",
+                    "snooze_today",
+                    "--suppress-hours",
+                    "2",
+                ],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+                env={"XDG_CACHE_HOME": tmp, "PATH": "/usr/bin:/bin"},
+            )
+            state = json.loads(state_file.read_text(encoding="utf-8"))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertFalse(payload["skipped"])
+            self.assertEqual(payload["choice_recorded"], "snooze_today")
+            self.assertEqual(state["suppressed_remote_head"], "abcdef1234567890")
+            self.assertGreater(state["suppress_until"], state["last_choice_at"])
+
+    def test_remote_has_update_ignores_local_ahead_of_known_remote_head(self):
+        import scripts.check_skill_update as check_skill_update
+
+        original = check_skill_update.run_git_status
+
+        def fake_status(root, args, timeout=5):
+            if args[:2] == ["cat-file", "-e"]:
+                return 0
+            if args == ["merge-base", "--is-ancestor", "remote", "local"]:
+                return 0
+            return 1
+
+        try:
+            check_skill_update.run_git_status = fake_status
+            self.assertFalse(check_skill_update.remote_has_update(ROOT, "local", "remote"))
+        finally:
+            check_skill_update.run_git_status = original
+
+    def test_remote_has_update_detects_local_behind_known_remote_head(self):
+        import scripts.check_skill_update as check_skill_update
+
+        original = check_skill_update.run_git_status
+
+        def fake_status(root, args, timeout=5):
+            if args[:2] == ["cat-file", "-e"]:
+                return 0
+            if args == ["merge-base", "--is-ancestor", "remote", "local"]:
+                return 1
+            if args == ["merge-base", "--is-ancestor", "local", "remote"]:
+                return 0
+            return 1
+
+        try:
+            check_skill_update.run_git_status = fake_status
+            self.assertTrue(check_skill_update.remote_has_update(ROOT, "local", "remote"))
+        finally:
+            check_skill_update.run_git_status = original
 
 
 if __name__ == "__main__":
