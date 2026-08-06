@@ -113,9 +113,13 @@ class ValidateStep7OutputTest(unittest.TestCase):
             (out / "evidence_matrix.md").write_text("# Evidence\n", encoding="utf-8")
             (out / "citation_audit.md").write_text("# Citation Audit\n", encoding="utf-8")
             (out / "figure_asset_check.md").write_text("# Figure Asset Check\n", encoding="utf-8")
-            (out / "mechanism_cards.md").write_text("# Mechanism Cards\n", encoding="utf-8")
-            (out / "mechanism_argument_plan.md").write_text("# Mechanism Argument Plan\n", encoding="utf-8")
-            (out / "mechanism_claim_audit.md").write_text("# Mechanism Claim Audit\n", encoding="utf-8")
+            (out / "evidence_matrix.md").write_text("# Evidence Matrix\n", encoding="utf-8")
+            for name, schema in {
+                "mechanism_cards.json": "mechanism-cards.v2",
+                "mechanism_argument_plan.json": "mechanism-argument-plan.v2",
+                "mechanism_claim_audit.json": "mechanism-claim-audit.v1",
+            }.items():
+                (out / name).write_text(json.dumps({"schema_version": schema, "records": []}), encoding="utf-8")
             self.write_reviewer_scorecard(out)
             result = self.run_validator(out)
 
@@ -265,12 +269,12 @@ class ValidateStep7OutputTest(unittest.TestCase):
             ]).replace("\n\n", "\n"),
             encoding="utf-8",
         )
-        (out / "evidence_matrix.md").write_text("# Evidence\n", encoding="utf-8")
+        (out / "evidence_matrix.md").write_text("# Evidence\n\n- source: mapped\n", encoding="utf-8")
         (out / "citation_audit.md").write_text("# Citation Audit\n", encoding="utf-8")
         (out / "figure_asset_check.md").write_text(f"# Figure Asset Check\n\n- figure_mode: {figure_mode}\n", encoding="utf-8")
-        (out / "mechanism_cards.md").write_text("# Mechanism Cards\n", encoding="utf-8")
-        (out / "mechanism_argument_plan.md").write_text("# Mechanism Argument Plan\n", encoding="utf-8")
-        (out / "mechanism_claim_audit.md").write_text("# Mechanism Claim Audit\n", encoding="utf-8")
+        (out / "mechanism_cards.md").write_text("# Mechanism Cards\n\n- claim: mechanism scope recorded\n", encoding="utf-8")
+        (out / "mechanism_argument_plan.md").write_text("# Mechanism Argument Plan\n\n- pathway: evidence-bound\n", encoding="utf-8")
+        (out / "mechanism_claim_audit.md").write_text("# Mechanism Claim Audit\n\n- status: reviewed\n", encoding="utf-8")
         self.write_reviewer_scorecard(out)
 
     def test_reproduction_backend_requires_figure_evidence_report(self):
@@ -531,6 +535,65 @@ class ValidateStep7OutputTest(unittest.TestCase):
         self.assertIn("completion_state: evidence_closed", passed.stdout)
         self.assertNotEqual(stale.returncode, 0)
         self.assertIn("stale_claim_evidence_audit", stale.stdout)
+
+    def test_adversarial_cnt_cdrx_strong_claim_cannot_close_with_empty_audit_or_mechanism_shells(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            self.write_minimum_artifacts(out)
+            draft = "# 机理分析\n\nCNT/CDRX 显著提升强度并证明因果机制。[1]（已读全文）。\n"
+            (out / "journal_paper_draft.md").write_text(draft, encoding="utf-8")
+            digest = hashlib.sha256(draft.encode("utf-8")).hexdigest()
+            scorecard_path = out / "reviewer_scorecard.json"
+            scorecard = json.loads(scorecard_path.read_text(encoding="utf-8"))
+            scorecard["draft_sha256"] = digest
+            scorecard_path.write_text(json.dumps(scorecard), encoding="utf-8")
+            (out / "evidence_matrix.md").write_text("# Evidence Matrix\n", encoding="utf-8")
+            for name, schema in {
+                "mechanism_cards.json": "mechanism-cards.v2",
+                "mechanism_argument_plan.json": "mechanism-argument-plan.v2",
+                "mechanism_claim_audit.json": "mechanism-claim-audit.v1",
+            }.items():
+                (out / name).write_text(json.dumps({"schema_version": schema, "records": []}), encoding="utf-8")
+            (out / "claim_evidence_audit.json").write_text(json.dumps({
+                "schema_version": "claim-evidence-audit.v1",
+                "draft_sha256": digest,
+                "summary": {"unresolved_count": 0},
+                "records": [],
+            }), encoding="utf-8")
+            result = self.run_validator(out, "evidence_closed")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("empty_claim_evidence_audit", result.stdout)
+        self.assertIn("empty_evidence_mapping", result.stdout)
+        self.assertIn("invalid_mechanism_cards", result.stdout)
+        self.assertIn("invalid_mechanism_argument_plan", result.stdout)
+        self.assertIn("invalid_mechanism_claim_audit", result.stdout)
+
+    def test_claim_unresolved_count_is_derived_from_records(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            self.write_minimum_artifacts(out)
+            draft = "# 方法\n\n正文采用编号引文[1]（已读全文）。\n"
+            (out / "journal_paper_draft.md").write_text(draft, encoding="utf-8")
+            digest = hashlib.sha256(draft.encode("utf-8")).hexdigest()
+            scorecard_path = out / "reviewer_scorecard.json"
+            scorecard = json.loads(scorecard_path.read_text(encoding="utf-8"))
+            scorecard["draft_sha256"] = digest
+            scorecard_path.write_text(json.dumps(scorecard), encoding="utf-8")
+            record = {
+                "claim_segment_id": "S001", "claim_text": "正文", "claim_strength": "background",
+                "required_evidence": "abstract_ok", "support_grade": "background", "reading_depth": "full_text",
+                "evidence_anchor": "page:1", "downgrade_required": True, "recommended_action": "supplement_pdf_or_fulltext",
+                "resolution_status": "open",
+            }
+            (out / "claim_evidence_audit.json").write_text(json.dumps({
+                "schema_version": "claim-evidence-audit.v1", "draft_sha256": digest,
+                "summary": {"unresolved_count": 0}, "records": [record],
+            }), encoding="utf-8")
+            result = self.run_validator(out, "evidence_closed")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("claim_unresolved_count_mismatch", result.stdout)
 
 
 if __name__ == "__main__":

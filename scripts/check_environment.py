@@ -10,7 +10,7 @@ from pathlib import Path
 
 from matplotlib import font_manager
 
-from font_discovery import cjk_family_candidates
+from font_discovery import CJK_FONT_FAMILY_CANDIDATES, LATIN_FALLBACK_FAMILIES
 
 
 def module_version(name: str) -> str | None:
@@ -34,8 +34,8 @@ def font_available(name: str) -> bool:
 
 
 def check_environment() -> dict[str, object]:
-    candidates = cjk_family_candidates(["STIX Two Text"])
-    fonts = {name: font_available(name) for name in candidates}
+    cjk_fonts = {name: font_available(name) for name in CJK_FONT_FAMILY_CANDIDATES}
+    latin_fonts = {name: font_available(name) for name in LATIN_FALLBACK_FAMILIES}
     required = {
         "matplotlib": module_version("matplotlib"),
         "numpy": module_version("numpy"),
@@ -56,9 +56,13 @@ def check_environment() -> dict[str, object]:
         "executable_role": "python",
         "required_modules": required,
         "optional_modules": optional,
-        "fonts_available": fonts,
+        "fonts_available": {**cjk_fonts, **latin_fonts},
+        "cjk_fonts_available": cjk_fonts,
+        "latin_fallbacks_available": latin_fonts,
         "r_available": shutil.which("Rscript") is not None,
-        "status": "pass" if not missing_required and any(fonts.values()) else "failed",
+        "status": "pass" if not missing_required and any({**cjk_fonts, **latin_fonts}.values()) else "failed",
+        "cjk_ready": bool(any(cjk_fonts.values())),
+        "cjk_status": "pass" if any(cjk_fonts.values()) else "failed",
         "missing_required": missing_required,
     }
 

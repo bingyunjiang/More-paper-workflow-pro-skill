@@ -643,6 +643,13 @@ def main() -> int:
         spec_path=args.spec,
         source_path=args.source,
     )
+    if args.backend == "quick" and is_visualspec(args.spec):
+        print(
+            "ERROR: backend/schema conflict: --backend quick cannot render a VisualSpec; "
+            "use --backend reproduction (or --backend auto).",
+            file=sys.stderr,
+        )
+        return 2
     if backend == "reproduction":
         return run_reproduction_backend(args)
     if backend == "diagram":

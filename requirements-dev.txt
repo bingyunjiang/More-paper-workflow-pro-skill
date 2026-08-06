@@ -1,4 +1,7 @@
-# Development and release validation dependencies
+# Development and release validation dependencies. The includes keep the
+# complete development/release environment aligned with the runtime contracts.
+-r requirements.txt
+-r requirements-figures.txt
 pytest>=8.0
 PyYAML>=6.0
 jsonschema>=4.22

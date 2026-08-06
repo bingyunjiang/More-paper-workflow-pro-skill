@@ -15,6 +15,7 @@ if str(SCRIPTS) not in sys.path:
 from paper_diagrams.engine import render_from_file
 from paper_diagrams.model import DIAGRAM_TYPES, STYLE_IDS, DiagramSpecError, load_spec
 from paper_diagrams.render import build_scene, publication_profile, render_svg
+from unittest.mock import patch
 
 
 def payload(diagram_type: str = "flowchart", style: str = "clean") -> dict:
@@ -98,6 +99,26 @@ class PaperDiagramTest(unittest.TestCase):
             self.assertTrue(profile["no_tinted_background"])
             self.assertEqual([170, 180], profile["recommended_width_mm"])
             self.assertLessEqual(profile["minimum_width_mm_for_7pt"], 165.0)
+
+    def test_cjk_text_fails_closed_when_selected_font_lacks_glyphs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("font_discovery.pil_font_path_candidates", return_value=[Path("/tmp/no-font.ttf")]), patch(
+                "font_discovery.font_supports_text", return_value=False
+            ):
+                with self.assertRaisesRegex(DiagramSpecError, "CJK text"):
+                    render_from_file(self.write_spec(Path(tmp), payload()), Path(tmp) / "figures")
+
+    def test_english_only_diagram_does_not_require_cjk_font(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            value = payload()
+            value["title"] = "Method flow"
+            for node in value["nodes"]:
+                node.pop("label_runs", None)
+                node["label"] = "Input" if node["id"] == "input" else "Model"
+            value["annotations"] = []
+            with patch("font_discovery.pil_font_path_candidates", return_value=[]):
+                result = render_from_file(self.write_spec(Path(tmp), value), Path(tmp) / "figures")
+            self.assertTrue(Path(result["svg"]).is_file())
 
     def test_unknown_fields_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

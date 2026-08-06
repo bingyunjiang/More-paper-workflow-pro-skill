@@ -242,7 +242,7 @@ https://github.com/bingyunjiang/more-paper-workflow
 python scripts/validate_skill_package.py --root .
 ```
 
-参与开发或执行完整发布验收时，先安装 `requirements-dev.txt`；严格科研绘图测试另外安装 `requirements-figures.txt`。
+参与开发或执行完整发布验收时，先安装 `requirements-dev.txt`（已包含严格科研绘图依赖）；只有按需单独运行科研绘图时，才直接安装 `requirements-figures.txt`。
 
 检查通过时，Step 7 的精确入口为 `agents/step_7_entry.md`，完整写作合同为
 `agents/step_7_writing.md`；不存在 `agents/step_7.md`。其他步骤同样以
@@ -277,6 +277,16 @@ Step 6 支持 `local / cloud / skip`。只读扫描、查重和 plan-only 不触
 ---
 
 ## 进阶文档
+
+### 安装层级与发布验收边界
+
+- 核心运行时（最小安装）：`python3 -m pip install -r requirements.txt`。仅保证工作流基础入口与文献表能力。
+- 完整开发环境：`python3 -m pip install -r requirements-dev.txt`。该清单包含核心与科研图形依赖，并用于本地测试。
+- 严格科研图形：`python3 -m pip install -r requirements-figures.txt`；用于 VisualSpec/原生流程图、复现与字体质量门。
+- 平台限定的离线 Zotero 缓存：先按 `scripts/packages/manifest.lock.json` 的 `bundle.target_platform` 与 `bundle.target_python` 选择匹配解释器，再执行离线解析/验收：
+  `python3 scripts/check_offline_packages.py --strict --resolve`。该缓存不是跨平台通用包，目标平台不匹配时验收应失败。
+
+`release_acceptance.py` 会记录 commit、工作树是否有未提交改动、运行平台、Python、依赖清单 SHA-256 及离线 manifest 目标；git 或 manifest 不可用时以 `null`/`unknown` 降级，诊断报告仍会落盘。完整发布声明仍要求全量测试、包校验、release acceptance 与 offline strict 同时通过。
 
 *Detailed documentation and runtime contracts*
 

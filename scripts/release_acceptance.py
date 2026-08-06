@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import platform
 import re
 import subprocess
 import sys
@@ -13,6 +15,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
+OFFLINE_MANIFEST = ROOT / "scripts" / "packages" / "manifest.lock.json"
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -85,6 +88,65 @@ def parse_environment_failure(result: dict[str, Any]) -> list[str]:
         return []
     missing = payload.get("missing_required")
     return [str(item) for item in missing] if isinstance(missing, list) else []
+
+
+def _git_sha() -> str | None:
+    try:
+        result = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=5)
+        value = result.stdout.strip()
+        return value or None
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def _git_worktree_dirty() -> bool | None:
+    try:
+        result = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, text=True,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=5)
+        if result.returncode != 0:
+            return None
+        return bool(result.stdout.strip())
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def _sha256(path: Path) -> str | None:
+    try:
+        digest = hashlib.sha256()
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
+    except OSError:
+        return None
+
+
+def acceptance_metadata() -> dict[str, Any]:
+    manifest: dict[str, Any] = {}
+    try:
+        payload = load_json(OFFLINE_MANIFEST)
+        bundle = payload.get("bundle", {}) if isinstance(payload, dict) else {}
+        if isinstance(bundle, dict):
+            manifest = {
+                "target_platform": bundle.get("target_platform", "unknown"),
+                "target_python": bundle.get("target_python", "unknown"),
+            }
+    except (OSError, json.JSONDecodeError):
+        manifest = {"target_platform": "unknown", "target_python": "unknown"}
+    requirements = {
+        name: _sha256(ROOT / name)
+        for name in ("requirements.txt", "requirements-figures.txt", "requirements-dev.txt")
+    }
+    return {
+        "commit_sha": _git_sha(),
+        "worktree_dirty": _git_worktree_dirty(),
+        "os": platform.system() or "unknown",
+        "architecture": platform.machine() or "unknown",
+        "python_version": platform.python_version() or "unknown",
+        "requirements_sha256": requirements,
+        "offline_manifest": manifest,
+    }
 
 
 def main() -> int:
@@ -162,6 +224,9 @@ def main() -> int:
         ),
         "missing_dependencies": missing_dependencies,
     }
+    metadata = acceptance_metadata()
+    report.update(metadata)
+    report["environment"] = metadata
     write_json(output, report)
     print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
     return 0 if status == "pass" else 2

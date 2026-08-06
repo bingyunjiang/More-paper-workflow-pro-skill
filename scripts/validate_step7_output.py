@@ -715,7 +715,11 @@ def _validate_reviewer_scorecard(root: Path, draft_sha256: str, require_freshnes
     return findings
 
 
-def _validate_claim_evidence_audit(root: Path, draft_sha256: str) -> tuple[list[Finding], dict[str, object]]:
+def _validate_claim_evidence_audit(
+    root: Path,
+    draft_sha256: str,
+    require_nonempty_records: bool = True,
+) -> tuple[list[Finding], dict[str, object]]:
     path = root / "claim_evidence_audit.json"
     if not path.exists():
         return [Finding("fail", "missing_claim_evidence_audit", "claim_evidence_audit.json is required for evidence closure")], {}
@@ -728,6 +732,12 @@ def _validate_claim_evidence_audit(root: Path, draft_sha256: str) -> tuple[list[
     records = payload.get("records")
     if not isinstance(records, list):
         return findings + [Finding("fail", "invalid_claim_evidence_records", "claim evidence records must be a list")], payload
+    if require_nonempty_records and records == []:
+        findings.append(Finding(
+            "fail",
+            "empty_claim_evidence_audit",
+            "non-empty draft cannot close evidence with an empty claim evidence audit",
+        ))
     required_fields = {
         "claim_segment_id", "claim_text", "claim_strength", "required_evidence", "support_grade",
         "reading_depth", "evidence_anchor", "downgrade_required", "recommended_action", "resolution_status",
@@ -740,12 +750,84 @@ def _validate_claim_evidence_audit(root: Path, draft_sha256: str) -> tuple[list[
         if missing:
             findings.append(Finding("fail", "incomplete_claim_evidence_record", f"claim record {index} lacks {', '.join(missing)}"))
     summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+    computed_unresolved = sum(
+        1
+        for record in records
+        if isinstance(record, dict)
+        and (
+            record.get("downgrade_required") is True
+            or str(record.get("resolution_status") or "").strip().lower() != "closed"
+        )
+    )
     unresolved = summary.get("unresolved_count")
     if not isinstance(unresolved, int):
         findings.append(Finding("fail", "missing_claim_unresolved_count", "claim audit summary lacks unresolved_count"))
-    elif unresolved > 0:
+    elif unresolved != computed_unresolved:
+        findings.append(Finding(
+            "fail",
+            "claim_unresolved_count_mismatch",
+            f"claim audit summary unresolved_count={unresolved} but records imply {computed_unresolved}",
+        ))
+    elif computed_unresolved > 0:
         findings.append(Finding("fail", "unresolved_claim_evidence", f"{unresolved} claim evidence issue(s) remain unresolved"))
     return findings, payload
+
+
+def _validate_mechanism_artifact(root: Path, names: list[str], code: str) -> Finding | None:
+    """Require substantive mechanism artifacts for evidence closure.
+
+    Prefer structured JSON when present; Markdown is accepted only when it has
+    content beyond headings and blank lines. Draft-ready remains presence-only.
+    """
+    json_paths = [root / name for name in names if name.endswith(".json")]
+    for path in json_paths:
+        if not path.exists():
+            continue
+        payload = _load_json(path)
+        if isinstance(payload, list) and payload:
+            return None
+        if isinstance(payload, dict):
+            collections = [payload.get(key) for key in ("records", "claims", "items", "findings")]
+            if any(isinstance(value, list) and value for value in collections):
+                return None
+        return Finding("fail", f"invalid_{code}", f"{path.name} is not a non-empty structured JSON artifact")
+    md_paths = [root / name for name in names if name.endswith(".md")]
+    for path in md_paths:
+        if not path.exists():
+            continue
+        substantive = [line.strip() for line in _read_text(path).splitlines() if line.strip() and not line.lstrip().startswith("#")]
+        if substantive:
+            return None
+        return Finding("fail", f"empty_{code}", f"{path.name} contains headings only and cannot close mechanism evidence")
+    return Finding("fail", f"missing_{code}", f"mechanism task entered analysis but {code} is missing")
+
+
+def _validate_evidence_mapping(root: Path) -> list[Finding]:
+    """Ensure evidence mapping artifacts contain traceable entries."""
+    json_paths = [root / name for name in ("evidence_pack.json", "deep_read_cards.json")]
+    json_paths.extend(sorted(root.glob("*deep_read_cards*.json")))
+    for path in dict.fromkeys(json_paths):
+        if not path.exists():
+            continue
+        payload = _load_json(path)
+        valid = bool(payload) if isinstance(payload, list) else False
+        if isinstance(payload, dict):
+            valid = any(isinstance(payload.get(key), list) and payload.get(key) for key in ("records", "items"))
+        if valid:
+            return []
+        return [Finding("fail", "empty_evidence_mapping", f"{path.name} has no non-empty records/items")]
+
+    markdown_paths = [root / name for name in ("evidence_matrix.md", "综述矩阵.md", "deep_read_cards.md")]
+    markdown_paths.extend(sorted(root.glob("*evidence_matrix*.md")))
+    markdown_paths.extend(sorted(root.glob("*deep_read_cards*.md")))
+    for path in dict.fromkeys(markdown_paths):
+        if not path.exists():
+            continue
+        substantive = [line.strip() for line in _read_text(path).splitlines() if line.strip() and not line.lstrip().startswith("#")]
+        if substantive:
+            return []
+        return [Finding("fail", "empty_evidence_mapping", f"{path.name} contains headings only")]
+    return [Finding("fail", "missing_evidence_mapping", "draft exists but no evidence matrix, deep_read_cards, or evidence_pack was found")]
 
 
 def _validate_equation_artifacts(
@@ -849,12 +931,8 @@ def validate(root: Path, target_state: str = "auto") -> tuple[list[Finding], dic
     if drafts and require_evidence_closure:
         findings.extend(_validate_reviewer_scorecard(root, draft_hash, require_evidence_closure))
 
-    if drafts and require_evidence_closure and not _exists_any(
-        root,
-        ["evidence_matrix.md", "综述矩阵.md", "deep_read_cards.md", "evidence_pack.json"],
-        ["*evidence_matrix*.md", "*deep_read_cards*.json", "*deep_read_cards*.md"],
-    ):
-        findings.append(Finding("fail", "missing_evidence_mapping", "draft exists but no evidence matrix, deep_read_cards, or evidence_pack was found"))
+    if drafts and require_evidence_closure:
+        findings.extend(_validate_evidence_mapping(root))
 
     if drafts and require_evidence_closure and not _exists_any(
         root,
@@ -865,7 +943,11 @@ def validate(root: Path, target_state: str = "auto") -> tuple[list[Finding], dic
 
     claim_audit: dict[str, object] = {}
     if drafts and require_evidence_closure:
-        claim_findings, claim_audit = _validate_claim_evidence_audit(root, draft_hash)
+        claim_findings, claim_audit = _validate_claim_evidence_audit(
+            root,
+            draft_hash,
+            require_nonempty_records=bool(combined_draft_text.strip()),
+        )
         findings.extend(claim_findings)
 
     if drafts and not _figure_mode_present(root, card_text):
@@ -922,7 +1004,11 @@ def validate(root: Path, target_state: str = "auto") -> tuple[list[Finding], dic
             ("mechanism_claim_audit", ["mechanism_claim_audit.md", "mechanism_claim_audit.json"]),
         ]
         for code, names in required:
-            if not _exists_any(root, names):
+            if require_evidence_closure:
+                finding = _validate_mechanism_artifact(root, names, code)
+                if finding is not None:
+                    findings.append(finding)
+            elif not _exists_any(root, names):
                 findings.append(Finding("fail", f"missing_{code}", f"mechanism task entered analysis but {code} is missing"))
 
     has_failures = any(item.severity == "fail" for item in findings)

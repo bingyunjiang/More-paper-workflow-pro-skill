@@ -10,7 +10,7 @@ import re
 import tempfile
 from typing import Iterable
 
-from .model import DiagramSpec, Edge, Node, TextRun
+from .model import DiagramSpec, Edge, Node, TextRun, DiagramSpecError
 
 
 @dataclass(frozen=True)
@@ -474,6 +474,33 @@ def _font(size: int):
         except OSError:
             continue
     return ImageFont.load_default()
+
+
+def _cjk_text(spec: DiagramSpec) -> str:
+    values = [spec.title]
+    values.extend(group.label for group in spec.groups)
+    values.extend(node.label for node in spec.nodes)
+    values.extend(edge.label for edge in spec.edges)
+    values.extend("".join(run.value for run in annotation.runs) for annotation in spec.annotations)
+    return "".join(values)
+
+
+def validate_cjk_font_coverage(spec: DiagramSpec) -> None:
+    """Fail closed when diagram text contains CJK but selected font lacks glyphs."""
+    import re
+    from font_discovery import font_supports_text, pil_font_path_candidates
+
+    text = _cjk_text(spec)
+    cjk = "".join(re.findall(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]", text))
+    if not cjk:
+        return
+    for candidate in pil_font_path_candidates():
+        if candidate.exists() and font_supports_text(candidate, cjk):
+            return
+    raise DiagramSpecError(
+        "cjk_font_coverage_failed",
+        "diagram contains CJK text but no selected font provides glyph coverage",
+    )
 
 
 def _math_png(expression: str, size: int, color: str):

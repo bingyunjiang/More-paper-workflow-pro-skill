@@ -132,3 +132,7 @@ class FastCoreTests(ScientificFigureReproductionTestBase):
         result = env.check_environment()
         self.assertIn("matplotlib", result["required_modules"])
         self.assertIn("fonts_available", result)
+        self.assertIn("cjk_fonts_available", result)
+        self.assertIn("latin_fallbacks_available", result)
+        self.assertIn(result["cjk_status"], {"pass", "failed"})
+        self.assertEqual(result["cjk_ready"], any(result["cjk_fonts_available"].values()))

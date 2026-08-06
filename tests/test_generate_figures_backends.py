@@ -55,6 +55,18 @@ class GenerateFiguresBackendTest(unittest.TestCase):
             ),
         )
 
+    def test_explicit_quick_visualspec_is_reported_as_conflict_by_cli(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "visualspec.json"
+            path.write_text(json.dumps({"schema": "scientificfigure.visualspec.v2"}), encoding="utf-8")
+            import subprocess
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), "--backend", "quick", "--spec", str(path)],
+                capture_output=True, text=True,
+            )
+            self.assertEqual(2, result.returncode)
+            self.assertIn("backend/schema conflict", result.stderr)
+
     def test_explicit_diagram_backend_is_preserved(self) -> None:
         self.assertEqual("diagram", generate_figures.select_figure_backend("diagram", spec_path="anything.json"))
 

@@ -33,6 +33,15 @@ LATIN_FALLBACK_FAMILIES = [
 
 def cjk_family_candidates(extra: Iterable[str] | None = None) -> list[str]:
     candidates: list[str] = []
+    for value in list(extra or []) + CJK_FONT_FAMILY_CANDIDATES:
+        if value and value not in candidates:
+            candidates.append(value)
+    return candidates
+
+
+def all_family_candidates(extra: Iterable[str] | None = None) -> list[str]:
+    """Return CJK families followed by Latin fallbacks (for mixed text)."""
+    candidates: list[str] = []
     for value in list(extra or []) + CJK_FONT_FAMILY_CANDIDATES + LATIN_FALLBACK_FAMILIES:
         if value and value not in candidates:
             candidates.append(value)
@@ -43,7 +52,7 @@ def available_matplotlib_families(candidates: Iterable[str] | None = None) -> li
     from matplotlib import font_manager
 
     available: list[str] = []
-    for candidate in cjk_family_candidates(candidates):
+    for candidate in all_family_candidates(candidates):
         try:
             font_manager.findfont(candidate, fallback_to_default=False)
         except Exception:
@@ -55,6 +64,16 @@ def available_matplotlib_families(candidates: Iterable[str] | None = None) -> li
 
 def resolve_matplotlib_families(candidates: Iterable[str] | None = None) -> list[str]:
     return available_matplotlib_families(candidates) or ["DejaVu Sans"]
+
+
+def font_supports_text(path: Path, text: str) -> bool:
+    """Check actual glyph coverage; a resolvable Latin fallback is insufficient."""
+    try:
+        from matplotlib.ft2font import FT2Font
+        cmap = FT2Font(str(path)).get_charmap()
+        return all(ord(char) in cmap for char in text if not char.isspace())
+    except Exception:
+        return False
 
 
 def pil_font_path_candidates() -> list[Path]:

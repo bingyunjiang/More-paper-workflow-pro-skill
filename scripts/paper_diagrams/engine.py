@@ -8,7 +8,7 @@ import tempfile
 from typing import Any
 
 from .model import DiagramSpecError, load_spec, sha256_file
-from .render import build_scene, publication_profile, render_png, render_svg
+from .render import build_scene, publication_profile, render_png, render_svg, validate_cjk_font_coverage
 
 
 CHECK_SCHEMA = "morepaper.diagram-check.v1"
@@ -75,6 +75,24 @@ def render_from_file(spec_path: str | Path, output_dir: str | Path, *, inspect: 
         }
         _write_atomic(check_path, json.dumps(report, ensure_ascii=False, indent=2) + "\n")
         raise DiagramSpecError("composition_failed", "diagram composition failed; inspect the check report")
+
+    try:
+        validate_cjk_font_coverage(spec)
+    except DiagramSpecError as error:
+        report = {
+            "schema_version": CHECK_SCHEMA,
+            "figure_id": spec.figure_id,
+            "status": "fail",
+            "diagram_type": spec.diagram_type,
+            "diagram_style": spec.style,
+            "spec_path": _relative(spec.source_path, project_root),
+            "spec_sha256": spec.source_sha256,
+            "composition_score": scene.score,
+            "publication_profile": publication_profile(spec),
+            "findings": [{"severity": "fail", "code": error.code, "message": str(error)}],
+        }
+        _write_atomic(check_path, json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+        raise
 
     svg = render_svg(scene)
     _write_atomic(svg_path, svg + "\n")
