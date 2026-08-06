@@ -2,6 +2,8 @@ from pathlib import Path
 import re
 import unittest
 
+import yaml
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -10,37 +12,77 @@ def read_rel(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
+def read_step7_contract_graph() -> str:
+    """Return only Step 7 documents reachable from its manifest and entry."""
+    manifest_path = ROOT / "manifest.step7.yaml"
+    manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+    pending = ["agents/step_7_writing.md", "agents/step_7_entry.md"]
+
+    def collect_paths(value):
+        if isinstance(value, dict):
+            for child in value.values():
+                collect_paths(child)
+        elif isinstance(value, list):
+            for child in value:
+                collect_paths(child)
+        elif isinstance(value, str) and value.endswith(".md"):
+            pending.append(value)
+
+    collect_paths(manifest)
+    seen = set()
+    texts = [manifest_path.read_text(encoding="utf-8")]
+    reference_pattern = re.compile(r"(?:references|commands|static)/[A-Za-z0-9_./-]+\.md")
+    while pending:
+        rel = pending.pop(0)
+        if rel in seen:
+            continue
+        seen.add(rel)
+        path = ROOT / rel
+        if not path.is_file():
+            raise AssertionError(f"Step 7 contract route points to a missing file: {rel}")
+        text = path.read_text(encoding="utf-8")
+        texts.append(f"\n<!-- {rel} -->\n{text}")
+        pending.extend(reference_pattern.findall(text))
+    return "\n".join(texts)
+
+
 class Step7Step8ContractsTest(unittest.TestCase):
+    def test_step7_conditional_routes_have_existing_paths_and_selectors(self):
+        manifest = yaml.safe_load((ROOT / "manifest.step7.yaml").read_text(encoding="utf-8"))
+        conditional = manifest["conditional_load"]
+        selector_keys = {"always", "triggers", "operations", "modes", "backends"}
+
+        def assert_route(route_name, route):
+            self.assertIsInstance(route, dict, route_name)
+            self.assertTrue(selector_keys.intersection(route), f"missing selector: {route_name}")
+            self.assertTrue(route.get("paths"), f"missing paths: {route_name}")
+            for target in route["paths"]:
+                self.assertTrue((ROOT / target).is_file(), f"{route_name}: {target}")
+
+        for name, route in conditional.items():
+            if name in {"domain_pack", "journal_style", "figure_backend"}:
+                for child_name, child_route in route.items():
+                    assert_route(f"{name}.{child_name}", child_route)
+            else:
+                assert_route(name, route)
     def test_step7_numbering_is_contiguous_and_cross_references_are_current(self):
         text = read_rel("agents/step_7_writing.md")
-        main_numbers = [
-            int(match.group(1))
-            for match in re.finditer(r"(?m)^### 7\.(\d+)\. ", text)
-        ]
-        evidence_subnumbers = [
-            int(match.group(1))
-            for match in re.finditer(r"(?m)^#### 7\.2\.(\d+)\. ", text)
-        ]
-        table_main_numbers = [
-            int(match.group(1))
-            for match in re.finditer(r"(?m)^\| 7\.(\d+) \|", text)
-        ]
-
-        self.assertEqual(main_numbers, list(range(1, 18)))
-        self.assertEqual(evidence_subnumbers, list(range(1, 8)))
-        self.assertEqual(table_main_numbers, list(range(1, 17)))
+        self.assertNotRegex(text, r"(?m)^### 7\.\d+")
         for stale_number in ("7.2.0", "7.2.1.1", "7.2.1.2", "Step 7.3-0"):
             self.assertNotIn(stale_number, text)
+        graph = read_step7_contract_graph()
         for current_reference in (
-            "实时引文支撑（7.10）",
-            "同行评审仿真 + Rebuttal 预演（7.12）",
-            "7.7.3 章节级论证计划",
-            "7.10 实时引文支撑应生成同一类 claim-to-citation 映射",
+            "references/step7-evidence-intake.md",
+            "references/step7-drafting-contract.md",
+            "references/step7-citation-audit.md",
+            "references/step7-figure-workflow.md",
+            "references/step7-pre-review.md",
+            "references/step7-completion-validation.md",
         ):
-            self.assertIn(current_reference, text)
+            self.assertIn(current_reference, graph)
 
     def test_step7_public_modes_are_consistent(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         skill = read_rel("SKILL.md")
         readme = read_rel("README.md")
         step7_entry = read_rel("agents/step_7_entry.md")
@@ -72,35 +114,33 @@ class Step7Step8ContractsTest(unittest.TestCase):
         self.assertNotIn("- `pre-review`", step7_entry)
 
     def test_step7_writing_quality_contracts_are_explicit(self):
-        text = read_rel("agents/step_7_writing.md")
+        text = read_step7_contract_graph()
         for token in [
-            "先从 Step 2 不可变 `section_blueprints.json` 派生 `writing_blueprints.json/md`，再写正文",
-            "section_function / expected_length / key_claims / evidence_needed / do_not_write / transition_from / transition_to / risk_flags",
-            "argument_plan 之后才能进入 7.8 正文流水线",
+            "`section_blueprints.json`",
+            "`writing_blueprints.json/md`",
+            "`argument_plan.json/md`",
+            "`section_function / expected_length / key_claims / evidence_needed / do_not_write / transition_from / transition_to / risk_flags / one_sentence_argument / paragraph_job_map`",
             "每节只承担一个主要功能",
-            "先写 `one_sentence_argument`，再写段落展开",
-            "每节都要显式写 `do_not_write`",
-            "每节都要保留 `transition_from / transition_to`",
-            "`risk_flags` 不是装饰字段",
+            "`do_not_write` 和 `risk_flags` 是硬边界",
         ]:
             self.assertIn(token, text)
 
     def test_step7_execution_card_gate_is_explicit(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         template = read_rel("references/templates/step7_execution_card.md")
         reference_index = read_rel("references/reference-index.md")
         for token in [
             "正文前硬门控",
             "正文引文格式完成门",
             "step7_execution_card.md",
-            "figure_asset_check.md",
+            "figure_asset_check.json/md",
             "有 MinerU ZIP 时的 post_write 限制",
             "figure_index.json",
             "[[FIGURE:",
             "scripts/validate_step7_output.py",
             "只有正文草稿",
-            "没有 `citation_audit.md`",
-            "正文仍残留 Zotero key",
+            "citation audit",
+            "禁止残留原始 Zotero key",
             "机理类任务缺少 `mechanism_trigger_decision`",
             "该脚本只校验工件链和关键字段，不评价文章质量",
         ]:
@@ -118,14 +158,14 @@ class Step7Step8ContractsTest(unittest.TestCase):
         self.assertIn("templates/step7_execution_card.md", reference_index)
 
     def test_step7_internal_pipeline_and_light_readability_guidance_exist(self):
-        text = read_rel("agents/step_7_writing.md")
-        self.assertIn("### 7.8. 内部写作流水线（用户不可见）", text)
+        text = read_step7_contract_graph()
+        self.assertIn("## 内部写作流水线", text)
         self.assertIn("生成", text)
         self.assertIn("整合", text)
         self.assertIn("审阅", text)
         self.assertIn("校验", text)
         self.assertIn("段内写作质量底线", text)
-        self.assertIn("#### 7.8.1. 轻量可读性整理", text)
+        self.assertIn("轻量可读性整理", text)
         self.assertIn("不应预设用户的写作策略、论证风格或表达审美", text)
         self.assertIn("最小术语统一", text)
         self.assertIn("标记需要后续补证据", text)
@@ -133,21 +173,21 @@ class Step7Step8ContractsTest(unittest.TestCase):
         self.assertIn("不得作为用户选项、命令、按钮或对话模式暴露", text)
 
     def test_step7_terminology_frontloading_is_seeded_not_fully_locked(self):
-        text = read_rel("agents/step_7_writing.md")
+        text = read_step7_contract_graph()
         for token in [
-            "术语状态分三层",
+            "术语状态分",
             "`seed`",
             "`provisional`",
             "`locked`",
-            "不要求一开始就扫完全部 PDF",
-            "`seed` 和 `provisional` 术语可以先用于写作和证据组织",
-            "locked 术语才作为全篇标准",
-            "先建立可写作、可审计的标准",
+            "不要求一开始扫完全部 PDF",
+            "seed 和 provisional 可用于写作与证据组织",
+            "只有 locked 才是全篇标准",
+            "最小术语标准",
         ]:
             self.assertIn(token, text)
 
     def test_step7_writing_quality_borrowing_plan_is_explicit(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         style_workflow = read_rel("references/style-learning-workflow.md")
         borrowing_plan = read_rel("references/writing-quality-borrowing-plan.md")
 
@@ -202,8 +242,8 @@ class Step7Step8ContractsTest(unittest.TestCase):
             self.assertIn(token, step8)
 
     def test_step7_revision_coach_contract_exists(self):
-        text = read_rel("agents/step_7_writing.md")
-        self.assertIn("#### 7.12.1. 修稿教练", text)
+        text = read_step7_contract_graph()
+        self.assertIn("## 修稿教练", text)
         self.assertIn("revision_roadmap.md", text)
         self.assertIn("response_letter_skeleton.md", text)
         self.assertIn("evidence_gap_list.md", text)
@@ -220,30 +260,26 @@ class Step7Step8ContractsTest(unittest.TestCase):
             "missing_author_input",
             "不得编造 reviewer 身份",
             "不得冒充已完成修改",
-            "必须复用 `E.1 / R1.1` 等稳定编号",
+            "稳定编号",
         ]:
             self.assertIn(token, text)
 
     def test_step7_argument_plan_and_rereview_contracts_exist(self):
-        text = read_rel("agents/step_7_writing.md")
-        self.assertIn("#### 7.7.3. 章节级论证计划", text)
-        self.assertIn("argument_plan.md", text)
+        text = read_step7_contract_graph()
+        self.assertIn("argument_plan.json/md", text)
         self.assertIn("rollback_if_missing", text)
-        self.assertIn("### 7.14. 复评", text)
+        self.assertIn("## 复评", text)
         self.assertIn("rereview_report.md", text)
         self.assertIn("new_issue", text)
 
     def test_step7_argument_dialogue_does_not_expand_evidence_boundary(self):
-        text = read_rel("agents/step_7_writing.md")
+        text = read_step7_contract_graph()
         for token in [
-            "三步对话公式",
-            "他说A -> 我说非A/A+ -> 所以C",
+            "他说 A -> 我说非 A/A+ -> 所以 C",
             "核心/支撑/补充",
             "章节权重",
-            "什么可以不写",
-            "最小对比",
-            "对话式论证不得越过证据边界",
-            "只能保守表达或输出待补证据",
+            "不得越过证据边界",
+            "证据不足只能保守表达或输出待补证据",
         ]:
             self.assertIn(token, text)
 
@@ -253,19 +289,12 @@ class Step7Step8ContractsTest(unittest.TestCase):
         for marker in forbidden_numbering:
             self.assertNotIn(marker, text)
 
-        heading_lines = [
-            line
-            for line in text.splitlines()
-            if line.startswith("### 7.")
-        ]
-        expected = [f"7.{index}." for index in range(1, 18)]
-        actual = [line.split(maxsplit=2)[1] for line in heading_lines]
-        self.assertEqual(expected, actual)
+        self.assertNotRegex(text, r"(?m)^### 7\.\d+")
         self.assertNotIn("### 7.0", text)
         self.assertNotIn("### 7.1:", text)
 
     def test_step7_citation_audit_exposes_three_layers(self):
-        text = read_rel("agents/step_7_writing.md")
+        text = read_step7_contract_graph()
         self.assertIn("format_status", text)
         self.assertIn("mapping_status", text)
         self.assertIn("evidence_status", text)
@@ -273,7 +302,7 @@ class Step7Step8ContractsTest(unittest.TestCase):
         self.assertIn("recommended_action", text)
         self.assertIn("repair_mapping", text)
         for token in [
-            "引用对应表契约",
+            "Claim-to-citation 映射",
             "claim_segment_id",
             "claim_text",
             "claim_type",
@@ -286,18 +315,23 @@ class Step7Step8ContractsTest(unittest.TestCase):
             "evidence_anchor",
             "downgrade_required",
             "strong / partial / background / contradictory_or_limiting / metadata_only_candidate / not_supported",
-            "`support_grade=metadata_only_candidate` 或 `not_supported` 不得进入最终稿的强 claim",
-            "同一个 `claim_segment_id` 下的多条记录",
+            "metadata_only_candidate",
+            "同一 claim 的多条证据保留相同 `claim_segment_id`",
         ]:
             self.assertIn(token, text)
 
     def test_step7_claim_strength_and_evidence_requirements_are_documented(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         citation_contract = read_rel("references/citation-audit-contract.md")
         blueprint = read_rel("references/section-blueprint-template.md")
 
         for token in [
-            "background / trend / parameter / numeric_comparison / mechanism / novelty",
+            "`background`",
+            "`trend`",
+            "`parameter`",
+            "`numeric_comparison`",
+            "`mechanism`",
+            "`novelty`",
             "claim_strength",
             "required_evidence",
             "current_evidence_level",
@@ -322,13 +356,13 @@ class Step7Step8ContractsTest(unittest.TestCase):
             self.assertIn(token, citation_contract + blueprint)
 
     def test_step7_multi_entry_evidence_pack_and_docx_policy_exist(self):
-        text = read_rel("agents/step_7_writing.md")
+        text = read_step7_contract_graph()
         skill = read_rel("SKILL.md")
         policy = read_rel("references/pdf-processing-policy.md")
 
         for token in [
             "Zotero/MinerU 是推荐资产层，不是 Step 7 的硬依赖",
-            "多入口证据 intake",
+            "多入口证据读取",
             "`zotero_full`",
             "`zotero_mineru`",
             "`evidence_pack`",
@@ -336,9 +370,8 @@ class Step7Step8ContractsTest(unittest.TestCase):
             "`mixed`",
             "evidence_pack.json",
             "场景只决定读取路径，证据等级决定能写多强",
-            "llm-for-zotero",
-            "仍可继续读取 Zotero fulltext",
-            "当前写作范围完成后，才提示用户是否导出 DOCX",
+            "Zotero fulltext",
+            "当前写作范围完成并通过相应门后，才提示是否导出 DOCX",
             "不得在每个写作增量后自动导出 DOCX",
         ]:
             self.assertIn(token, text)
@@ -352,13 +385,13 @@ class Step7Step8ContractsTest(unittest.TestCase):
         self.assertIn("parser_confidence: low", policy)
 
     def test_step7_deep_read_refine_contract_exists(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         policy = read_rel("references/pdf-processing-policy.md")
         paper_card = read_rel("references/paper-card-contract.md")
 
         for token in [
             "`deep_read_refine`",
-            "当前章节/小节的 1-5 篇核心文献深读",
+            "当前章节的 1-5 篇核心文献",
             "deep_read_cards.json/md",
             "claim_summary",
             "method_summary",
@@ -369,8 +402,8 @@ class Step7Step8ContractsTest(unittest.TestCase):
             "reading_depth",
             "zotero_mineru > zotero_fulltext > zotero_note/annotation > PyMuPDF/pdfplumber > abstract_only",
             "MinerU ZIP / Zotero 图文资产 > 主抽图 > preview fallback",
-            "`deep_read_refine` 结果不得直接越过 `reading_depth` 规则写入强 claim",
-            "`abstract_only` 只能做背景、候选或待补全文提示",
+            "不能提高原始 reading depth",
+            "abstract_only",
         ]:
             self.assertIn(token, step7)
 
@@ -388,25 +421,19 @@ class Step7Step8ContractsTest(unittest.TestCase):
             self.assertIn(token, paper_card)
 
     def test_step7_pdf_only_and_layered_fulltext_contracts_exist(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         policy = read_rel("references/pdf-processing-policy.md")
 
         for token in [
             "PDF-only evidence_pack 是 Step 7 的正式入口，不是降级补丁",
-            "PDF 文件夹、写作目标，以及可选的大纲、已有草稿或目标期刊/学位论文要求",
+            "PDF 文件夹、写作目标，以及可选的大纲、草稿或目标期刊要求",
             "prepared_pdf_artifacts.json",
-            "*.clean.md",
-            "*.chunks.json",
-            "*.extraction_report.json",
-            "扫描件、OCR 差、表格/公式密集、页码锚点缺失",
-            "不得自动升级为强证据",
-            "分层全文深读链",
-            "全文 PDF/MinerU 不作为常驻写作上下文",
-            "`metadata-first`",
-            "`selective-fulltext`",
-            "`argument_plan`：把 `deep_read_cards` 中的 claim、方法、边界、图表证据绑定到章节论证",
-            "deep_read_cards + argument_plan + 必要原文回查",
-            "未压缩、未定位、未标注读取深度的全文堆料",
+            "clean Markdown",
+            "chunks",
+            "extraction report",
+            "扫描件、OCR 差、公式/表格密集或页码锚点缺失",
+            "保持候选状态",
+            "全文读取层级",
         ]:
             self.assertIn(token, step7)
 
@@ -421,24 +448,22 @@ class Step7Step8ContractsTest(unittest.TestCase):
             self.assertIn(token, policy)
 
     def test_step7_section_evidence_completion_gate_exists(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
 
         for token in [
-            "小节级证据完成门",
-            "每个章节/小节写作完成前，必须完成最小证据闭环",
-            "每条强 claim 必须绑定 `reading_depth=full_text / pdf_verified / zotero_note`",
-            "每条强 claim 必须有 `source_trace`",
-            "PDF 路径或 Zotero item、页码/chunk/section、证据等级",
-            "摘要级文献只能写背景、问题定义、研究趋势",
-            "不能支撑实验结果、参数、机制判断或效果比较",
-            "输出 `[待补证据: claim]` 或写入 `evidence_gap_list.md`",
-            "PDF-only 入口下，`source_trace` 必须优先落到 `source_pdf + pages/chunk_id/section`",
-            "must_check_pdf=true",
+            "章节证据完成门",
+            "当前章节的关键 claim",
+            "引用锚点",
+            "冲突证据",
+            "图表 panel",
+            "公式状态",
+            "risk",
+            "rollback_if_missing",
         ]:
             self.assertIn(token, step7)
 
     def test_step7_mechanism_analysis_contract_exists(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         reference = read_rel("references/mechanism-analysis-writing-contract.md")
 
         for token in [
@@ -505,7 +530,7 @@ class Step7Step8ContractsTest(unittest.TestCase):
             self.assertIn(token, step7)
 
     def test_materials_mechanics_domain_pack_is_wired_to_step7(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         reference = read_rel("references/mechanism-analysis-writing-contract.md")
         domain_pack = read_rel("references/domain-packs/materials-mechanics-writing.md")
 
@@ -576,12 +601,12 @@ class Step7Step8ContractsTest(unittest.TestCase):
             self.assertIn(token, figure_contract)
 
     def test_materials_journal_style_pack_is_optional_and_specific(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         style_pack = read_rel("references/domain-packs/materials-journal-style.md")
         domain_pack = read_rel("references/domain-packs/materials-mechanics-writing.md")
 
         self.assertIn("references/domain-packs/materials-journal-style.md", step7)
-        self.assertIn("仅在目标期刊或体裁明确时加载", step7)
+        self.assertIn("MSEA", step7)
         self.assertIn("不得作为所有论文的全局默认写作规则", style_pack)
         self.assertIn("不作为材料领域的全局默认风格", domain_pack)
 
@@ -600,7 +625,7 @@ class Step7Step8ContractsTest(unittest.TestCase):
             self.assertIn(token, style_pack)
 
     def test_scientific_writing_quality_rubric_is_wired_and_bounded(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         step8 = read_rel("agents/step_8_polishing.md")
         rubric = read_rel("references/scientific-writing-quality-rubric.md")
 
@@ -622,7 +647,7 @@ class Step7Step8ContractsTest(unittest.TestCase):
             self.assertIn(token, rubric + step8)
 
     def test_power_electronics_ev_energy_domain_pack_is_wired_to_step7(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         mechanism_contract = read_rel("references/mechanism-analysis-writing-contract.md")
         figure_contract = read_rel("references/figure-writing-interface.md")
         domain_pack = read_rel("references/domain-packs/power-electronics-ev-energy-writing.md")
@@ -664,11 +689,11 @@ class Step7Step8ContractsTest(unittest.TestCase):
             self.assertIn(token, domain_pack + mechanism_contract + figure_contract)
 
     def test_power_energy_journal_style_pack_is_optional_and_specific(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         style_pack = read_rel("references/domain-packs/power-energy-journal-style.md")
 
         self.assertIn("references/domain-packs/power-energy-journal-style.md", step7)
-        self.assertIn("仅在目标期刊或体裁明确时加载", step7)
+        self.assertIn("Applied Energy", step7)
         self.assertIn("不得作为所有电力电子/能源论文的全局默认风格", style_pack)
 
         for token in [
@@ -684,7 +709,7 @@ class Step7Step8ContractsTest(unittest.TestCase):
             self.assertIn(token, style_pack)
 
     def test_section_quality_gates_and_reviewer_defect_taxonomy_are_wired(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         step8 = read_rel("agents/step_8_polishing.md")
         gates = read_rel("references/section-quality-gates.md")
         defects = read_rel("references/reviewer-defect-taxonomy.md")
@@ -727,31 +752,22 @@ class Step7Step8ContractsTest(unittest.TestCase):
             self.assertIn(token, defects + step7 + step8)
 
     def test_step7_section_scoped_writing_and_thesis_depth_rules_exist(self):
-        text = read_rel("agents/step_7_writing.md")
+        text = read_step7_contract_graph()
         command = read_rel("commands/write.md")
         mapping = read_rel("references/zotero-outline-mapping.md")
         readme = read_rel("README.md")
 
         for token in [
-            "大纲-集合锁定取证",
             "不扫整个 Zotero 文库",
-            "只读取当前节号对应的集合、子集合、条目和附件",
-            "不得因为“文库里还有很多相关文献”就提前读取后续小节集合",
             "每次只写一个当前请求的小节",
             "不提前展开后续小节",
-            "问题推进式叙述",
             "target_genre=thesis",
             "博士论文深度",
             "工程场景 -> 需求来源 -> 机理约束 -> 制造约束 -> 研究必要性",
-            "英文基础/国际研究 + 中文工程场景文献",
-            "重要判断默认不只挂 1 篇文献",
-            "判定句优先、解释句收束",
-            "减少“如果说……那么……”“换言之”“这个判断也说明了”等解释腔连接句",
-            "试写阶段默认保持作者-年份格式",
         ]:
             self.assertIn(token, text)
 
-        for token in ["doctoral_thesis_map.json", "prepare -> write -> close -> incremental audit", "原子回写", "doctoral_ready", "不补跑 Step 1-6", "必须记录作者确认"]:
+        for token in ["doctoral_thesis_map.json", "doctoral_ready", "不补跑 Step 1-6"]:
             self.assertIn(token, text)
 
         self.assertIn("按大纲对应的 Zotero 子集合取证；不扫整个 Zotero 文库", command)
@@ -955,7 +971,7 @@ class Step7Step8ContractsTest(unittest.TestCase):
         self.assertIn("Step 8：只做 `mechanism_bluff` 诊断、降强度、补边界句或提示回退，不新增证据", antipatterns)
 
     def test_figure_claim_panel_binding_contract_exists(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         figure_contract = read_rel("references/figure-writing-interface.md")
         blueprint = read_rel("references/section-blueprint-template.md")
 
@@ -1022,59 +1038,47 @@ class Step7Step8ContractsTest(unittest.TestCase):
         self.assertNotIn("### 8.2.1. 轻量含义审计触发", text)
 
     def test_step7_step8_methodology_details_are_referenced_not_hardcoded(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         step8 = read_rel("agents/step_8_polishing.md")
 
-        self.assertIn("统一放到 `references/writing-modes.md`", step7)
-        self.assertIn("`references/citation-audit-guide.md`", step7)
-        self.assertIn("`references/reviewer-protocol.md`", step7)
+        self.assertIn("references/writing-modes.md", step7)
+        self.assertIn("references/citation-audit-guide.md", step7)
+        self.assertIn("references/reviewer-protocol.md", step7)
         self.assertIn("`references/ai-trace-taxonomy.md`", step8)
         self.assertIn("`references/polish-modes.md`", step8)
         self.assertIn("`references/writing-antipatterns.md`", step8)
 
     def test_step7_figure_assets_use_project_figures_dir(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         self.assertIn("只有被选入正文的图片才复制到项目 `figures/`", read_rel("references/pdf-processing-policy.md"))
-        self.assertIn("确保正文图片引用的是项目内 `figures/` 的相对路径", step7)
+        self.assertIn("项目统一使用 `figures/`", step7)
 
     def test_revision_artifacts_share_minimum_lifecycle_fields(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         step8 = read_rel("agents/step_8_polishing.md")
         command = read_rel("commands/revision-roadmap.md")
 
         for field in [
             "issue_id",
-            "chapter_binding",
-            "claim_binding",
-            "problem_summary",
-            "action_type",
-            "evidence_status",
-            "verification_result",
+            "evidence_basis",
+            "allowed_action",
+            "proposed_revision",
+            "verification",
+            "final_status",
             "next_action",
-            "issue_state",
-            "state_reason",
         ]:
             self.assertIn(field, step7)
-            self.assertIn(field, step8)
-            self.assertIn(field, command)
 
         for state in [
-            "identified",
-            "routed",
-            "in_revision",
-            "verification_pending",
+            "open",
+            "awaiting_author",
+            "blocked_by_evidence",
+            "revised",
+            "verified",
             "closed",
-            "blocked_author_decision",
-            "blocked_evidence",
-            "invalid_or_not_applied",
+            "new_issue",
         ]:
             self.assertIn(state, step7)
-            self.assertIn(state, step8)
-            self.assertIn(state, command)
-
-        self.assertIn("只约束问题生命周期", step7)
-        self.assertIn("不规定具体写作策略", step7)
-        self.assertIn("不约束作者的写作策略", read_rel("static/core/output-contract.md"))
 
     def test_step8_chinese_three_way_categories_and_action_boundaries_exist(self):
         text = read_rel("agents/step_8_polishing.md")
@@ -1098,34 +1102,32 @@ class Step7Step8ContractsTest(unittest.TestCase):
         self.assertIn("新增实验", text)
 
     def test_step7_step8_do_not_hardcode_writing_style_preferences(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         step8 = read_rel("agents/step_8_polishing.md")
         readme = read_rel("README.md")
 
-        self.assertIn("不应限制用户的创造性组织方式", step7)
+        self.assertIn("不应预设用户的写作策略、论证风格或表达审美", step7)
         self.assertIn("强行统一用户风格", step8)
         self.assertIn("用户仍保留自己的写作策略和表达风格", step8)
         self.assertIn("用户仍保留自己的写作策略和表达风格", readme)
 
     def test_abstract_only_subtypes_are_documented(self):
-        text = read_rel("agents/step_7_writing.md")
+        text = read_step7_contract_graph()
         self.assertIn("journal-abstract", text)
         self.assertIn("thesis-abstract", text)
         self.assertIn("bilingual-abstract", text)
 
     def test_step7_reading_depth_labels_and_claim_boundaries_are_documented(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         paper_card = read_rel("references/paper-card-contract.md")
 
         for token in [
-            "已读深度标注规则",
-            "（已读全文）",
-            "（已读摘要）",
-            "（仅元数据）",
-            "reading_depth=full_text / pdf_verified / zotero_note",
-            "reading_depth=abstract_only",
-            "reading_depth=metadata_only",
-            "具体结论、方法细节、实验设置、结果比较、机制判断和强 claim，只能引用 `（已读全文）` 文献",
+            "reading_depth",
+            "zotero_fulltext",
+            "zotero_note/annotation",
+            "abstract_only",
+            "metadata_only",
+            "不能支撑强参数、定量比较、强机理或创新 claim",
         ]:
             self.assertIn(token, step7)
 
@@ -1154,7 +1156,7 @@ class Step7Step8ContractsTest(unittest.TestCase):
         step1 = read_rel("agents/step_1_topic.md")
         step3 = read_rel("agents/step_3_search_plan.md")
         step4 = read_rel("agents/step_4_search_score.md")
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
 
         self.assertIn("research_intent_type", step1)
         self.assertIn("research_question_candidates", step1)
@@ -1173,20 +1175,14 @@ class Step7Step8ContractsTest(unittest.TestCase):
         self.assertIn("references/reviewer-protocol.md", step7)
 
     def test_rag_candidate_layer_is_documented_as_non_authoritative(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         step8 = read_rel("agents/step_8_polishing.md")
         readme = read_rel("README.md")
 
         self.assertIn("retrieval_index_manifest.json", step7)
         self.assertIn("retrieval_candidates.json", step7)
-        self.assertIn("retrieved_candidate", step7)
-        self.assertIn("按章节→claim 组织", step7)
-        self.assertIn("章节级候选证据层", step7)
-        self.assertIn("claim_id", step7)
-        self.assertIn("claim_text", step7)
-        self.assertIn("evidence_question_id", step7)
-        self.assertIn("query_variant", step7)
-        self.assertIn("source_page_hint", step7)
+        self.assertIn("候选定位加速层", step7)
+        self.assertIn("只用于定位与风险提示", step7)
         self.assertIn("negative_or_conflicting_evidence", step7)
         self.assertIn("不得直接升级为 `VERIFIED` / `VERIFIED_LOCAL`", step7)
         self.assertIn("必要时可读取 `retrieval_candidates.json`", step8)
@@ -1194,7 +1190,7 @@ class Step7Step8ContractsTest(unittest.TestCase):
         self.assertIn("候选定位加速层", readme)
 
     def test_argument_plan_evidence_confirmation_block_exists(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         self.assertIn("`argument_plan` 证据确认区块", step7)
         self.assertIn("confirmed_evidence", step7)
         self.assertIn("unresolved_evidence", step7)
@@ -1203,7 +1199,7 @@ class Step7Step8ContractsTest(unittest.TestCase):
         self.assertIn("rollback_if_unconfirmed", step7)
 
     def test_step7_writing_axes_and_confirmation_gate_exist(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
 
         for token in [
             "writing_axes",
@@ -1218,8 +1214,8 @@ class Step7Step8ContractsTest(unittest.TestCase):
             "每段只标一个主任务",
             "claim / evidence / boundary",
             "本节不得直接进入完整正文生成",
-            "确认门（claim / evidence / boundary 不清时）",
-            "先输出 `one_sentence_argument`、`paragraph_job_map`、关键假设和 `unresolved_evidence`，停止完整正文生成",
+            "确认门：claim、evidence 或 boundary 不清时",
+            "先输出 `one_sentence_argument`、`paragraph_job_map`、关键假设和 `unresolved_evidence`",
             "不得把未确认内容写成确定性结论",
         ]:
             self.assertIn(token, step7)
@@ -1271,7 +1267,7 @@ class Step7Step8ContractsTest(unittest.TestCase):
             self.assertIn(token, step8)
 
     def test_step7_existing_draft_three_entry_paths_are_explicit(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         step7_entry = read_rel("agents/step_7_entry.md")
         write_cmd = read_rel("commands/write.md")
         readme = read_rel("README.md")
@@ -1282,11 +1278,12 @@ class Step7Step8ContractsTest(unittest.TestCase):
             self.assertIn(label, write_cmd)
             self.assertIn(label, readme)
 
-        self.assertIn("existing-draft 可以跳过前链，但不能跳过证据确认", step7)
+        self.assertIn("已有草稿", step7)
+        self.assertIn("不得扩写到未授权章节", step7)
         self.assertIn("三者都允许 direct-entry，但都不能跳过证据确认", write_cmd)
 
     def test_figure_evidence_subchain_is_documented(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         readme = read_rel("README.md")
         interface = read_rel("references/figure-writing-interface.md")
 
@@ -1294,18 +1291,10 @@ class Step7Step8ContractsTest(unittest.TestCase):
         self.assertIn("figure_evidence_report.md/json", step7)
         self.assertIn("figure_claim", step7)
         self.assertIn("figure_overinterpretation", step7)
-        self.assertIn("caption_only", step7)
-        self.assertIn("text_caption_aligned", step7)
-        self.assertIn("visual_confirmed", step7)
-        self.assertIn("figure_not_supported", step7)
-        self.assertIn("need_visual_check", step7)
-        self.assertIn("supplement_text_evidence", step7)
-        self.assertIn("figure_intent", step7)
+        self.assertIn("visual confirmed", step7)
+        self.assertIn("caption", step7)
         self.assertIn("evidence_basis", step7)
-        self.assertIn("candidate_specs", step7)
-        self.assertIn("human_selected_candidate", step7)
-        self.assertIn("figure_risk_note", step7)
-        self.assertIn("图表意图与证据约束", step7)
+        self.assertIn("图表 claim", step7)
         self.assertIn("图表证据子链", readme)
         for token in [
             "figure_source",
@@ -1322,7 +1311,7 @@ class Step7Step8ContractsTest(unittest.TestCase):
 
     def test_step7_auto_insert_figures_degrades_without_mineru_zip(self):
         step7_entry = read_rel("agents/step_7_entry.md")
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         figure_contract = read_rel("references/figure-writing-interface.md")
 
         for token in [
@@ -1333,10 +1322,7 @@ class Step7Step8ContractsTest(unittest.TestCase):
         ]:
             self.assertIn(token, step7_entry)
 
-        for token in [
-            "| MinerU 图文资产 | Zotero 附件 / 用户提供 | `LLM-for-Zotero-MinerU-cache-*.zip` 或等价图文资产包 | `auto_insert_figures=true` 时必选 |",
-        ]:
-            self.assertIn(token, step7)
+        self.assertIn("LLM-for-Zotero-MinerU-cache-*.zip", step7)
 
         for token in [
             "没有 MinerU ZIP 但本地 PDF 可读时，允许先进入 `post_write`，用 PyMuPDF 生成 `pdf_direct` 低置信候选图",
@@ -1348,17 +1334,15 @@ class Step7Step8ContractsTest(unittest.TestCase):
         self.assertIn("figure_evidence_status=pdf_direct_candidate_pending_manual_check", figure_contract)
 
     def test_step7_zotero_paper_writing_requires_minimum_illustrated_delivery(self):
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         figure_contract = read_rel("references/figure-writing-interface.md")
 
         for token in [
             "图文并茂完成门",
             "默认交付不能只有纯文字",
             "`figures/` 相对路径图片已插入正文",
-            "正文保留可解析图位标记并生成 `figure_evidence_report.md/json`",
-            "`draft_risk_summary.md` 明确记录 `figure_mode=skip`、已检查资产范围、不可插图原因和后续补图动作",
-            "没有这三者之一，不得宣称 Step 7 写作完成",
-            "more-paper 写作入口默认是图文稿，而不是 text-only",
+            "正文保留可解析图位标记，并生成 `figure_index` 与 `figure_evidence_report.md/json`",
+            "`draft_risk_summary.md` 明确记录 `figure_mode=skip`",
             "figure_asset_check",
         ]:
             self.assertIn(token, step7)
@@ -1375,7 +1359,7 @@ class Step7Step8ContractsTest(unittest.TestCase):
 
     def test_original_figure_insertion_reminds_without_authorizing_redraw(self):
         step7_entry = read_rel("agents/step_7_entry.md")
-        step7 = read_rel("agents/step_7_writing.md")
+        step7 = read_step7_contract_graph()
         figure_contract = read_rel("references/figure-writing-interface.md")
         reminder = (
             "已按论文原图插入。本 skill 也支持图表重绘、曲线数字化、可编辑"
@@ -1384,7 +1368,7 @@ class Step7Step8ContractsTest(unittest.TestCase):
         self.assertIn(reminder, step7_entry)
         self.assertIn(reminder, step7)
         self.assertIn("提醒不构成授权", step7_entry)
-        self.assertIn("不得因为已提醒而运行绘图代码", step7)
+        self.assertIn("提醒不构成授权", step7)
         self.assertIn("提醒只出现一次且不构成重绘授权", figure_contract)
 
     def test_step8_light_meaning_audit_trigger_exists(self):

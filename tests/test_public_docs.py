@@ -68,7 +68,7 @@ class PublicDocsTest(unittest.TestCase):
             "现有 8 步",
             "快速通道不跳质量门",
             "任意 Step 直达",
-            "docs/assets/marketing/more-paper-workflow-slide-16x9.png",
+            "docs/assets/marketing/more-paper-workflow-readme-hero-v1.0.26.png",
         ]:
             self.assertIn(token, readme)
 
@@ -106,8 +106,13 @@ class PublicDocsTest(unittest.TestCase):
             "升级失败，但将继续使用当前本地版本",
             "python3 \"$SKILL_DIR/scripts/check_skill_update.py\" --json",
             "--record-choice snooze_today",
+            "只有远程版本号高于本地版本号时才设置 `should_prompt=true`",
+            "工作区无未提交修改",
         ]:
             self.assertIn(token, protocol)
+        skill = read_rel("SKILL.md")
+        self.assertIn("在选择 Step 路由前先执行", skill)
+        self.assertIn("should_prompt=true", skill)
 
     def test_step8_ai_trace_runtime_state_source_is_publicly_documented(self):
         readme = read_rel("README.md")

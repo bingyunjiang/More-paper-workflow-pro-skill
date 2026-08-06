@@ -41,13 +41,15 @@ def build_prompt(payload: dict) -> str:
         return ""
 
     skill_version = payload.get("skill_version") or "unknown"
+    remote_version = payload.get("remote_version") or "unknown"
     remote_head = short_sha(payload.get("remote_head"))
     update_command = payload.get("update_command") or "git pull --ff-only"
     lines = [
         "检测到 more-paper-workflow 有新版本可用。",
         "",
         f"- 当前版本：{skill_version}",
-        f"- 远程版本：{remote_head}",
+        f"- 远程版本：{remote_version}",
+        f"- 远程提交：{remote_head}",
         f"- 建议更新命令：{update_command}",
     ]
     extra = payload.get("messages") or []

@@ -7,21 +7,9 @@
     "primary_version": "0.5.0",
     "target_platform": "macos-arm64",
     "target_python": "cp314",
-    "package_count": 103,
-    "total_size_bytes": 77086524,
-    "duplicate_package_names": [
-      "beautifulsoup4",
-      "cyclopts",
-      "fastmcp",
-      "fastmcp-slim",
-      "joserfc",
-      "pdfminer-six",
-      "pdfplumber",
-      "python-multipart",
-      "pyzotero",
-      "starlette",
-      "uvicorn"
-    ],
+    "package_count": 92,
+    "total_size_bytes": 69053753,
+    "duplicate_package_names": [],
     "notes": [
       "Current cache includes platform-specific wheels and is not a universal bundle.",
       "Generate separate bundles per platform before slimming or redistributing."
@@ -85,14 +73,6 @@
       "platform_tag": "any"
     },
     {
-      "filename": "beautifulsoup4-4.14.3-py3-none-any.whl",
-      "name": "beautifulsoup4",
-      "version": "4.14.3",
-      "size_bytes": 107721,
-      "sha256": "0918bfe44902e6ad8d57732ba310582e98da931428d231a5ecb9e7c703a735bb",
-      "platform_tag": "any"
-    },
-    {
       "filename": "beautifulsoup4-4.15.0-py3-none-any.whl",
       "name": "beautifulsoup4",
       "version": "4.15.0",
@@ -101,12 +81,12 @@
       "platform_tag": "any"
     },
     {
-      "filename": "bibtexparser-1.4.4.tar.gz",
+      "filename": "bibtexparser-1.4.4-py3-none-any.whl",
       "name": "bibtexparser",
       "version": "1.4.4",
-      "size_bytes": 55594,
-      "sha256": "093b6c824f7a71d3a748867c4057b71f77c55b8dbc07efc993b781771520d8fb",
-      "platform_tag": "sdist"
+      "size_bytes": 43688,
+      "sha256": "20c605890b117554fed7fb23052c65c9359f2b1477fda50b9e4b2c7fb009ace9",
+      "platform_tag": "any"
     },
     {
       "filename": "cachetools-7.1.4-py3-none-any.whl",
@@ -165,14 +145,6 @@
       "platform_tag": "macosx_11_0_arm64"
     },
     {
-      "filename": "cyclopts-4.16.1-py3-none-any.whl",
-      "name": "cyclopts",
-      "version": "4.16.1",
-      "size_bytes": 219020,
-      "sha256": "617795392c4113a2c2cc7af716f20244900e87f23daa05442d1268d81472a592",
-      "platform_tag": "any"
-    },
-    {
       "filename": "cyclopts-4.18.0-py3-none-any.whl",
       "name": "cyclopts",
       "version": "4.18.0",
@@ -221,27 +193,11 @@
       "platform_tag": "any"
     },
     {
-      "filename": "fastmcp-3.3.1-py3-none-any.whl",
-      "name": "fastmcp",
-      "version": "3.3.1",
-      "size_bytes": 7903,
-      "sha256": "862440c5c4d281363a5995eee59d77f0f7cac1f18869038729cecf03b02fc522",
-      "platform_tag": "any"
-    },
-    {
       "filename": "fastmcp-3.4.2-py3-none-any.whl",
       "name": "fastmcp",
       "version": "3.4.2",
       "size_bytes": 8018,
       "sha256": "c87a62b029f0c5400ada85f683629345d2466c39169f0cb853e487b2f7308c08",
-      "platform_tag": "any"
-    },
-    {
-      "filename": "fastmcp_slim-3.3.1-py3-none-any.whl",
-      "name": "fastmcp-slim",
-      "version": "3.3.1",
-      "size_bytes": 738644,
-      "sha256": "6cf1c2d77e3adb0d409d6825ed6b0b2a999062973e00b8eea03bd48bf9b4c043",
       "platform_tag": "any"
     },
     {
@@ -338,14 +294,6 @@
       "version": "4.5.0",
       "size_bytes": 10594,
       "sha256": "79ce39246eddbde4b3a03b77ea5f0f7878dc669b166a66cf3fa8e266aa3fa2f4",
-      "platform_tag": "any"
-    },
-    {
-      "filename": "joserfc-1.7.0-py3-none-any.whl",
-      "name": "joserfc",
-      "version": "1.7.0",
-      "size_bytes": 70387,
-      "sha256": "17e5d7a5a35e65442b05efc435a3d5d46696ffa2c8a2ed0eea6f63fc268e3224",
       "platform_tag": "any"
     },
     {
@@ -501,14 +449,6 @@
       "platform_tag": "any"
     },
     {
-      "filename": "pdfminer_six-20251230-py3-none-any.whl",
-      "name": "pdfminer-six",
-      "version": "20251230",
-      "size_bytes": 6591909,
-      "sha256": "9ff2e3466a7dfc6de6fd779478850b6b7c2d9e9405aa2a5869376a822771f485",
-      "platform_tag": "any"
-    },
-    {
       "filename": "pdfminer_six-20260107-py3-none-any.whl",
       "name": "pdfminer-six",
       "version": "20260107",
@@ -522,14 +462,6 @@
       "version": "0.11.10",
       "size_bytes": 60047,
       "sha256": "7741ea81bf165b474b153e6789d10d18e06b6ddcf3ec84289c3ef2fed6802580",
-      "platform_tag": "any"
-    },
-    {
-      "filename": "pdfplumber-0.11.9-py3-none-any.whl",
-      "name": "pdfplumber",
-      "version": "0.11.9",
-      "size_bytes": 60045,
-      "sha256": "33ec5580959ba524e9100138746e090879504c42955df1b8a997604dd326c443",
       "platform_tag": "any"
     },
     {
@@ -645,14 +577,6 @@
       "platform_tag": "any"
     },
     {
-      "filename": "python_multipart-0.0.30-py3-none-any.whl",
-      "name": "python-multipart",
-      "version": "0.0.30",
-      "size_bytes": 29730,
-      "sha256": "830964def8c90607ac5daa00514e3987815865713ade8d20febc9177ac0c3c5b",
-      "platform_tag": "any"
-    },
-    {
       "filename": "python_multipart-0.0.32-py3-none-any.whl",
       "name": "python-multipart",
       "version": "0.0.32",
@@ -667,14 +591,6 @@
       "size_bytes": 173809,
       "sha256": "34d5fcd24b8445fadc33f9cf348c1047101756fd760b4dacb5c3e99755703310",
       "platform_tag": "macosx_11_0_arm64"
-    },
-    {
-      "filename": "pyzotero-1.13.0-py3-none-any.whl",
-      "name": "pyzotero",
-      "version": "1.13.0",
-      "size_bytes": 51084,
-      "sha256": "bedaa9d51f9bb7db5df2b8573fd3ce949978864a41daf15f354bbd519b341f6d",
-      "platform_tag": "any"
     },
     {
       "filename": "pyzotero-1.13.1-py3-none-any.whl",
@@ -725,12 +641,12 @@
       "platform_tag": "macosx_11_0_arm64"
     },
     {
-      "filename": "sgmllib3k-1.0.0.tar.gz",
+      "filename": "sgmllib3k-1.0.0-py3-none-any.whl",
       "name": "sgmllib3k",
       "version": "1.0.0",
-      "size_bytes": 5750,
-      "sha256": "7868fb1c8bfa764c1ac563d3cf369c381d1325d36124933a726f29fcdaa812e9",
-      "platform_tag": "sdist"
+      "size_bytes": 6088,
+      "sha256": "4e41bd9bd85038a388a1af2b86b4aa2086b33a99e028a9bb348836653f58b087",
+      "platform_tag": "any"
     },
     {
       "filename": "six-1.17.0-py2.py3-none-any.whl",
@@ -754,14 +670,6 @@
       "version": "3.4.4",
       "size_bytes": 16514,
       "sha256": "3f4dd50d8aed2771a091f3a83000323fc3844541c16b4fe585ae2420cc6df973",
-      "platform_tag": "any"
-    },
-    {
-      "filename": "starlette-1.2.1-py3-none-any.whl",
-      "name": "starlette",
-      "version": "1.2.1",
-      "size_bytes": 73350,
-      "sha256": "4de0082d08c8f6764a85a54cf1120d6939507a19905c7768acad2a9f875d2b89",
       "platform_tag": "any"
     },
     {
@@ -802,14 +710,6 @@
       "version": "2.7.0",
       "size_bytes": 131087,
       "sha256": "9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897",
-      "platform_tag": "any"
-    },
-    {
-      "filename": "uvicorn-0.48.0-py3-none-any.whl",
-      "name": "uvicorn",
-      "version": "0.48.0",
-      "size_bytes": 71410,
-      "sha256": "48097851328b87ec36117d3d575234519eb58c2b22d79666e9bbc6c49a761dad",
       "platform_tag": "any"
     },
     {

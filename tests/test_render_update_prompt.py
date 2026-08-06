@@ -17,6 +17,7 @@ class RenderUpdatePromptTest(unittest.TestCase):
         payload = {
             "should_prompt": True,
             "skill_version": "v1.0.14-20260618",
+            "remote_version": "v1.0.15-20260620",
             "remote_head": "abcdef1234567890",
             "update_command": "cd /tmp/repo && git pull --ff-only",
             "messages": ["- 远程仓库已有新提交：本地 1111111，远程 abcdef1。"],
@@ -36,7 +37,8 @@ class RenderUpdatePromptTest(unittest.TestCase):
         for token in [
             "检测到 more-paper-workflow 有新版本可用。",
             "当前版本：v1.0.14-20260618",
-            "远程版本：abcdef1",
+            "远程版本：v1.0.15-20260620",
+            "远程提交：abcdef1",
             "建议更新命令：cd /tmp/repo && git pull --ff-only",
             "请选择其一：",
             "1. 升级",
@@ -48,7 +50,7 @@ class RenderUpdatePromptTest(unittest.TestCase):
     def test_renders_nothing_when_prompt_is_not_requested(self):
         payload = {
             "should_prompt": False,
-            "skill_version": "v1.0.26-20260804",
+            "skill_version": "v1.0.27-20260806",
             "remote_head": None,
             "update_command": None,
         }

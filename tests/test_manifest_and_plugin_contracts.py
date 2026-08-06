@@ -63,6 +63,13 @@ class ManifestAndPluginContractsTest(unittest.TestCase):
         self.assertNotIn("references/equation-writing-contract.md", always_load)
         self.assertIn("conditional_load:", manifest)
 
+    def test_step7_all_manifest_markdown_targets_exist(self):
+        manifest = (ROOT / "manifest.step7.yaml").read_text(encoding="utf-8")
+        targets = package_validator.manifest_markdown_targets(manifest)
+        self.assertGreaterEqual(len(targets), 20)
+        for target in targets:
+            self.assertTrue((ROOT / target).is_file(), target)
+
     def test_security_scan_rejects_local_codex_config_and_author_paths(self):
         failures = []
         local_path = "/" + "Users" + "/" + "Bing" + "/.local/bin/zotero-mcp"

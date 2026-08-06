@@ -111,6 +111,8 @@ def main() -> int:
 
         steps = [
             ("environment_preflight", [sys.executable, str(SCRIPTS / "check_environment.py")]),
+            ("offline_manifest", [sys.executable, str(SCRIPTS / "check_offline_packages.py"), "--strict"]),
+            ("offline_resolution", [sys.executable, str(SCRIPTS / "check_offline_packages.py"), "--strict", "--resolve"]),
             ("root_package", [sys.executable, str(SCRIPTS / "validate_skill_package.py"), "--root", str(ROOT)]),
             ("digitization_contract", [sys.executable, str(ROOT / "tests" / "test_figure_evidence_pipeline.py")]),
             ("build_zip", [sys.executable, str(SCRIPTS / "build_skill_package.py"), "--root", str(ROOT), "--out", str(zip_path)]),

@@ -175,6 +175,22 @@ class PlatformCompatTest(unittest.TestCase):
              patch.object(setup_zotero.shutil, "which", return_value=None):
             self.assertEqual(setup_zotero.get_zotero_bin(), expected)
 
+    def test_zotero_install_uses_locked_package_requirement(self):
+        completed = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
+        with patch.object(setup_zotero, "find_local_wheel", return_value="/tmp/packages/zotero.whl"), \
+             patch.object(setup_zotero.os, "listdir", return_value=["zotero.whl"]), \
+             patch.object(setup_zotero.subprocess, "run", return_value=completed) as run:
+            self.assertTrue(setup_zotero.install_package())
+        command = run.call_args.args[0]
+        self.assertIn("zotero-mcp-server>=0.5.0", command)
+
+    def test_zotero_newer_version_satisfies_compatibility_baseline(self):
+        self.assertTrue(setup_zotero.version_at_least("0.6.0"))
+        self.assertTrue(setup_zotero.version_at_least("0.6.0rc1"))
+        self.assertTrue(setup_zotero.version_at_least("0.5.0.post1"))
+        self.assertTrue(setup_zotero.version_at_least("0.5.0"))
+        self.assertFalse(setup_zotero.version_at_least("0.4.9"))
+
     def test_router_auto_start_uses_python_cdp_helper(self):
         with patch.object(router, "check_cdp", side_effect=[False, True]), \
              patch.object(router, "cdp_browser_matches", return_value=True), \

@@ -8,6 +8,25 @@
 
 ---
 
+## v1.0.27-20260806 (2026-08-06)
+
+### Step 7 轻量合同修复
+
+- 将 `agents/step_7_writing.md` 恢复为轻量但完整的主合同，补齐适用任务、输入要求、标准输出、执行流程、质量门槛、Checkpoint、收尾检查和故障排除。
+- 扩展六个 Step 7 reference，恢复多入口证据、writing axes、argument plan、章节证据门、图文完成门、修稿复评和分层完成状态。
+- `manifest.step7.yaml` 新增材料/机械、电力能源、期刊风格、机理、写作质量、引用、图表、章节和 revision 条件路由；`agents/step_7_entry.md` 明确领域触发词。
+- Step 7 合同测试改为沿 manifest 和文档引用验证可达合同，不再要求轻量主文件保留旧的 7.1–7.17 编号与全部方法细节。
+
+### 验证器与发布修复
+
+- Zotero key 检测只在映射命中、反引号或明确 key 字段语境下生效，避免将普通八位大写单词误判为条目 key。
+- 科学写作质量审计支持 writing blueprint 的 confirmed moves，并扩展英文和中文定量结果识别。
+- README hero 测试与当前公开图片同步；新增 `requirements-dev.txt`。
+- 清理离线依赖缓存中的重复版本，将剩余源码分发转换为通用 wheel，并重新生成 `scripts/packages/manifest.lock.json`。
+- 升级提醒改为比较当前 upstream 的远程 `SKILL.md` 版本，统一 disabled/throttled/正常检查的 JSON schema；自动升级增加干净工作区、upstream 与 fast-forward 预检。
+- release acceptance 新增严格离线 manifest 和 `pip --ignore-installed --no-index --only-binary=:all:` 解析；Zotero `0.5.0` 作为离线验证基线，安装器使用 `>=0.5.0` 并保留更高兼容版本。
+- 摘要质量门不再将任意“数值+单位”或 blueprint 自报状态当作正文结果，结构化 move 必须绑定正文中真实存在的证据片段。
+
 ## v1.0.26-20260804 (2026-08-04)
 
 ### Step 7 原生论文流程图能力正式发布

@@ -255,6 +255,30 @@ def validate_route_targets(
             )
 
 
+def manifest_markdown_targets(text: str) -> set[str]:
+    return set(
+        re.findall(
+            r"(?<![A-Za-z0-9_.-])((?:agents|references|commands|static)/[A-Za-z0-9_./-]+\.md)",
+            text,
+        )
+    )
+
+
+def validate_manifest_markdown_targets(
+    root: Path,
+    text: str,
+    failures: list[dict[str, str]],
+    manifest_path: Path,
+) -> None:
+    resolved_root = root.resolve()
+    for target in sorted(manifest_markdown_targets(text)):
+        candidate = (root / target).resolve()
+        if not candidate.is_relative_to(resolved_root):
+            add_failure(failures, "route_target_outside_root", str(manifest_path), target=target)
+        elif not candidate.is_file():
+            add_failure(failures, "missing_route_target", str(manifest_path), target=target)
+
+
 def validate_repository_structure(root: Path, failures: list[dict[str, str]]) -> None:
     if not (root / "SKILL.md").is_file() or not (root / "manifest.yaml").is_file():
         return
@@ -343,6 +367,7 @@ def validate_repository_structure(root: Path, failures: list[dict[str, str]]) ->
 
     step7_path = root / "manifest.step7.yaml"
     step7_text = step7_path.read_text(encoding="utf-8")
+    validate_manifest_markdown_targets(root, step7_text, failures, step7_path)
     modes = set(yaml_axis_allowed(step7_text, "mode"))
     operations = set(yaml_axis_allowed(step7_text, "operation"))
     target_genres = set(yaml_axis_allowed(step7_text, "target_genre"))

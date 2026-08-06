@@ -1,0 +1,6 @@
+# Development and release validation dependencies
+pytest>=8.0
+PyYAML>=6.0
+jsonschema>=4.22
+scikit-image>=0.22
+websocket-client>=1.8

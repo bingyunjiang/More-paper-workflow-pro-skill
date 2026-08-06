@@ -73,13 +73,86 @@ operation_routes:
 
 conditional_load:
   evidence_intake:
-    - references/step7-evidence-intake.md
+    always: true
+    paths:
+      - references/step7-evidence-intake.md
   completion_validation:
-    - references/step7-completion-validation.md
+    always: true
+    paths:
+      - references/step7-completion-validation.md
   formulas:
-    - references/equation-writing-contract.md
+    triggers: [formula, equation, LaTeX, OMML, 公式, 方程]
+    paths:
+      - references/equation-writing-contract.md
+  mechanism:
+    triggers:
+      - mechanism
+      - 机理
+      - CDRX
+      - DDRX
+      - DRV
+      - EBSD
+      - recrystallization
+      - pinning
+      - load transfer
+    paths:
+      - references/mechanism-analysis-writing-contract.md
+  domain_pack:
+    materials_mechanics:
+      triggers: [materials, material, mechanics, EBSD, CDRX, DDRX, DRV, KAM, GOS, 热变形, 显微组织, CNT/Al]
+      paths:
+        - references/domain-packs/materials-mechanics-writing.md
+    power_electronics_energy:
+      triggers: [power electronics, energy, charging, storage, EMS, V2G, fast charging, wireless charging, 电力电子, 充电, 储能]
+      paths:
+        - references/domain-packs/power-electronics-ev-energy-writing.md
+  journal_style:
+    materials:
+      triggers: [MSEA, Materials Science and Engineering A, Acta Materialia, Scripta Materialia, JMPT]
+      paths:
+        - references/domain-packs/materials-journal-style.md
+    power_energy:
+      triggers: [IEEE Transactions, IEEE Access, Applied Energy, Energy]
+      paths:
+        - references/domain-packs/power-energy-journal-style.md
+  writing_quality:
+    operations: [write, pre-review]
+    paths:
+      - references/writing-quality-borrowing-plan.md
+      - references/style-learning-workflow.md
+      - references/scientific-writing-quality-rubric.md
+      - references/section-quality-gates.md
+      - references/reviewer-defect-taxonomy.md
+  citation_support:
+    operations: [write, citation-audit, pre-review]
+    paths:
+      - references/citation-audit-contract.md
+      - references/citation-audit-guide.md
+      - references/paper-card-contract.md
+      - references/claim-evidence-readiness.md
+  figure_support:
+    operations: [write, figure]
+    paths:
+      - references/figure-writing-interface.md
+      - references/pdf-processing-policy.md
+  section_support:
+    operations: [write]
+    paths:
+      - references/section-blueprint-workflow.md
+      - references/section-blueprint-template.md
+      - references/zotero-outline-mapping.md
+  revision:
+    modes: [revision-only]
+    operations: [pre-review]
+    paths:
+      - commands/revision-roadmap.md
+      - references/reviewer-protocol.md
   figure_backend:
     diagram:
-      - references/paper-diagram-contract.md
+      backends: [diagram]
+      paths:
+        - references/paper-diagram-contract.md
     reproduction:
-      - references/scientific-figure-reproduction.md
+      backends: [reproduction]
+      paths:
+        - references/scientific-figure-reproduction.md

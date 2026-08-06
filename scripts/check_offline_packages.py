@@ -14,8 +14,10 @@ from collections import defaultdict
 from dataclasses import dataclass
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
+import subprocess
 import sys
 
 
@@ -166,13 +168,57 @@ def check_manifest(strict: bool = False) -> list[str]:
         else:
             print(f"WARN: {message}")
 
+    source_distributions = sorted(
+        filename for filename in actual if filename.endswith((".tar.gz", ".zip"))
+    )
+    if strict and source_distributions:
+        findings.append(
+            "source distributions are not allowed in strict offline bundles: "
+            + ", ".join(source_distributions)
+        )
+
     return findings
+
+
+def check_resolution(timeout: int = 120) -> list[str]:
+    command = [
+        sys.executable,
+        "-m",
+        "pip",
+        "install",
+        "--dry-run",
+        "--ignore-installed",
+        "--no-index",
+        "--only-binary=:all:",
+        "--find-links",
+        str(PACKAGE_DIR),
+        "zotero-mcp-server==0.5.0",
+    ]
+    env = dict(os.environ)
+    env.update({"PIP_DISABLE_PIP_VERSION_CHECK": "1", "PIP_NO_INPUT": "1"})
+    try:
+        result = subprocess.run(
+            command,
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+            env=env,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return [f"offline dependency resolution could not run: {exc}"]
+    if result.returncode != 0:
+        details = (result.stderr or result.stdout or "unknown pip failure").strip()
+        return [f"offline dependency resolution failed: {details[-1200:]}"]
+    return []
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Validate scripts/packages against manifest.lock.json.")
     parser.add_argument("--write-manifest", action="store_true", help="Rewrite scripts/packages/manifest.lock.json.")
     parser.add_argument("--strict", action="store_true", help="Fail on duplicate package versions.")
+    parser.add_argument("--resolve", action="store_true", help="Run a fully offline pip dependency dry-run.")
     args = parser.parse_args()
 
     if args.write_manifest:
@@ -184,6 +230,8 @@ def main() -> int:
         print(f"wrote: {MANIFEST_PATH.relative_to(ROOT)}")
 
     findings = check_manifest(strict=args.strict)
+    if args.resolve and not findings:
+        findings.extend(check_resolution())
     for finding in findings:
         print(f"ERROR: {finding}")
     return 1 if findings else 0

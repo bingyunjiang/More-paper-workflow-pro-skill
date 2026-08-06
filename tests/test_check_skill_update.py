@@ -7,6 +7,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,7 +37,7 @@ class CheckSkillUpdateScriptTest(unittest.TestCase):
         self.assertEqual(payload["suggested_action"], "continue")
         self.assertFalse(payload["should_prompt"])
         self.assertEqual(payload["prompt_options"], [])
-        self.assertEqual(payload["skill_version"], "v1.0.26-20260804")
+        self.assertEqual(payload["skill_version"], "v1.0.27-20260806")
 
     def test_parse_skill_version_reads_skill_metadata_body(self):
         import scripts.check_skill_update as check_skill_update
@@ -48,6 +49,58 @@ class CheckSkillUpdateScriptTest(unittest.TestCase):
                 encoding="utf-8",
             )
             self.assertEqual(check_skill_update.parse_skill_version(root), "v9.9.9-20991231")
+
+    def test_remote_version_comparison_uses_release_version_not_commit_difference(self):
+        import scripts.check_skill_update as check_skill_update
+
+        self.assertTrue(
+            check_skill_update.remote_version_is_newer("v1.0.27-20260806", "v1.0.28-20260807")
+        )
+        self.assertFalse(
+            check_skill_update.remote_version_is_newer("v1.0.27-20260806", "v1.0.27-20260806")
+        )
+        self.assertFalse(check_skill_update.remote_version_is_newer("v1.0.27-20260806", None))
+
+    def test_read_remote_version_fetches_upstream_skill_metadata(self):
+        import scripts.check_skill_update as check_skill_update
+
+        responses = {
+            ("ls-remote", "origin", "refs/heads/main"): "abcdef1234567890\trefs/heads/main",
+            ("fetch", "--quiet", "--no-tags", "--no-write-fetch-head", "origin", "refs/heads/main"): "",
+            ("show", "abcdef1234567890:SKILL.md"): "## Skill metadata\n\nversion: v1.0.28-20260807 (2026-08-07)\n",
+        }
+
+        with mock.patch.object(
+            check_skill_update,
+            "run_git",
+            side_effect=lambda root, args, timeout=5: responses[tuple(args)],
+        ):
+            head, version, status = check_skill_update.read_remote_version(ROOT, "origin", "main")
+
+        self.assertEqual(head, "abcdef1234567890")
+        self.assertEqual(version, "v1.0.28-20260807")
+        self.assertEqual(status, "checked")
+
+    def test_throttled_json_keeps_complete_prompt_schema(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "more-paper-workflow" / "update-check.json"
+            state_file.parent.mkdir(parents=True)
+            state_file.write_text(json.dumps({"last_checked": time.time()}), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), "--json", "--no-network"],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+                env={"XDG_CACHE_HOME": tmp, "PATH": "/usr/bin:/bin"},
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload["skipped"])
+        self.assertEqual(payload["reason"], "throttled")
+        self.assertFalse(payload["should_prompt"])
+        self.assertEqual(payload["prompt_options"], [])
+        self.assertIn("remote_version", payload)
 
     def test_record_choice_snoozes_matching_remote_head(self):
         with tempfile.TemporaryDirectory() as tmp:

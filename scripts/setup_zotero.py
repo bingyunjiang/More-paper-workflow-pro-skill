@@ -31,10 +31,11 @@ try:
 except Exception:
     pass
 
-import sys, os, json, subprocess, shutil, configparser, platform, ntpath
+import sys, os, json, subprocess, shutil, configparser, platform, ntpath, re
 
 PACKAGE_NAME = "zotero-mcp-server"
 RECOMMENDED_VERSION = "0.5.0"
+PACKAGE_REQUIREMENT = f"{PACKAGE_NAME}>={RECOMMENDED_VERSION}"
 HERMES_HOME = os.path.expanduser("~/.hermes")
 HERMES_CONFIG_PATH = os.path.expanduser("~/.hermes/config.yaml")
 
@@ -75,6 +76,18 @@ def check_installed():
         return False, None
     except Exception:
         return False, None
+
+
+def version_at_least(value, minimum=RECOMMENDED_VERSION):
+    """Compare stable numeric release versions without requiring packaging."""
+    current_match = re.match(r"^(\d+(?:\.\d+)*)", value or "")
+    required_match = re.match(r"^(\d+(?:\.\d+)*)", minimum or "")
+    if not current_match or not required_match:
+        return False
+    current = tuple(int(part) for part in current_match.group(1).split("."))
+    required = tuple(int(part) for part in required_match.group(1).split("."))
+    width = max(len(current), len(required))
+    return current + (0,) * (width - len(current)) >= required + (0,) * (width - len(required))
 
 
 def check_env():
@@ -249,7 +262,7 @@ def install_package():
         # --find-links: pip优先用本地wheel，缺的平台二进制自动降级到PyPI
         r = subprocess.run(
             [sys.executable, "-m", "pip", "install",
-             "zotero-mcp-server",
+             PACKAGE_REQUIREMENT,
              "--find-links", pkgs_dir,
              "-q"],
             capture_output=True, text=True, timeout=120
@@ -273,9 +286,9 @@ def install_package():
                     return True
             print(f"  ❌ 安装失败，尝试从 PyPI 下载...")
 
-    print(f"  从 PyPI 安装 {PACKAGE_NAME}（需联网）...")
+    print(f"  从 PyPI 安装 {PACKAGE_REQUIREMENT}（需联网）...")
     r = subprocess.run(
-        [sys.executable, "-m", "pip", "install", PACKAGE_NAME, "-q"],
+        [sys.executable, "-m", "pip", "install", PACKAGE_REQUIREMENT, "-q"],
         capture_output=True, text=True, timeout=120
     )
     if r.returncode == 0:
@@ -588,16 +601,18 @@ def prompt_and_install(target="hermes", non_interactive=False):
 
     # 1. 安装包
     installed, ver = check_installed()
-    if installed:
-        version_note = ""
-        if ver != RECOMMENDED_VERSION:
-            version_note = f" 当前推荐版本为 {RECOMMENDED_VERSION}。"
+    if installed and version_at_least(ver):
+        version_note = (
+            " 当前版本高于离线验证基线，予以保留。"
+            if ver != RECOMMENDED_VERSION else ""
+        )
         print(f"\n✅ zotero-mcp-server (v{ver}) 已安装，跳过安装步骤。{version_note}")
     else:
-        print(f"\n⏳ {PACKAGE_NAME} 未安装，开始安装...")
+        reason = f"当前版本 v{ver} 低于兼容基线" if installed else "尚未安装"
+        print(f"\n⏳ {PACKAGE_NAME} {reason}，开始安装/升级...")
         if not install_package():
             print("\n❌ pip 安装失败。请手动执行:")
-            print(f"   pip install {PACKAGE_NAME}")
+            print(f"   pip install \"{PACKAGE_REQUIREMENT}\"")
             return False
 
     # 2. 非交互模式：从环境变量获取参数

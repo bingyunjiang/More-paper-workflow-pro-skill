@@ -34,6 +34,14 @@ python3 "$SKILL_DIR/scripts/check_skill_update.py" --json
 
 则直接进入主流程。
 
+版本判定固定遵循以下规则：
+
+- 只检查当前 Git 分支配置的 upstream，不比较无关的远程默认分支
+- fetch 远程对象后读取远程 `SKILL.md` 的 `version`
+- 只有远程版本号高于本地版本号时才设置 `should_prompt=true`
+- 同版本的普通提交变化不作为“新版本”提醒
+- 无 upstream、远程不可达或远程版本无法读取时 fail-open，继续当前任务
+
 推荐直接使用：
 
 ```bash
@@ -122,6 +130,8 @@ python3 "$SKILL_DIR/scripts/check_skill_update.py" --record-choice upgrade
 
 3. 重新读取 `SKILL.md`
 4. 再进入主流程
+
+自动升级前必须同时满足：当前分支有 upstream、工作区无未提交修改、远程历史可 fast-forward。任一条件不满足时不得自动修改工作区，应说明原因并继续使用当前版本。
 
 若升级失败：
 

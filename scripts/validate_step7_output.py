@@ -52,6 +52,7 @@ DRAFT_PATTERNS = [
 ]
 
 ZOTERO_KEY_RE = re.compile(r"\b[A-Z0-9]{8}\b")
+ZOTERO_KEY_FIELD_NAMES = {"zotero_key", "zotero_item_key", "item_key"}
 NUMBERED_DEPTH_RE = re.compile(r"\[\d+\](?:[，,、;；\s]*（已读(?:全文|摘要)|（仅元数据）)")
 AUTHOR_YEAR_DEPTH_RE = re.compile(
     r"[\u4e00-\u9fffA-Za-z][\u4e00-\u9fffA-Za-z .·&-]{0,40}"
@@ -608,9 +609,43 @@ def _strip_figure_markers(text: str) -> str:
     return FIGURE_MARKER_RE.sub("", text)
 
 
-def _zotero_keys_in_body(text: str) -> list[str]:
+def _known_zotero_keys(root: Path) -> set[str]:
+    keys: set[str] = set()
+    candidates = [
+        root / "文献-Zotero架构对照.json",
+        root / "zotero_mapping.json",
+        root / "evidence_pack.json",
+    ]
+
+    def collect(value: object, field: str = "") -> None:
+        if isinstance(value, dict):
+            for child_field, child in value.items():
+                collect(child, str(child_field).lower())
+        elif isinstance(value, list):
+            for child in value:
+                collect(child, field)
+        elif field in ZOTERO_KEY_FIELD_NAMES and isinstance(value, str) and ZOTERO_KEY_RE.fullmatch(value):
+            keys.add(value)
+
+    for path in candidates:
+        if path.is_file():
+            collect(_load_json(path))
+    return keys
+
+
+def _zotero_keys_in_body(text: str, root: Path) -> list[str]:
     body = _strip_figure_markers(_strip_internal_sections(text))
-    return sorted(set(ZOTERO_KEY_RE.findall(body)))
+    known = _known_zotero_keys(root)
+    found: set[str] = set()
+    for match in ZOTERO_KEY_RE.finditer(body):
+        key = match.group(0)
+        before = body[max(0, match.start() - 24):match.start()]
+        after = body[match.end():match.end() + 24]
+        backticked = before.endswith("`") and after.startswith("`")
+        labeled = bool(re.search(r"(?:zotero[_ -]?key|zotero[_ -]?item[_ -]?key|citekey)\s*[:=]\s*`?$", before, re.IGNORECASE))
+        if key in known or backticked or labeled:
+            found.add(key)
+    return sorted(found)
 
 
 def _has_submission_style_citation(text: str) -> bool:
@@ -857,7 +892,7 @@ def validate(root: Path, target_state: str = "auto") -> tuple[list[Finding], dic
         findings.extend(_validate_inserted_images(drafts))
 
     if drafts:
-        zotero_keys = _zotero_keys_in_body(combined_draft_text)
+        zotero_keys = _zotero_keys_in_body(combined_draft_text, root)
         if zotero_keys:
             findings.append(Finding(
                 "fail",

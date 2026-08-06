@@ -5,8 +5,8 @@
 """
 Best-effort update reminder for more-paper-workflow.
 
-The script never mutates the skill repository. It only compares local metadata
-and, when available, the git remote HEAD, then prints a short reminder.
+The script never mutates the worktree. It compares local metadata with the
+SKILL.md version on the current branch's upstream, then prints a short reminder.
 """
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ import argparse
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 import time
@@ -44,12 +45,31 @@ def read_text(path: Path) -> str:
 
 
 def parse_skill_version(root: Path) -> str | None:
-    text = read_text(root / "SKILL.md")
+    return parse_skill_version_text(read_text(root / "SKILL.md"))
+
+
+def parse_skill_version_text(text: str) -> str | None:
     match = re.search(r"^version:\s*([^\s(]+)", text, re.M)
     if match:
         return match.group(1)
     match = re.search(r"^version:\s*([^\s(]+)", text.split("## Skill metadata", 1)[-1], re.M)
     return match.group(1) if match else None
+
+
+def version_key(value: str | None) -> tuple[int, int, int, int] | None:
+    if not value:
+        return None
+    match = re.fullmatch(r"v(\d+)\.(\d+)\.(\d+)(?:-(\d{8}))?", value)
+    if not match:
+        return None
+    major, minor, patch, date = match.groups()
+    return int(major), int(minor), int(patch), int(date or 0)
+
+
+def remote_version_is_newer(local_version: str | None, remote_version: str | None) -> bool:
+    local_key = version_key(local_version)
+    remote_key = version_key(remote_version)
+    return bool(local_key and remote_key and remote_key > local_key)
 
 
 def parse_readme_version(root: Path) -> str | None:
@@ -118,6 +138,39 @@ def remote_has_update(root: Path, local_head: str | None, remote_head: str | Non
     return True
 
 
+def upstream_parts(root: Path) -> tuple[str | None, str | None, str | None]:
+    upstream = run_git(root, ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"], timeout=2)
+    if not upstream or "/" not in upstream:
+        return upstream, None, None
+    remote, branch = upstream.split("/", 1)
+    return upstream, remote, branch
+
+
+def read_remote_version(
+    root: Path,
+    remote: str,
+    branch: str,
+) -> tuple[str | None, str | None, str]:
+    remote_raw = run_git(root, ["ls-remote", remote, f"refs/heads/{branch}"], timeout=REMOTE_TIMEOUT_SECONDS)
+    if not remote_raw:
+        return None, None, "remote_unreachable"
+    remote_head = remote_raw.split()[0]
+    fetched = run_git(
+        root,
+        ["fetch", "--quiet", "--no-tags", "--no-write-fetch-head", remote, f"refs/heads/{branch}"],
+        timeout=REMOTE_TIMEOUT_SECONDS,
+    )
+    if fetched is None:
+        return remote_head, None, "fetch_failed"
+    remote_skill = run_git(root, ["show", f"{remote_head}:SKILL.md"], timeout=2)
+    if remote_skill is None:
+        return remote_head, None, "remote_skill_missing"
+    remote_version = parse_skill_version_text(remote_skill)
+    if not remote_version:
+        return remote_head, None, "remote_version_missing"
+    return remote_head, remote_version, "checked"
+
+
 def state_path() -> Path:
     cache_root = os.environ.get("XDG_CACHE_HOME")
     if cache_root:
@@ -173,6 +226,50 @@ def emit_json(payload: dict) -> None:
     sys.stdout.write("\n")
 
 
+def base_payload(
+    root: Path,
+    state_file: Path,
+    state: dict,
+    *,
+    enabled: bool = True,
+    skipped: bool = False,
+    reason: str | None = None,
+) -> dict:
+    skill_version = parse_skill_version(root)
+    readme_version = parse_readme_version(root)
+    changelog_version = parse_changelog_version(root)
+    return {
+        "enabled": enabled,
+        "skipped": skipped,
+        "reason": reason,
+        "skill_version": skill_version,
+        "readme_version": readme_version,
+        "changelog_version": changelog_version,
+        "expected_version": skill_version or changelog_version or readme_version,
+        "metadata_mismatch": False,
+        "local_head": None,
+        "remote_head": state.get("remote_head"),
+        "remote_version": state.get("remote_version"),
+        "remote_url": None,
+        "upstream_ref": None,
+        "remote_check_status": reason or "not_started",
+        "remote_update_available": False,
+        "update_available": False,
+        "should_prompt": False,
+        "suggested_action": "continue",
+        "update_command": None,
+        "prompt_mode": "none",
+        "prompt_options": [],
+        "suppressed": False,
+        "suppress_reason": None,
+        "suppress_until": state.get("suppress_until"),
+        "last_user_choice": state.get("last_user_choice"),
+        "choice_recorded": None,
+        "state_file": str(state_file),
+        "messages": [],
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Check whether this skill may need an update.")
     parser.add_argument("--force", action="store_true", help="Ignore daily throttling and check now.")
@@ -198,22 +295,26 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    if os.environ.get("MORE_PAPER_SKILL_UPDATE_CHECK", "").lower() in {"0", "false", "no", "off"}:
-        if args.json:
-            emit_json({"enabled": False, "skipped": True, "reason": "disabled_by_env"})
-        return 0
-
     root = skill_dir()
     state_file = state_path()
     state = load_state(state_file)
-    if not args.record_choice and not should_check(state_file, args.interval_hours, args.force):
+    payload = base_payload(root, state_file, state)
+
+    if os.environ.get("MORE_PAPER_SKILL_UPDATE_CHECK", "").lower() in {"0", "false", "no", "off"}:
         if args.json:
-            emit_json({"enabled": True, "skipped": True, "reason": "throttled", "state_file": str(state_file)})
+            payload.update(enabled=False, skipped=True, reason="disabled_by_env", remote_check_status="disabled_by_env")
+            emit_json(payload)
         return 0
 
-    skill_version = parse_skill_version(root)
-    readme_version = parse_readme_version(root)
-    changelog_version = parse_changelog_version(root)
+    if not args.record_choice and not should_check(state_file, args.interval_hours, args.force):
+        if args.json:
+            payload.update(skipped=True, reason="throttled", remote_check_status="throttled")
+            emit_json(payload)
+        return 0
+
+    skill_version = payload["skill_version"]
+    readme_version = payload["readme_version"]
+    changelog_version = payload["changelog_version"]
 
     lines: list[str] = []
     metadata_mismatch = False
@@ -223,22 +324,30 @@ def main(argv: list[str] | None = None) -> int:
     if skill_version and changelog_version and skill_version != changelog_version:
         metadata_mismatch = True
         lines.append(f"- 本地 SKILL.md 版本为 {skill_version}，但 CHANGELOG 最新为 {changelog_version}。")
-    expected_version = skill_version or changelog_version or readme_version
+    expected_version = payload["expected_version"]
     if metadata_mismatch:
         lines.append("- 建议先同步 skill 元数据，避免 Agent 读取到旧版本号。")
 
     local_head = run_git(root, ["rev-parse", "HEAD"], timeout=2)
     remote_head = None
-    remote_url = run_git(root, ["config", "--get", "remote.origin.url"], timeout=2)
+    remote_version = None
+    upstream_ref, upstream_remote, upstream_branch = upstream_parts(root)
+    remote_url = (
+        run_git(root, ["config", "--get", f"remote.{upstream_remote}.url"], timeout=2)
+        if upstream_remote else None
+    )
     remote_update_available = False
-    if not args.no_network and remote_url and local_head:
-        remote_raw = run_git(root, ["ls-remote", "origin", "HEAD"], timeout=REMOTE_TIMEOUT_SECONDS)
-        if remote_raw:
-            remote_head = remote_raw.split()[0]
-            if remote_has_update(root, local_head, remote_head):
-                remote_update_available = True
-                lines.append(f"- 远程仓库已有新提交：本地 {local_head[:7]}，远程 {remote_head[:7]}。")
-                lines.append(f"- 更新命令：cd {root} && git pull --ff-only")
+    remote_check_status = "no_network" if args.no_network else "no_upstream"
+    if not args.no_network and upstream_remote and upstream_branch and local_head:
+        remote_head, remote_version, remote_check_status = read_remote_version(root, upstream_remote, upstream_branch)
+        remote_update_available = remote_version_is_newer(skill_version, remote_version)
+        if remote_update_available:
+            lines.append(f"- 远程版本 {remote_version} 高于本地版本 {skill_version}。")
+            if remote_head:
+                lines.append(f"- 远程提交：{remote_head[:7]}；跟踪分支：{upstream_ref}。")
+
+    upgrade_script = shlex.quote(str(root / "scripts" / "perform_skill_upgrade.py"))
+    update_command = f"python3 {upgrade_script} --json" if remote_update_available else None
 
     now_ts = current_time()
     suppressed, suppress_reason = is_suppressed(state, remote_head, now_ts)
@@ -264,22 +373,19 @@ def main(argv: list[str] | None = None) -> int:
     elif should_prompt:
         state["last_prompted_remote_head"] = remote_head
 
-    payload = {
-        "enabled": True,
-        "skipped": False,
-        "skill_version": skill_version,
-        "readme_version": readme_version,
-        "changelog_version": changelog_version,
-        "expected_version": expected_version,
+    payload.update({
         "metadata_mismatch": metadata_mismatch,
         "local_head": local_head,
         "remote_head": remote_head,
+        "remote_version": remote_version,
         "remote_url": remote_url,
+        "upstream_ref": upstream_ref,
+        "remote_check_status": remote_check_status,
         "remote_update_available": remote_update_available,
         "update_available": remote_update_available,
         "should_prompt": should_prompt,
         "suggested_action": "soft_prompt_upgrade_skip_snooze" if should_prompt else "continue",
-        "update_command": f"cd {root} && git pull --ff-only" if remote_update_available else None,
+        "update_command": update_command,
         "prompt_mode": "soft" if should_prompt else "none",
         "prompt_options": ["upgrade", "skip_once", "snooze_today"] if should_prompt else [],
         "suppressed": suppressed,
@@ -289,7 +395,7 @@ def main(argv: list[str] | None = None) -> int:
         "choice_recorded": choice_recorded,
         "state_file": str(state_file),
         "messages": lines,
-    }
+    })
 
     state.update(
         {
@@ -299,6 +405,8 @@ def main(argv: list[str] | None = None) -> int:
             "changelog_version": changelog_version,
             "local_head": local_head,
             "remote_head": remote_head or state.get("remote_head"),
+            "remote_version": remote_version or state.get("remote_version"),
+            "upstream_ref": upstream_ref,
         }
     )
     save_state(state_file, state)

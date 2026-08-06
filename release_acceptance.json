@@ -5,6 +5,8 @@
     "digitization_contract": "pass",
     "environment_preflight": "pass",
     "official_example": "semantic_strict_pass",
+    "offline_manifest": "pass",
+    "offline_resolution": "pass",
     "portability": "pass",
     "render_baseline": "pass",
     "root_package": "pass",
@@ -29,6 +31,16 @@
     },
     "environment_preflight": {
       "name": "environment_preflight",
+      "returncode": 0,
+      "status": "pass"
+    },
+    "offline_manifest": {
+      "name": "offline_manifest",
+      "returncode": 0,
+      "status": "pass"
+    },
+    "offline_resolution": {
+      "name": "offline_resolution",
       "returncode": 0,
       "status": "pass"
     },
@@ -63,5 +75,5 @@
   "missing_dependencies": [],
   "schema": "morepaper.figure_release_acceptance.v1",
   "status": "pass",
-  "version": "v1.0.26-20260804"
+  "version": "v1.0.27-20260806"
 }

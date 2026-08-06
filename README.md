@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey)](LICENSE)
 [![Zotero](https://img.shields.io/badge/Zotero-CC2936?logo=zotero&logoColor=white)]()
 
-# more-paper-workflow `v1.0.26-20260804`
+# more-paper-workflow `v1.0.27-20260806`
 
 > 从研究问题到可核验论文：一套支持任意步骤直达、证据分级和质量闭环的学术论文工作流。
 >
@@ -242,6 +242,8 @@ https://github.com/bingyunjiang/more-paper-workflow
 python scripts/validate_skill_package.py --root .
 ```
 
+参与开发或执行完整发布验收时，先安装 `requirements-dev.txt`；严格科研绘图测试另外安装 `requirements-figures.txt`。
+
 检查通过时，Step 7 的精确入口为 `agents/step_7_entry.md`，完整写作合同为
 `agents/step_7_writing.md`；不存在 `agents/step_7.md`。其他步骤同样以
 `manifest.yaml` 的 `step_routes` 和根目录 `SKILL.md` 列出的精确文件名为准。
@@ -318,9 +320,20 @@ See the [first-run examples](examples/first-run/README.md), [workflow diagrams](
 
 ## 📋 版本历史
 
-当前版本：`v1.0.26-20260804`。
+当前版本：`v1.0.27-20260806`。
 
-### 今日更新：Step 7 原生论文流程图、安全加固与轻量化
+### v1.0.27：Step 7 合同恢复与验证器修复
+
+- 保留轻量主合同，同时恢复 Direct-entry、Checkpoint、执行卡、章节证据、机理、图文和分层完成门。
+- `manifest.step7.yaml` 接回材料/机械、电力能源、目标期刊、机理分析、写作质量、修稿和图表支持合同。
+- Step 7 测试改为验证主合同边界、manifest 可达性、reference 内容和运行时行为，不再绑定旧的 7.1–7.17 文件布局。
+- Zotero key 检测改为映射命中或明确 key 语境；普通八位大写单词不再误报。
+- 摘要结果审计支持结构化 writing blueprint 和更完整的定量表达。
+- 新增开发依赖清单并清理离线包重复版本；发布门要求全量测试、包校验、release acceptance 与 offline strict 同时通过。
+- 升级提醒现在读取当前 upstream 的远程 `SKILL.md` 版本；同版本提交不误报，自动升级仅允许干净工作区安全快进。
+- 离线发布门新增 `pip --ignore-installed --no-index --only-binary=:all:` 解析；`0.5.0` 是可复现离线基线，安装器接受并保留更高兼容版本。
+
+### v1.0.26：Step 7 原生论文流程图、安全加固与轻量化
 
 - 新增 `figure_backend=diagram`，支持流程图、系统/Agent 架构图、数据流图、时序图、状态图、时间线、对比矩阵、ER 图和用例图。
 - 统一生成可编辑语义 SVG、Pillow PNG、布局检查、可选审阅覆盖层及 SHA-256 证据记录；公式标签支持 text/math runs，不明确的公式会阻断完成并请求作者确认。

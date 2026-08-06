@@ -18,5 +18,5 @@ class AcceptanceExampleTests(ScientificFigureReproductionTestBase):
             self.assertEqual(0, completed.returncode, completed.stdout + completed.stderr)
             payload = json.loads(report.read_text(encoding="utf-8"))
             self.assertEqual("pass", payload["status"])
-            self.assertEqual("v1.0.26-20260804", payload["version"])
+            self.assertEqual("v1.0.27-20260806", payload["version"])
             self.assertEqual("semantic_strict_pass", payload["checks"]["official_example"])

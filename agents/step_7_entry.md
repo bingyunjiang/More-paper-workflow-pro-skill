@@ -73,6 +73,10 @@
 - `reproduction` 中如果需要从图片/PDF恢复数值，必须完成 `inspect → spec-review/用户确认 → candidates → 自动诊断 → review-decisions → observations → data → VisualSpec`；只有 `extraction_status=formal_data_ready`、`review_status=complete` 后才交给 reproduction。只做视觉重绘、不恢复数值时不需要该前置链。
 - 发现参考图、截图、裁剪图或 VisualSpec 本身不构成重绘授权；必须记录 `figure_transform_authorization=explicit_user_request`
 - 用户显式指定 `quick/diagram/reproduction` 时覆盖默认插图路径；严格后端缺依赖时中止并提示安装，不得静默降级
+- 出现 `mechanism / 机理 / CDRX / DDRX / DRV / EBSD / KAM / GOS / recrystallization / pinning / load transfer` 时，加载 `references/mechanism-analysis-writing-contract.md` 并先生成 `mechanism_trigger_decision`。
+- 出现 `materials / mechanics / 热变形 / 显微组织 / CNT/Al` 等材料机械任务时，加载 `references/domain-packs/materials-mechanics-writing.md`；明确指定 MSEA、Acta、Scripta 或 JMPT 时，再加载 `references/domain-packs/materials-journal-style.md`。
+- 出现电力电子、充电、储能、EMS、V2G、快充或无线充电时，加载 `references/domain-packs/power-electronics-ev-energy-writing.md`；明确指定 IEEE Transactions、IEEE Access、Applied Energy 或 Energy 时，再加载 `references/domain-packs/power-energy-journal-style.md`。
+- 目标期刊风格只能约束结构密度、证据呈现、图表说明和讨论深度；若与当前证据等级冲突，以证据等级为准。
 
 ## Artifact Passport 读取规则
 

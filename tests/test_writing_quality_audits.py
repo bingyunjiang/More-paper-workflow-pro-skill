@@ -42,6 +42,43 @@ class WritingQualityAuditsTest(unittest.TestCase):
         self.assertIn("figure_first_argument_plan.figure_or_table_id", rule_ids)
         self.assertIn("phrasebank_guardrail.claim_strength", rule_ids)
 
+    def test_english_abstract_accepts_quantified_result_without_keyword_list(self):
+        payload = audit_quality_text(
+            "# Abstract\n\nThe challenge is thermal control under 25 °C conditions. "
+            "A coupled model was evaluated and reached 0.82 W thermal resistance.",
+            section_type="abstract",
+        )
+        issue_ids = {item["issue_id"] for item in payload["issues"]}
+        self.assertNotIn("abstract-missing-result", issue_ids)
+
+    def test_numeric_condition_without_result_does_not_pass_abstract_gate(self):
+        payload = audit_quality_text(
+            "# Abstract\n\nThe challenge is thermal control under 25 °C conditions. "
+            "A coupled model was evaluated in simulation.",
+            section_type="abstract",
+        )
+        issue_ids = {item["issue_id"] for item in payload["issues"]}
+        self.assertIn("abstract-missing-result", issue_ids)
+
+    def test_blueprint_status_alone_cannot_confirm_an_abstract_result_move(self):
+        payload = audit_quality_text(
+            "# Abstract\n\nThe challenge is defined under a bounded scenario and a model is evaluated.",
+            section_type="abstract",
+            blueprint={"sections": {"abstract": {"confirmed_moves": ["result"]}}},
+        )
+        issue_ids = {item["issue_id"] for item in payload["issues"]}
+        self.assertIn("abstract-missing-result", issue_ids)
+
+    def test_blueprint_evidence_must_be_present_in_the_abstract(self):
+        result_sentence = "Performance reached the target without instability."
+        payload = audit_quality_text(
+            "# Abstract\n\nThe challenge is bounded and a model is evaluated. " + result_sentence,
+            section_type="abstract",
+            blueprint={"sections": {"abstract": {"move_evidence": {"result": result_sentence}}}},
+        )
+        issue_ids = {item["issue_id"] for item in payload["issues"]}
+        self.assertNotIn("abstract-missing-result", issue_ids)
+
     def test_auto_mode_audits_all_named_sections_in_full_document(self):
         payload = audit_quality_text(
             "# 摘要\n\n问题、方法、结果均在给定工况范围内说明。\n\n"

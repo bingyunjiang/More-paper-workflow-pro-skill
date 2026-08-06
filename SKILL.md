@@ -6,7 +6,7 @@ description: >-
 
 ## Skill metadata
 
-version: v1.0.26-20260804 (2026-08-04)
+version: v1.0.27-20260806 (2026-08-06)
 author: Dr. Jiang Bingyun（江博士）
 wechat: Bingyunjiang
 category: research
@@ -19,6 +19,7 @@ related_skills:
 
 ## Entry routing
 
+- 每次调用本 skill 时，在选择 Step 路由前先执行 `python3 "$SKILL_DIR/scripts/check_skill_update.py" --json`；`should_prompt=true` 时按 `references/update-reminder-protocol.md` 软提醒用户，检查失败、网络不可达或 `should_prompt=false` 时直接继续当前任务。
 - 对外只保留一个主入口 `README.md` / `SKILL.md`，用户只需要记一个入口。
 - `related_skills` 和 README 中的 more 系列索引只用于选型与边界说明，不表示运行时依赖、自动组合或共享项目状态。
 - 主名称统一为 `more-paper-workflow`；旧名称 `more-paper-workflow-pro-skill` 仅作为兼容触发别名保留。
@@ -122,4 +123,5 @@ README 首屏只保留 public-first entry examples；运行时细则仍以本文
 - `SKILL.md` is the canonical version source.
 - `README.md` and `CHANGELOG.md` are display copies and must stay in sync.
 - `scripts/check_skill_update.py` compares the three version surfaces and reports any mismatch.
-- `scripts/perform_skill_upgrade.py` only pulls the latest commit and does not rewrite versions.
+- Remote updates are detected by reading the current upstream branch's `SKILL.md`; a different commit with the same version does not trigger a version prompt.
+- `scripts/perform_skill_upgrade.py` only updates a clean worktree with a configured upstream and fast-forward history; otherwise it leaves the current version untouched.

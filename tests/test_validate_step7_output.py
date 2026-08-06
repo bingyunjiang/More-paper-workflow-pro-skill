@@ -151,6 +151,34 @@ class ValidateStep7OutputTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("raw_zotero_key_citations", result.stdout)
 
+    def test_all_caps_words_are_not_treated_as_zotero_keys(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            self.write_minimum_artifacts(out)
+            (out / "journal_paper_draft.md").write_text(
+                "# 方法\n\nCITATION EVIDENCE REQUIRED are workflow labels, not item keys.\n",
+                encoding="utf-8",
+            )
+            result = self.run_validator(out, "draft_ready")
+
+        self.assertNotIn("raw_zotero_key_citations", result.stdout)
+
+    def test_known_mapping_key_is_detected_without_backticks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            self.write_minimum_artifacts(out)
+            (out / "文献-Zotero架构对照.json").write_text(
+                '{"records": [{"zotero_item_key": "99QWSQ5K"}]}',
+                encoding="utf-8",
+            )
+            (out / "journal_paper_draft.md").write_text(
+                "# 方法\n\n正文误留 99QWSQ5K 作为引用。\n",
+                encoding="utf-8",
+            )
+            result = self.run_validator(out, "draft_ready")
+
+        self.assertIn("raw_zotero_key_citations", result.stdout)
+
     def test_fails_when_mineru_assets_exist_without_figure_index_or_marker(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)

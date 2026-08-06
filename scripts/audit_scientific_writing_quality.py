@@ -36,7 +36,10 @@ SECTION_RULES = {
         "required": {
             "problem": [r"问题", r"challenge", r"problem"],
             "method": [r"方法", r"模型", r"实验", r"仿真", r"method", r"model", r"experiment", r"simulation"],
-            "result": [r"\d+(?:\.\d+)?\s*%", r"提高", r"降低", r"结果", r"表明", r"result", r"improve", r"reduce"],
+            "result": [
+                r"(?:达到|获得|测得|实现|achiev|reach|yield|obtain|measure|outperform)[^。.;]{0,36}\d+(?:\.\d+)?",
+                r"提高", r"降低", r"结果", r"表明", r"result", r"improve", r"reduce",
+            ],
             "boundary": [r"工况", r"场景", r"条件", r"范围", r"under", r"condition", r"scenario"],
         },
         "gate": "abstract_quality_gate",
@@ -113,14 +116,37 @@ def _mk(
     )
 
 
-def audit_text(text: str, section_type: str = "auto") -> dict:
+def _confirmed_blueprint_moves(blueprint: dict | None, section: str, text: str) -> set[str]:
+    if not isinstance(blueprint, dict):
+        return set()
+    sections = blueprint.get("sections")
+    section_data = sections.get(section) if isinstance(sections, dict) else blueprint.get(section)
+    if not isinstance(section_data, dict):
+        section_data = blueprint
+    evidence = section_data.get("move_evidence") or section_data.get("confirmed_move_evidence")
+    if not isinstance(evidence, dict):
+        return set()
+    normalized_text = re.sub(r"\s+", " ", text).strip().casefold()
+    confirmed = set()
+    for move, excerpt in evidence.items():
+        if not isinstance(excerpt, str):
+            continue
+        normalized_excerpt = re.sub(r"\s+", " ", excerpt).strip().casefold()
+        if len(normalized_excerpt) >= 4 and normalized_excerpt in normalized_text:
+            confirmed.add(str(move))
+    return confirmed
+
+
+def audit_text(text: str, section_type: str = "auto", blueprint: dict | None = None) -> dict:
     issues: list[WritingQualityIssue] = []
     sections_audited: list[str] = []
     if section_type == "auto":
         section_texts = _extract_section_texts(text)
         sections_audited = [name for name in SECTION_RULES if name in section_texts]
         for section in sections_audited:
-            issues.extend(_audit_section_gate(section_texts[section], section))
+            issues.extend(_audit_section_gate(
+                section_texts[section], section, _confirmed_blueprint_moves(blueprint, section, section_texts[section])
+            ))
         section = (
             "multi-section"
             if len(sections_audited) > 1
@@ -132,7 +158,7 @@ def audit_text(text: str, section_type: str = "auto") -> dict:
         section = section_type
         sections_audited = [section] if section in SECTION_RULES else []
         if section in SECTION_RULES:
-            issues.extend(_audit_section_gate(text, section))
+            issues.extend(_audit_section_gate(text, section, _confirmed_blueprint_moves(blueprint, section, text)))
     issues.extend(_audit_paragraph_function(text))
     issues.extend(_audit_figure_first(text))
     issues.extend(_audit_overclaim(text))
@@ -188,11 +214,11 @@ def _extract_section_texts(text: str) -> dict[str, str]:
     return {section: "\n".join(parts) for section, parts in sections.items()}
 
 
-def _audit_section_gate(text: str, section: str) -> list[WritingQualityIssue]:
+def _audit_section_gate(text: str, section: str, confirmed_moves: set[str] | None = None) -> list[WritingQualityIssue]:
     config = SECTION_RULES[section]
     issues = []
     for move, patterns in config["required"].items():
-        if not _contains_any(text, patterns):
+        if move not in (confirmed_moves or set()) and not _contains_any(text, patterns):
             issues.append(_mk(
                 issue_id=f"{section}-missing-{move}",
                 rule_id=f"{config['gate']}.{move}",
@@ -311,13 +337,17 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Audit scientific writing section quality gates.")
     parser.add_argument("draft_md", help="Markdown/text path, or '-' for stdin")
     parser.add_argument("--section-type", choices=["auto", "general", "abstract", "introduction", "discussion", "conclusion"], default="auto")
+    parser.add_argument("--blueprint", help="Optional writing_blueprints JSON with confirmed section moves")
     parser.add_argument("--output-json", help="Output JSON path")
     parser.add_argument("--output-md", help="Output Markdown path")
     parser.add_argument("--json", action="store_true", help="Emit JSON to stdout")
     args = parser.parse_args(argv)
 
     text = sys.stdin.read() if args.draft_md == "-" else Path(args.draft_md).read_text(encoding="utf-8", errors="replace")
-    payload = audit_text(text, section_type=args.section_type)
+    blueprint = None
+    if args.blueprint:
+        blueprint = json.loads(Path(args.blueprint).read_text(encoding="utf-8"))
+    payload = audit_text(text, section_type=args.section_type, blueprint=blueprint)
     if args.output_json:
         Path(args.output_json).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     if args.output_md:

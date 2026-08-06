@@ -19,6 +19,10 @@ class RepositoryHygieneTest(unittest.TestCase):
 
     def test_offline_package_manifest_matches_cache(self):
         self.assertEqual(check_offline_packages.check_manifest(), [])
+        self.assertEqual(check_offline_packages.check_manifest(strict=True), [])
+        self.assertFalse(
+            any(path.name.endswith((".tar.gz", ".zip")) for path in check_offline_packages.iter_package_paths())
+        )
 
     def test_document_contracts_are_structured(self):
         self.assertEqual(check_doc_contracts.check(), [])

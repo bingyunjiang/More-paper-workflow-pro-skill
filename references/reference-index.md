@@ -33,12 +33,12 @@ This index groups the reference files by function so the workflow contracts are 
 - `section-blueprint-workflow.md`
 - `writing-quality-borrowing-plan.md`
 - `style-learning-workflow.md`
-- `step7-evidence-intake.md`：Step 7 Zotero/PDF/BibTeX/evidence pack/MinerU direct-entry 证据等级与 intake 输出。
-- `step7-drafting-contract.md`：Step 7 正文生成、章节蓝图、段落纪律和轻量整理边界。
-- `step7-citation-audit.md`：Step 7 claim/evidence 对照、引用风险和证据缺口输出。
-- `step7-figure-workflow.md`：Step 7 原图插入、quick、diagram、reproduction 分流与授权边界。
-- `step7-pre-review.md`：Step 7 审稿人视角预审、缺陷清单和修订路线。
-- `step7-completion-validation.md`：Step 7 `draft_ready / evidence_closed / ready_for_step8` 分层完成门。
+- `step7-evidence-intake.md`：Step 7 direct-entry、reading depth、RAG 候选与冲突证据边界。
+- `step7-drafting-contract.md`：Step 7 writing axes、章节蓝图、argument plan、摘要子模式、术语状态和轻量整理边界。
+- `step7-citation-audit.md`：Step 7 三层引用审计、claim 强度、图表 panel 绑定和章节证据完成门。
+- `step7-figure-workflow.md`：Step 7 原图插入、图文完成门、quick/diagram/reproduction 分流与授权边界。
+- `step7-pre-review.md`：Step 7 预审、修稿生命周期、复评、科学写作质量和缺陷分类。
+- `step7-completion-validation.md`：Step 7 执行卡硬门、公式/DOCX/图表验收及分层完成门。
 - `step7-figure-marker-syntax.md`
 - `scientific-figure-reproduction.md`：普通数据出图与严格复现后端的自动选择、VisualSpec、QA、bundle 和状态边界。
 - `paper-diagram-contract.md`：Step 7 原生论文流程图/架构图 Spec、10 类图型、12 套风格、公式 run、产物和质量门。
@@ -53,6 +53,8 @@ This index groups the reference files by function so the workflow contracts are 
 - `zotero-structure-template.md`
 - `zotero-output-contract.md`
 - `mechanism-analysis-writing-contract.md`
+- `domain-packs/materials-mechanics-writing.md` / `domain-packs/materials-journal-style.md`：材料机械领域证据和目标期刊条件包。
+- `domain-packs/power-electronics-ev-energy-writing.md` / `domain-packs/power-energy-journal-style.md`：电力能源领域证据和目标期刊条件包。
 - `equation-writing-contract.md`：Step 7 公式登记、缺失/源码残留审计、Markdown/LaTeX/DOCX 渲染与 Step 8 保真门。
 
 ## Platform and compatibility
