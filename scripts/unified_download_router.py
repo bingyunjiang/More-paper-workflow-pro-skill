@@ -68,6 +68,7 @@ from workflow_contracts import (
     Step5DownloadManifest,
     append_jsonl_durable,
     atomic_write_json,
+    atomic_write_text,
     as_chinese_papers,
     dois_from_download_items,
     download_items_from_search_records,
@@ -2063,9 +2064,10 @@ def build_step5_preflight_summary(
     port: int,
     browser: str,
     local_hits: list[str] | None = None,
+    probe_cdp: bool = True,
 ) -> dict[str, Any]:
     local_hits = local_hits or []
-    cdp_ok = check_cdp(port)
+    cdp_ok = check_cdp(port) if probe_cdp else False
     browser_match = False
     browser_product = ""
     if cdp_ok:
@@ -2079,6 +2081,7 @@ def build_step5_preflight_summary(
         "local_pdf_hits": len(local_hits),
         "output_dir": str(output_dir),
         "cdp": {
+            "checked": probe_cdp,
             "ok": cdp_ok,
             "port": port,
             "browser": browser,
@@ -2095,7 +2098,123 @@ def print_step5_preflight_summary(summary: dict[str, Any]) -> None:
     print(f"  items:          {summary.get('total_items', 0)}")
     print(f"  local PDF hits: {summary.get('local_pdf_hits', 0)}")
     print(f"  output_dir:     {summary.get('output_dir', '')}")
-    print(f"  {status} CDP:        {cdp.get('ok')} ({cdp.get('product') or 'not running'})")
+    if cdp.get("checked", True):
+        print(f"  {status} CDP:        {cdp.get('ok')} ({cdp.get('product') or 'not running'})")
+    else:
+        print(f"  {status} CDP:        not checked (dry-run has no browser dependency)")
+
+
+def _dry_run_route(item: dict[str, Any]) -> tuple[str, str]:
+    source = str(item.get("source") or "").strip().lower()
+    article_url = str(item.get("article_url") or "").strip().lower()
+    if source in {"cnki", "wanfang"} or "cnki.net" in article_url or "wanfangdata.com.cn" in article_url:
+        return "chinese_cdp", source or ("cnki" if "cnki.net" in article_url else "wanfang")
+    doi = str(item.get("doi") or "").strip()
+    if doi:
+        classified = classify_doi(doi)
+        return str(classified.get("strategy") or "generic"), str(classified.get("publisher") or "unknown")
+    return "unresolved", str(item.get("publisher") or source or "unknown")
+
+
+def write_step5_dry_run_outputs(
+    output_dir: str,
+    all_items: list[dict[str, Any]],
+    preflight_summary: dict[str, Any],
+) -> dict[str, str]:
+    """Write plan artifacts without browser, login, lock, or download side effects."""
+    os.makedirs(output_dir, exist_ok=True)
+    run_id = f"step5-dryrun-{datetime.now():%Y%m%d-%H%M%S-%f}"
+    manifest_items: list[Step5DownloadItem] = []
+    item_domains: dict[str, str] = {}
+    route_plan: list[dict[str, str]] = []
+    unresolved_rows: list[dict[str, str]] = []
+
+    for index, item in enumerate(all_items, 1):
+        identifier = str(
+            item.get("doi") or item.get("source_id") or item.get("id") or item.get("title") or f"item-{index:04d}"
+        )
+        strategy, publisher = _dry_run_route(item)
+        missing_chinese_url = strategy == "chinese_cdp" and not item.get("article_url")
+        unavailable = strategy in {"skip", "unresolved"} or missing_chinese_url
+        status = "skipped" if strategy == "skip" else "unresolved"
+        reason = "missing_article_url" if missing_chinese_url else "route_unavailable" if unavailable else ""
+        next_action = "fix_metadata_then_rerun" if reason == "missing_article_url" else "manual_route_review" if unavailable else f"execute_route:{strategy}"
+        route_plan.append({
+            "id": identifier,
+            "strategy": strategy,
+            "publisher": publisher,
+        })
+        if unavailable:
+            unresolved_rows.append({"id": identifier, "reason": reason or "route_unavailable"})
+        item_domains[identifier] = _domain_for_item(identifier, item)
+        manifest_items.append(Step5DownloadItem(
+            id=str(item.get("id") or item.get("source_id") or f"step5-{index:04d}"),
+            doi=str(item.get("doi") or ""),
+            title=str(item.get("title") or ""),
+            source=str(item.get("source") or ""),
+            source_id=str(item.get("source_id") or ""),
+            article_url=str(item.get("article_url") or ""),
+            publisher=publisher,
+            status=status,
+            quality="metadata_only" if item.get("title") else "none",
+            failure_reason=reason,
+            next_action=next_action,
+            attempts=[],
+            verification_status="not_checked",
+            verification_reason="dry_run_only",
+        ))
+
+    total = len(manifest_items)
+    status_counts = {
+        status: sum(1 for item in manifest_items if item.status == status)
+        for status in sorted({item.status for item in manifest_items})
+    }
+    manifest = Step5DownloadManifest(
+        run_id=run_id,
+        generated_at=datetime.now().isoformat(timespec="seconds"),
+        readiness="blocked",
+        recommended_next_step="review_dry_run_then_execute_step5",
+        summary={
+            "execution_mode": "dry_run",
+            "total": total,
+            "downloaded": 0,
+            "remaining": total,
+            "failed_or_pending": total,
+            "status_counts": status_counts,
+            "route_plan": route_plan,
+            "publisher_summary": build_publisher_summary(manifest_items),
+            "domain_summary": build_domain_summary(manifest_items, item_domains),
+            "preflight": preflight_summary,
+        },
+        recovery_buckets={
+            "retryable": [],
+            "needs_login": [],
+            "needs_user_action": [row["id"] for row in unresolved_rows],
+            "not_available": [],
+            "needs_metadata_fix": [row["id"] for row in unresolved_rows if row["reason"] == "missing_article_url"],
+        },
+        items=manifest_items,
+    )
+
+    manifest_path = Path(output_dir) / "download_manifest.json"
+    preflight_path = Path(output_dir) / "preflight_summary.json"
+    write_step5_download_manifest(manifest_path, manifest)
+    atomic_write_json(preflight_path, preflight_summary)
+    paths = {"manifest": str(manifest_path), "preflight": str(preflight_path)}
+    if unresolved_rows:
+        unresolved_path = Path(output_dir) / "unresolved_download_items.md"
+        lines = [
+            "# Unresolved download items",
+            "",
+            "> Generated by Step 5 dry-run; no download was attempted.",
+            "",
+            "| Identifier | Reason |",
+            "|---|---|",
+        ]
+        lines.extend(f"| {row['id']} | {row['reason']} |" for row in unresolved_rows)
+        atomic_write_text(unresolved_path, "\n".join(lines) + "\n")
+        paths["unresolved"] = str(unresolved_path)
+    return paths
 
 
 def write_failure_snapshots(output_dir: str, items: list[Step5DownloadItem]) -> str:
@@ -3296,17 +3415,34 @@ def main():
             print(f"  {label:25s}: {len(items):3d} papers")
     print_english_oa_hint_summary(dois, oa_hints)
 
+    manifest_input_items = _input_items_for_step5_manifest(dois, chinese_papers)
     if args.dry_run:
         total = sum(1 for c in classified if c["strategy"] != "skip")
         print(f"\n[DRY RUN] Would download {total} papers "
               f"({sum(1 for c in classified if c['strategy']=='chinese_cdp')} Chinese)")
+        preflight_summary = build_step5_preflight_summary(
+            manifest_input_items,
+            args.output,
+            args.port,
+            args.browser,
+            probe_cdp=False,
+        )
+        print_step5_preflight_summary(preflight_summary)
+        dry_run_paths = write_step5_dry_run_outputs(
+            args.output,
+            manifest_input_items,
+            preflight_summary,
+        )
+        print(f"  Manifest:        {dry_run_paths['manifest']}")
+        print(f"  Preflight:       {dry_run_paths['preflight']}")
+        if dry_run_paths.get("unresolved"):
+            print(f"  Unresolved:      {dry_run_paths['unresolved']}")
         return
 
     lock_path = acquire_or_exit_step5_download_lock("batch_download", args.port)
     if args.parallel_phase1:
         print(f"\n{WARN} --parallel-phase1 is deprecated and ignored: English and Chinese downloads are serialized to protect the CDP browser.")
 
-    manifest_input_items = _input_items_for_step5_manifest(dois, chinese_papers)
     all_log_ids = [item.get("doi") or item.get("id") or item.get("title", "") for item in manifest_input_items]
     all_log_ids = [item for item in all_log_ids if item]
     dois, chinese_papers, local_dl = filter_local_pdf_hits(dois, chinese_papers, args.output)

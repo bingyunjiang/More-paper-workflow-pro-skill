@@ -50,7 +50,7 @@ class RenderUpdatePromptTest(unittest.TestCase):
     def test_renders_nothing_when_prompt_is_not_requested(self):
         payload = {
             "should_prompt": False,
-            "skill_version": "v1.0.27-20260806",
+            "skill_version": "v1.0.28-20260814",
             "remote_head": None,
             "update_command": None,
         }

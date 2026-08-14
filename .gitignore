@@ -24,3 +24,4 @@ Thumbs.db
 
 # Project runtime state (auto-created from templates on first use)
 .skill-state/
+paper-temp/

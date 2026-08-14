@@ -80,6 +80,7 @@
 | 下载的 PDF | .pdf | 保存到 paper-temp/ |
 | 下载记录 | paper-temp/download_log.md | 逐篇追踪状态 |
 | `download_manifest.json` | JSON | 下载机器主状态：逐条路由、结果、readiness、checkpoint 和 run_id |
+| `preflight_summary.json` | JSON | dry-run 的输入数量、输出目录和能力预检；dry-run 不探测或启动 CDP |
 | `download_attempts.jsonl` | JSONL | append-only 尝试历史；相同 attempt_id 幂等，新 run_id 保留新一轮事件 |
 | `pdf-附件池索引.json` | JSON | 已有/新下载 PDF、来源、匹配状态和完整路径，供 Step 6/7 继续消费 |
 | 英文登录恢复点 | paper-temp/login_checkpoint.json | 英文 CDP 登录未完成或宿主无法继续交互时生成，只包含待登录 DOI |
@@ -111,6 +112,7 @@ Step 5 可从 DOI 列表、BibTeX、检索表、失败清单、出版社 URL、�
 - `输入依赖`：真实下载至少需要 DOI、article_url、source_id、publisher URL 或已确认的 manifest 条目之一；标题只能先解析，不得直接下载。
 - `可委派边界`：脚本可执行解析、路由、probe、下载和日志；用户仍负责机构登录、验证码、订阅权限和是否改走其他来源。
 - `最小实验优先`：未知出版商、混合来源或高风险批次先做 dry-run、单篇测试或小批次 probe，再扩大到全量下载。
+- `dry-run 是计划态`：必须写出 `download_manifest.json` 和 `preflight_summary.json`，条目保持非终态且 `verification_status=not_checked`；不得获得下载锁、启动/探测 CDP、创建登录 checkpoint、追加下载 attempt 或声称 PDF 已获取。
 - `快速通道不跳质量门`：直达下载可以跳过 Step 4 评分，但不能跳过清单归一化、登录门控、PDF verifier、失败原因记录和 checkpoint。
 
 ---
@@ -174,8 +176,8 @@ Step 5 可从 DOI 列表、BibTeX、检索表、失败清单、出版社 URL、�
 
 **执行分流：**
 
-- DOI-only：直接运行 `python3 scripts/unified_download_router.py --papers "10.x,10.y" --dry-run` 预览路由。
-- workflow JSON：直接运行 `python3 scripts/unified_download_router.py --workflow-results workflow_search_results.json --dry-run` 预览 DOI + 中文 URL 混合路由。
+- DOI-only：直接运行 `python3 scripts/unified_download_router.py --papers "10.x,10.y" --dry-run`，预览路由并生成计划态 manifest/preflight。
+- workflow JSON：直接运行 `python3 scripts/unified_download_router.py --workflow-results workflow_search_results.json --dry-run`，预览 DOI + 中文 URL 混合路由并生成计划态 manifest/preflight。
 - DOI + 中文 URL：优先生成 manifest JSON 后用 `--download-manifest`；兼容路径是英文 DOI 用 `--papers`，中文条目写入 `中文论文元数据.json` 后用 `--chinese-input`。
 - 标题-only：先完成解析和 manifest，再只对 `status=ready` 的条目启动下载。
 
@@ -280,6 +282,7 @@ Phase 3:
 **强制要求：**
 - Agent 禁止在用户确认登录前调用 `unified_download_router.py`（除 `--dry-run` 外）
 - Agent 必须先运行 `--dry-run` / `--test` / `--check-session` 或等价 article/PDF access probe，再提示登录
+- `--dry-run` 只生成计划工件，不探测或启动 CDP，也不触发登录提示；只有后续真实 probe/下载发现登录壁时才触发 checkpoint
 - 首次使用 CDP 下载时，应优先用 `--check-session` 或等价 probe 暴露会话状态；但它不是唯一前置条件，也不是下载成功证明
 - 推荐使用 `--require-login-confirm` 参数启动路由器，由脚本层面再次门控
 - **CDP 启动和下载如果跨命令，必须在同一条 exec_command session 内完成**
@@ -481,9 +484,10 @@ python3 scripts/auto_sd_downloader.py --browser edge --pii-map sd_pii_map.json
 6. **ScienceDirect / Elsevier 归入 Generic CDP，IEEE 默认走独立 CDP**，`auto_sd_downloader.py` 保留为 SD 专用调试，`download_via_ieee.py` 是 IEEE 默认实现，Generic IEEE fallback 只保留为内部兜底
 7. **直达下载先归一化、再下载** — DOI 可直接路由，标题必须先解析为 DOI/URL/中文 article_url
 8. **checkpoint 不是入口锁** — `CP-DOWNLOAD-LOGIN` 只阻塞需要登录态的下载执行，不阻塞 manifest 生成、dry-run、OA/Sci-Hub/direct_http 路径
-9. **SD 默认跟随 Generic CDP 浏览器选择** — `--browser edge` 则 ScienceDirect 也用 Edge；`--browser chrome` 则 ScienceDirect 也用 Chrome；统一路由会校验端口上的浏览器类型，不在统一路由里默认启动双浏览器。
-10. **OA fast 是候选验证层** — Step 4 的 OA 字段只提供候选；Step 5 必须验证真实 PDF 后才记录 `public_pdf_verified`，无效候选记录 `invalid_oa_candidate`，已知 OA 白名单验证失败记录 `oa_whitelist_but_verification_failed`，并继续后续英文路径。
-11. **Step 5 只做当前源站的下载尝试** — 当源站明确返回不可下载状态（`fulltext_delivery_mode`、`chapter_download_mode`、`access_denied` 等）时，Agent 不得自动转向其他数据库或数据源绕过。由用户自行决定是否从其他途径补下该文献。
+9. **dry-run manifest 不是下载完成证明** — `summary.execution_mode=dry_run`、非终态条目和 `verification_status=not_checked` 只能用于审核路由计划，不得进入 Step 6 的已下载统计
+10. **SD 默认跟随 Generic CDP 浏览器选择** — `--browser edge` 则 ScienceDirect 也用 Edge；`--browser chrome` 则 ScienceDirect 也用 Chrome；统一路由会校验端口上的浏览器类型，不在统一路由里默认启动双浏览器。
+11. **OA fast 是候选验证层** — Step 4 的 OA 字段只提供候选；Step 5 必须验证真实 PDF 后才记录 `public_pdf_verified`，无效候选记录 `invalid_oa_candidate`，已知 OA 白名单验证失败记录 `oa_whitelist_but_verification_failed`，并继续后续英文路径。
+12. **Step 5 只做当前源站的下载尝试** — 当源站明确返回不可下载状态（`fulltext_delivery_mode`、`chapter_download_mode`、`access_denied` 等）时，Agent 不得自动转向其他数据库或数据源绕过。由用户自行决定是否从其他途径补下该文献。
 
 ---
 
@@ -492,6 +496,7 @@ python3 scripts/auto_sd_downloader.py --browser edge --pii-map sd_pii_map.json
 - [ ] 如为直达下载模式：输入已分类为 DOI / 英文标题 / 中文标题 / URL / BibTeX
 - [ ] 如含标题：已生成 `direct_download_manifest.md/json`，且仅下载 `status=ready` 条目
 - [ ] 如有无法唯一解析条目：已写入 `unresolved_download_items.md`，未擅自猜 DOI
+- [ ] 如本轮仅 dry-run：已生成计划态 manifest/preflight，且没有下载 attempt、登录 checkpoint 或完成声明；以下 CDP/下载完成门不适用
 - [ ] CDP 登录门控已执行：Agent 已提示用户完成机构登录，用户已确认"已登录" 🆕
 - [ ] CDP 浏览器已启动且端口可访问，并且与下载命令的 `--browser` 一致（`python scripts/start_cdp_browser.py --browser chrome --port 9223` 可启动/复用；也可用 `/json/version` 检查 `Browser` 字段）
 - [ ] 会话状态已检查（`--check-session`）

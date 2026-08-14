@@ -12,9 +12,11 @@
 
 ## Claim-to-citation 映射
 
-记录字段至少包括：`claim_segment_id / claim_text / claim_type / claim_strength / required_evidence / insert_position / citekey / zotero_item_key / support_grade / reading_depth / evidence_anchor / downgrade_required / recommended_action`。
+记录字段至少包括：`claim_segment_id / claim_occurrence_id / claim_text / claim_type / claim_strength / required_evidence / insert_position / citekey / zotero_item_key / support_grade / reading_depth / evidence_anchor / downgrade_required / recommended_action`。
 
 `support_grade` 值域为 `strong / partial / background / contradictory_or_limiting / metadata_only_candidate / not_supported`。同一 claim 的多条证据保留相同 `claim_segment_id`，不得合并成笼统的“多文献支持”。
+
+同一文献编号在不同句子或位置重复出现时，必须按 `claim_occurrence_id` 分别审计；不得按 citation index 去重，从而让较弱的背景引用遮蔽后续强因果或机理 claim。
 
 ## Claim 强度
 
@@ -36,3 +38,5 @@
 每节结束时检查：关键 claim 已映射、弱支撑已降级、冲突证据已保留、引用位置可追溯、图表/公式锚点独立、`evidence_gap_list` 已更新。未通过时回退 `step_7_argument_plan` 或补证据，不得靠润色关闭。
 
 Crossref / Semantic Scholar 摘要只能补充核验。CNKI/万方文献必须保留本地元数据、详情页、PDF 原文或 Zotero source id。
+
+DOI 解析统一接受 `DOI:`、`doi:`、裸 DOI 与 `https://doi.org/`，不得截断后缀中的句点。中文或跨语言文本的低词面重叠只能输出 `cannot-judge / needs-review`；轻量启发式不得据此自动判定科学上“不支撑”。

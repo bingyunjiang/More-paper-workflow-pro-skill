@@ -14,7 +14,8 @@
     "run_reproduction": "pass",
     "zip_package": "pass"
   },
-  "commit_sha": "8ac5e4707f58e891c36fcdf941502d76744290d3",
+  "commit_sha": "f37f74916367324f9053fb56d9b132e3d75852c7",
+  "commit_tree_sha": "25daf0c064bfa974e223048d872069990a4aee45",
   "details": {
     "build_zip": {
       "name": "build_zip",
@@ -72,9 +73,11 @@
       "status": "pass"
     }
   },
+  "diagnostic_status": "pass",
   "environment": {
     "architecture": "arm64",
-    "commit_sha": "8ac5e4707f58e891c36fcdf941502d76744290d3",
+    "commit_sha": "f37f74916367324f9053fb56d9b132e3d75852c7",
+    "commit_tree_sha": "25daf0c064bfa974e223048d872069990a4aee45",
     "offline_manifest": {
       "target_platform": "macos-arm64",
       "target_python": "cp314"
@@ -97,13 +100,18 @@
   },
   "os": "Darwin",
   "python_version": "3.14.3",
+  "release_blockers": [
+    "worktree_dirty"
+  ],
+  "release_eligible": false,
+  "release_status": "blocked",
   "requirements_sha256": {
     "requirements-dev.txt": "9f0ac8e4ebaa947b3bf5af19b88cb2da6cabaeb144e66b45f6a995ea3346c92a",
     "requirements-figures.txt": "0e6daa29ab2493e1a950ac8567957447421018c346c2b332fc1142a4700b0259",
     "requirements.txt": "f137e3f04cb10a2a2cf91e92059f9cff8f2183cdfe344d7d13a06ef7b4c991f3"
   },
-  "schema": "morepaper.figure_release_acceptance.v1",
-  "status": "pass",
-  "version": "v1.0.27-20260806",
+  "schema": "morepaper.figure_release_acceptance.v2",
+  "status": "diagnostic_pass",
+  "version": "v1.0.28-20260814",
   "worktree_dirty": true
 }

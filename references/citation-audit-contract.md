@@ -40,6 +40,7 @@
 每条审计记录至少包含：
 
 - `claim_segment_id`
+- `claim_occurrence_id`
 - `claim_text`
 - `claim_strength`
 - `required_evidence`
@@ -63,3 +64,5 @@
 
 - 不能因为题目相关就判定为支撑
 - 没有足够依据时宁可保守
+- 同一文献在多个 claim 位置出现时逐处审计，不按文献编号去重
+- 中文或跨语言的低词面重叠只能进入 `cannot-judge`，不能由轻量关键词启发式直接判为 `not-supported`

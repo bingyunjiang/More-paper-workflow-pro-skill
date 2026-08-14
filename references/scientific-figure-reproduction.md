@@ -70,7 +70,7 @@ python scripts/generate_figures.py \
 - `scripts/check_vector_output.py`：拒绝伪矢量或整页光栅 SVG/PDF。
 - `scripts/trace_image_primitives.py`：仅用于明确接受的 pixel trace。
 - `scripts/run_visual_optimization_loop.py`：执行有界布局和画布优化。
-- `scripts/check_environment.py`：排查依赖、字体和环境漂移。
+- `scripts/check_environment.py --capability strict_reproduction`：只检查严格复现所需依赖和字体；普通写作、quick 图、中文图、DOCX 与下载分别使用对应 capability，避免不相关环境门互相阻塞。
 - `scripts/validate_portability.py`、`scripts/verify_checksums.py`：验证路径可移植性和交付完整性。
 - `scripts/render_visualspec_r.R`：实验性 R 后端，必须进入相同 QA 路径。
 

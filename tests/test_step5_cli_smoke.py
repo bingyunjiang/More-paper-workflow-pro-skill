@@ -40,10 +40,16 @@ class Step5CliSmokeTest(unittest.TestCase):
                 tmp,
                 "--dry-run",
             )
+            manifest = json.loads((Path(tmp) / "download_manifest.json").read_text(encoding="utf-8"))
+            preflight = json.loads((Path(tmp) / "preflight_summary.json").read_text(encoding="utf-8"))
+            attempts_exist = (Path(tmp) / "download_attempts.jsonl").exists()
         self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
         self.assertIn("Total unique DOIs: 2", completed.stdout)
         self.assertIn("Routing summary:", completed.stdout)
         self.assertIn("[DRY RUN]", completed.stdout)
+        self.assertEqual("dry_run", manifest["summary"]["execution_mode"])
+        self.assertFalse(preflight["cdp"]["checked"])
+        self.assertFalse(attempts_exist)
 
     def test_mixed_dry_run_reports_chinese_and_english_items(self):
         with tempfile.TemporaryDirectory() as tmp:

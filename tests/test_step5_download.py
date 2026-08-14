@@ -999,6 +999,60 @@ class Step5DownloadTest(unittest.TestCase):
         self.assertIn("generic", strategies)
         self.assertIn("chinese_cdp", strategies)
 
+    def test_dry_run_writes_plan_artifacts_without_browser_lock_or_download_attempts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            argv = [
+                "unified_download_router.py",
+                "--papers",
+                "10.1109/demo,10.1007/demo",
+                "--output",
+                tmp,
+                "--dry-run",
+            ]
+            with patch.object(sys, "argv", argv), \
+                 patch.object(router, "check_cdp") as check_cdp, \
+                 patch.object(router, "acquire_or_exit_step5_download_lock") as acquire_lock, \
+                 patch.object(router, "ensure_cdp_running") as ensure_cdp, \
+                 patch.object(router, "run_scihub_round") as scihub, \
+                 patch.object(router, "run_oa_fast_round") as oa_fast, \
+                 patch.object(router, "run_english_cdp") as english_cdp, \
+                 patch("sys.stdout", new_callable=io.StringIO):
+                router.main()
+
+            manifest_path = Path(tmp) / "download_manifest.json"
+            preflight_path = Path(tmp) / "preflight_summary.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            preflight = json.loads(preflight_path.read_text(encoding="utf-8"))
+
+        check_cdp.assert_not_called()
+        acquire_lock.assert_not_called()
+        ensure_cdp.assert_not_called()
+        scihub.assert_not_called()
+        oa_fast.assert_not_called()
+        english_cdp.assert_not_called()
+        self.assertEqual("dry_run", manifest["summary"]["execution_mode"])
+        self.assertEqual(2, manifest["summary"]["total"])
+        self.assertEqual(0, manifest["summary"]["downloaded"])
+        self.assertEqual({"unresolved"}, {item["status"] for item in manifest["items"]})
+        self.assertTrue(all(item["attempts"] == [] for item in manifest["items"]))
+        self.assertFalse(preflight["cdp"]["checked"])
+        self.assertFalse((Path(tmp) / "download_attempts.jsonl").exists())
+        self.assertFalse((Path(tmp) / "login_checkpoint.json").exists())
+
+    def test_dry_run_records_missing_chinese_url_as_unresolved_metadata(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = router.write_step5_dry_run_outputs(
+                tmp,
+                [{"id": "cnki.demo", "doi": "cnki.demo", "source": "cnki", "title": "中文论文"}],
+                {"total_items": 1, "cdp": {"checked": False, "ok": False}},
+            )
+            manifest = json.loads(Path(paths["manifest"]).read_text(encoding="utf-8"))
+            unresolved = Path(paths["unresolved"]).read_text(encoding="utf-8")
+
+        self.assertEqual("missing_article_url", manifest["items"][0]["failure_reason"])
+        self.assertIn("cnki.demo", manifest["recovery_buckets"]["needs_metadata_fix"])
+        self.assertIn("missing_article_url", unresolved)
+
     def test_main_defaults_output_to_input_sibling_paper_temp(self):
         with tempfile.TemporaryDirectory() as tmp:
             input_path = Path(tmp) / "demo.bib"

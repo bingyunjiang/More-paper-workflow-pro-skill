@@ -5,7 +5,23 @@ from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
 
-IGNORED_PARTS = {"__pycache__", ".pytest_cache", ".git", ".codegraph", ".skill-state", ".claude"}
+IGNORED_PARTS = {
+    "__pycache__",
+    ".pytest_cache",
+    ".git",
+    ".codegraph",
+    ".skill-state",
+    ".claude",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".tox",
+    ".nox",
+    ".venv",
+    "venv",
+    "env",
+    "site-packages",
+    "paper-temp",
+}
 IGNORED_SUFFIXES = {".pyc", ".pyo"}
 IGNORED_RELATIVE_PATHS = {
     ".codex/config.toml",
@@ -19,6 +35,8 @@ IGNORED_RELATIVE_PREFIXES = (
 
 def should_include(path: Path, root: Path | None = None) -> bool:
     if any(part in IGNORED_PARTS for part in path.parts):
+        return False
+    if any(part.startswith(".test-") for part in path.parts):
         return False
     if path.suffix.lower() in IGNORED_SUFFIXES:
         return False

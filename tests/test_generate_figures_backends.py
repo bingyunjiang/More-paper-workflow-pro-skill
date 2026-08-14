@@ -20,6 +20,40 @@ SPEC.loader.exec_module(generate_figures)
 
 
 class GenerateFiguresBackendTest(unittest.TestCase):
+    def test_public_quick_chart_registry_matches_real_dispatchers(self) -> None:
+        self.assertEqual(set(generate_figures.CHART_RENDERERS), set(generate_figures.CHART_TYPES))
+        self.assertNotIn("stacked_bar", generate_figures.CHART_TYPES)
+        self.assertNotIn("horizontal_bar", generate_figures.CHART_TYPES)
+        self.assertNotIn("fill_between", generate_figures.CHART_TYPES)
+
+    def test_every_public_quick_chart_renders_its_own_fixture(self) -> None:
+        import matplotlib.pyplot as plt
+
+        for chart_type in generate_figures.CHART_TYPES:
+            with self.subTest(chart_type=chart_type):
+                spec, data = generate_figures.chart_test_fixture(chart_type)
+                self.assertEqual(chart_type, spec.chart_type)
+                figure = generate_figures.render_quick_chart(spec, data)
+                self.assertIsNotNone(figure)
+                plt.close(figure)
+
+    def test_cli_rejects_unimplemented_legacy_quick_chart_instead_of_faking_success(self) -> None:
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as tmp:
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), "--test", "stacked_bar"],
+                cwd=tmp,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            generated = Path(tmp) / "test_stacked_bar.svg"
+
+        self.assertEqual(2, result.returncode)
+        self.assertIn("未知图表类型", result.stdout)
+        self.assertFalse(generated.exists())
+
     def test_auto_routes_visualspec_to_reproduction(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "visualspec.json"

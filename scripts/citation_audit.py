@@ -45,6 +45,8 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from typing import Optional
 
+from workflow_contracts import normalize_doi
+
 # ── Data Models ──────────────────────────────────────────────────────────────
 
 @dataclass
@@ -55,6 +57,7 @@ class CitationRef:
     claim_sentence: str     # The sentence containing this citation
     claim_context: str      # Surrounding paragraph (for context in scoring)
     line_number: int        # Approximate line number in manuscript
+    claim_occurrence_id: str = ""  # Stable ID for this citation position/claim occurrence
     bib_entry: str = ""     # Matching bibliography entry text
     doi: str = ""           # Extracted DOI from bib entry
     title: str = ""         # Paper title from bib entry or API
@@ -74,7 +77,12 @@ class AuditResult:
 # ── Manuscript Parsing ───────────────────────────────────────────────────────
 
 def extract_citations_from_manuscript(md_text: str) -> list[CitationRef]:
-    """Extract all numbered citations [N] and their surrounding claims."""
+    """Extract every citation occurrence and its surrounding claim.
+
+    A bibliography identity may appear against multiple claims.  Those
+    occurrences must remain independent so a weak background use cannot hide
+    a later strong causal claim that cites the same paper.
+    """
     citations = []
     lines = md_text.split('\n')
 
@@ -89,7 +97,6 @@ def extract_citations_from_manuscript(md_text: str) -> list[CitationRef]:
         r'\(([A-Z][a-z]+(?:\s+et\s+al\.)?,?\s*\d{4}[a-z]?)\)'
     )
 
-    seen_indices = set()
     for i, line in enumerate(lines):
         if i >= ref_section_start:
             break  # Stop at references section
@@ -100,30 +107,38 @@ def extract_citations_from_manuscript(md_text: str) -> list[CitationRef]:
             raw = match.group(1)
             numbers = _parse_cite_numbers(raw)
             for n in numbers:
-                if n not in seen_indices:
-                    seen_indices.add(n)
-                    context = _get_context(lines, i, window=3)
-                    citations.append(CitationRef(
-                        index=n,
-                        marker=match.group(0),
-                        claim_sentence=line.strip(),
-                        claim_context=context,
-                        line_number=i + 1,
-                    ))
-
-        # Author-year citations
-        for match in auth_year_pattern.finditer(line):
-            key = match.group(1)
-            if key not in seen_indices:
-                seen_indices.add(key)
                 context = _get_context(lines, i, window=3)
                 citations.append(CitationRef(
-                    index=-1,  # No numeric index for author-year
+                    index=n,
                     marker=match.group(0),
                     claim_sentence=line.strip(),
                     claim_context=context,
                     line_number=i + 1,
+                    claim_occurrence_id=_claim_occurrence_id(
+                        line_number=i + 1,
+                        column=match.start() + 1,
+                        reference_identity=str(n),
+                        claim_sentence=line.strip(),
+                    ),
                 ))
+
+        # Author-year citations
+        for match in auth_year_pattern.finditer(line):
+            key = match.group(1)
+            context = _get_context(lines, i, window=3)
+            citations.append(CitationRef(
+                index=-1,  # No numeric index for author-year
+                marker=match.group(0),
+                claim_sentence=line.strip(),
+                claim_context=context,
+                line_number=i + 1,
+                claim_occurrence_id=_claim_occurrence_id(
+                    line_number=i + 1,
+                    column=match.start() + 1,
+                    reference_identity=key,
+                    claim_sentence=line.strip(),
+                ),
+            ))
 
     return citations
 
@@ -166,14 +181,11 @@ def extract_bibliography(md_text: str) -> dict[int, str]:
 
 def extract_dois_from_bib(bib_entries: dict[int, str]) -> dict[int, str]:
     """Extract DOIs from bibliography entries."""
-    doi_pattern = re.compile(
-        r'(?:DOI|doi):?\s*(10\.\d{4,}/[^\s,;.\]]+)'
-    )
     dois = {}
     for num, entry in bib_entries.items():
-        m = doi_pattern.search(entry)
-        if m:
-            dois[num] = m.group(1).rstrip('.')
+        doi = _extract_doi(entry)
+        if doi:
+            dois[num] = doi
     return dois
 
 
@@ -299,6 +311,13 @@ def score_citation_support(
             f"但关键术语匹配不足，可能引用了主题相关但内容不直接支撑的论文。"
         )
         suggestion = "强烈建议核对全文，或替换为更直接支撑该声明的论文"
+    elif _contains_cjk(citation.claim_sentence) or _contains_cjk(abstract):
+        level = "⚠️ 无法判断"
+        reasoning = (
+            f"中文或跨语言声明的词面重叠率为 {term_ratio:.0%}；"
+            "轻量关键词启发式不足以据此判定科学上“不支撑”。"
+        )
+        suggestion = "需要人工核对摘要语义或回到 PDF 全文确认"
     else:
         level = "❌ 不支撑"
         reasoning = (
@@ -342,7 +361,7 @@ def generate_audit_report(
 | ✅ 支撑 — 引用恰当 | {counts["✅ 支撑"]} | {_pct(counts["✅ 支撑"], len(results))} |
 | 🟡 弱支撑 — 需核对全文 | {counts["🟡 弱支撑"]} | {_pct(counts["🟡 弱支撑"], len(results))} |
 | ❌ 不支撑 — 可能引用不当 | {counts["❌ 不支撑"]} | {_pct(counts["❌ 不支撑"], len(results))} |
-| ⚠️ 无法判断 — 缺摘要 | {counts["⚠️ 无法判断"]} | {_pct(counts["⚠️ 无法判断"], len(results))} |
+| ⚠️ 无法判断 — 缺摘要或需语义复核 | {counts["⚠️ 无法判断"]} | {_pct(counts["⚠️ 无法判断"], len(results))} |
 
 """
 
@@ -399,7 +418,7 @@ def generate_audit_report(
     # ⚠️ Unable to judge
     unknown = [r for r in results if r.support_level == "⚠️ 无法判断"]
     if unknown:
-        report += "## ⚠️ 无法判断的文献（缺摘要）\n\n"
+        report += "## ⚠️ 无法判断的引用（缺摘要或需人工语义复核）\n\n"
         for r in unknown:
             extra = f"；PDF 风险：{r.pdf_risk_note}" if r.pdf_risk_note else ""
             report += f"- **[{r.citation.index}]** {r.citation.marker} → {r.suggestion}{extra}\n"
@@ -471,7 +490,7 @@ def enrich_citations_with_mapping(
             rec = by_title.get(title_guess)
             if rec:
                 cit.title = rec.get("title", "") or cit.title
-                cit.doi = cit.doi or rec.get("doi", "")
+                cit.doi = normalize_doi(cit.doi or rec.get("doi", ""))
 
 
 def build_pdf_risk_note(citation: CitationRef, prepared_chunks: list[dict]) -> str:
@@ -497,6 +516,35 @@ def build_pdf_risk_note(citation: CitationRef, prepared_chunks: list[dict]) -> s
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
+
+DOI_PATTERN = re.compile(
+    r"(?i)(?:https?://(?:dx\.)?doi\.org/|doi\s*:?\s*)?"
+    r"(10\.\d{4,9}/[-._;()/:A-Z0-9]+)"
+)
+
+
+def _extract_doi(text: str) -> str:
+    """Extract and normalize a DOI without truncating dots in its suffix."""
+    match = DOI_PATTERN.search(text or "")
+    if not match:
+        return ""
+    return normalize_doi(match.group(1).rstrip(",;:]}>"))
+
+
+def _claim_occurrence_id(
+    *,
+    line_number: int,
+    column: int,
+    reference_identity: str,
+    claim_sentence: str,
+) -> str:
+    seed = f"{line_number}|{column}|{reference_identity}|{claim_sentence}"
+    digest = hashlib.sha256(seed.encode("utf-8")).hexdigest()[:12]
+    return f"occ-L{line_number:05d}-C{column:04d}-{digest}"
+
+
+def _contains_cjk(text: str) -> bool:
+    return bool(re.search(r"[\u3400-\u9fff]", text or ""))
 
 def _find_reference_section(lines: list[str]) -> int:
     """Find the line index where the references section starts."""
@@ -582,12 +630,9 @@ def _resolve_doi_for_citation(
 ) -> str:
     """Try to find a DOI for a citation from the bib entry or literature table."""
     # Try to extract DOI directly from bib entry
-    doi_match = re.search(
-        r'(?:DOI|doi):?\s*(10\.\d{4,}/[^\s,;.\]]+)',
-        bib_entry,
-    )
-    if doi_match:
-        return doi_match.group(1).rstrip('.')
+    doi = _extract_doi(bib_entry)
+    if doi:
+        return doi
 
     # Try literature table lookup
     if lit_table_dois:
@@ -654,6 +699,7 @@ def build_claim_evidence_payload(manuscript_text: str, results: list[AuditResult
             unresolved += 1
         records.append({
             "claim_segment_id": f"S{index:03d}",
+            "claim_occurrence_id": citation.claim_occurrence_id or f"legacy-S{index:03d}",
             "claim_text": citation.claim_sentence,
             "claim_strength": claim_strength,
             "required_evidence": required_evidence,

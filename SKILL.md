@@ -6,7 +6,7 @@ description: >-
 
 ## Skill metadata
 
-version: v1.0.27-20260806 (2026-08-06)
+version: v1.0.28-20260814 (2026-08-14)
 author: Dr. Jiang Bingyun（江博士）
 wechat: Bingyunjiang
 category: research
@@ -55,6 +55,7 @@ related_skills:
 - Update reminders: `references/update-reminder-protocol.md`
 - Direct-entry artifact graph: `.skill-state/artifact_passport.json`（Artifact Passport 只负责 Step 4-8 的材料识别、readiness 和非锁定路由，不覆盖 Step 1-3 的前期构思合同。）
 - Artifact Passport keeps `route_mode` as non-locking route metadata for Step 4-8 direct-entry handoff.
+- 质量门按当前 `target_state` 和实际能力分支启用：`draft_ready`、quick-polish、只读审计或 core 写作不得被投稿级、严格复现、CJK 图形、DOCX 导出或登录型下载环境门误阻塞。
 - Require a dedicated runnable script for every reproduced figure, or a documented per-figure function when a batch runner is the stable entrypoint; record every path in manifest `per_figure_scripts`.
 - Keep `extraction_status`, `review_status`, `render_status`, and `delivery_status` independent. A successful render never authorizes extraction/review, and an unreviewed candidate never implies formal-data or publication-ready delivery.
 - For raster measurement, bind the exact input SHA-256 and original dimensions. Never measure a preview, resized copy, overlay, or recreation; enlargement is review-only.

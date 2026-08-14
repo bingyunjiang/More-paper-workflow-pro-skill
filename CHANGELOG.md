@@ -8,6 +8,37 @@
 
 ---
 
+## v1.0.28-20260814 (2026-08-14)
+
+### 引用审计按 claim occurrence 纠错
+
+- `citation_audit.py` 不再按 citation index 去重；同一文献在不同句子、不同 claim 强度或同一组合引用中的每个位置都有稳定 `claim_occurrence_id`，并分别进入结构化 claim evidence audit。
+- DOI 解析统一复用 `workflow_contracts.normalize_doi()`，支持 `DOI:`、`doi:`、裸 DOI 与 `https://doi.org/`，保留 Elsevier 等 DOI 后缀中的句点。
+- 中文或跨语言文本的低词面重叠不再自动输出“不支撑”；轻量启发式只能降级为 `无法判断/needs-review`，强 claim 继续要求全文人工核验。
+
+### Step 5 dry-run 计划工件闭环
+
+- dry-run 在返回前生成计划态 `download_manifest.json` 和 `preflight_summary.json`；元数据缺口另写 `unresolved_download_items.md`。
+- dry-run 条目保持非终态、`verification_status=not_checked`、attempt 为空；不获取下载锁、不探测或启动 CDP、不创建登录 checkpoint、不执行 OA/CDP/provider 下载。
+- 正式下载的英文→中文、CNKI→万方串行顺序与 checkpoint/resume 合同保持不变。
+
+### Quick 图表注册一致性
+
+- `generate_figures.py` 增加统一 `CHART_RENDERERS`，公开 `CHART_TYPES`、正式生成与 `--test` 共用生产 dispatch。
+- 暂未实现的 `stacked_bar`、`horizontal_bar`、`fill_between` 从 quick 公共注册表移除；VisualSpec reproduction 中已支持的同名 plot 类型不受影响。
+- `--test` 不再使用 grouped bar 兜底冒充其他图表成功，并增加全部公开 quick 类型的参数化渲染回归。
+
+### 构包、环境与发布资格
+
+- 构包器排除 `.venv`、`venv`、`env`、`.test-*`、`site-packages`、`.tox/.nox` 和本地 lint/type cache，避免虚拟环境进入发布 ZIP。
+- 环境预检新增 `core / quick_figure / chinese_diagram / strict_reproduction / docx_export / publisher_download` 能力范围；CJK 字体、严格复现依赖、Pandoc 或下载依赖只阻塞对应分支。
+- release acceptance schema 升级为 `morepaper.figure_release_acceptance.v2`，记录 commit tree，并区分 `diagnostic_status`、`release_eligible` 与 `release_status`；dirty 工作树可诊断但不能成为正式发布证据，`--require-clean` 用于正式发布门。
+
+### 灵活性兼容边界
+
+- Step 1–8 direct-entry、Artifact Passport 非锁定路由、Step 7 现有 mode/operation/target state、Step 8 quick/audited 模式均保持不变。
+- 未新增全局 `quality_profile`、中央编排器或强制 JSON execution card；严格门继续按目标状态和实际能力分支按需启用。
+
 ## v1.0.27-20260806 (2026-08-06)
 
 ### Step 7 轻量合同修复

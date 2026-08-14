@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey)](LICENSE)
 [![Zotero](https://img.shields.io/badge/Zotero-CC2936?logo=zotero&logoColor=white)]()
 
-# more-paper-workflow `v1.0.27-20260806`
+# more-paper-workflow `v1.0.28-20260814`
 
 > 从研究问题到可核验论文：一套支持任意步骤直达、证据分级和质量闭环的学术论文工作流。
 >
@@ -286,7 +286,7 @@ Step 6 支持 `local / cloud / skip`。只读扫描、查重和 plan-only 不触
 - 平台限定的离线 Zotero 缓存：先按 `scripts/packages/manifest.lock.json` 的 `bundle.target_platform` 与 `bundle.target_python` 选择匹配解释器，再执行离线解析/验收：
   `python3 scripts/check_offline_packages.py --strict --resolve`。该缓存不是跨平台通用包，目标平台不匹配时验收应失败。
 
-`release_acceptance.py` 会记录 commit、工作树是否有未提交改动、运行平台、Python、依赖清单 SHA-256 及离线 manifest 目标；git 或 manifest 不可用时以 `null`/`unknown` 降级，诊断报告仍会落盘。完整发布声明仍要求全量测试、包校验、release acceptance 与 offline strict 同时通过。
+`release_acceptance.py` 会记录 commit、commit tree、工作树状态、运行平台、Python、依赖清单 SHA-256 及离线 manifest 目标。普通运行允许在 dirty 工作树中得到 `diagnostic_pass`，但此时 `release_eligible=false`；正式发布使用 `--require-clean`，只有当前可识别的 clean HEAD 才能得到 release pass。环境预检按 `--capability core|quick_figure|chinese_diagram|strict_reproduction|docx_export|publisher_download` 检查，不相关能力互不阻塞。
 
 *Detailed documentation and runtime contracts*
 
@@ -330,7 +330,16 @@ See the [first-run examples](examples/first-run/README.md), [workflow diagrams](
 
 ## 📋 版本历史
 
-当前版本：`v1.0.27-20260806`。
+当前版本：`v1.0.28-20260814`。
+
+### v1.0.28：正确性、灵活性与发布证据闭环
+
+- 引用审计改为按 claim 出现位置逐处检查，同一文献的重复引用不再去重；统一识别常见 DOI 形式，中文/跨语言低词面重叠只进入人工复核，不自动判“不支撑”。
+- Step 5 dry-run 会写出计划态 `download_manifest.json` 和 `preflight_summary.json`，但不获取下载锁、不探测或启动 CDP、不创建登录 checkpoint，也不记录虚假下载 attempt。
+- quick 图表公开类型与真实 renderer 共用单一 dispatch；未实现类型不再出现在 `--list-types`，`--test` 不再用 grouped bar 冒充成功。
+- ZIP 构建排除 `.venv`、`venv`、`env`、`.test-*`、`site-packages` 与本地缓存。
+- release acceptance 区分诊断通过与正式发布资格；能力范围环境检查保证 CJK、严格复现、DOCX 或下载依赖只阻塞对应分支。
+- Step 1–8 direct-entry、Step 7 既有 mode/operation/target state 以及 Step 8 quick/audited 边界保持不变；未新增全局质量档或强制 JSON execution card。
 
 ### v1.0.27：Step 7 合同恢复与验证器修复
 

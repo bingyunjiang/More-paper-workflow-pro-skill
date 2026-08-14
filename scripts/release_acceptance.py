@@ -111,6 +111,23 @@ def _git_worktree_dirty() -> bool | None:
         return None
 
 
+def _git_tree_hash() -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD^{tree}"],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=5,
+        )
+        value = result.stdout.strip()
+        return value or None
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
 def _sha256(path: Path) -> str | None:
     try:
         digest = hashlib.sha256()
@@ -140,6 +157,7 @@ def acceptance_metadata() -> dict[str, Any]:
     }
     return {
         "commit_sha": _git_sha(),
+        "commit_tree_sha": _git_tree_hash(),
         "worktree_dirty": _git_worktree_dirty(),
         "os": platform.system() or "unknown",
         "architecture": platform.machine() or "unknown",
@@ -149,11 +167,40 @@ def acceptance_metadata() -> dict[str, Any]:
     }
 
 
+def assess_release_eligibility(diagnostic_pass: bool, metadata: dict[str, Any]) -> dict[str, Any]:
+    blockers: list[str] = []
+    if not metadata.get("commit_sha"):
+        blockers.append("git_commit_unavailable")
+    if not metadata.get("commit_tree_sha"):
+        blockers.append("git_tree_unavailable")
+    dirty = metadata.get("worktree_dirty")
+    if dirty is True:
+        blockers.append("worktree_dirty")
+    elif dirty is None:
+        blockers.append("worktree_state_unknown")
+    if not diagnostic_pass:
+        blockers.append("acceptance_checks_failed")
+    eligible = diagnostic_pass and not blockers
+    return {
+        "diagnostic_status": "pass" if diagnostic_pass else "failed",
+        "release_eligible": eligible,
+        "release_status": "pass" if eligible else "blocked",
+        "release_blockers": blockers,
+        "status": "pass" if eligible else "diagnostic_pass" if diagnostic_pass else "failed",
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run scientific figure release acceptance for more-paper-workflow.")
     parser.add_argument("--json-out", type=Path)
+    parser.add_argument(
+        "--require-clean",
+        action="store_true",
+        help="Require a clean, identifiable Git HEAD for formal release eligibility.",
+    )
     args = parser.parse_args()
     output = args.json_out or ROOT / "release_acceptance.json"
+    metadata = acceptance_metadata()
     if output.exists():
         output.unlink()
 
@@ -172,7 +219,7 @@ def main() -> int:
         spec = ROOT / "examples" / "line_plot" / "visualspec_v2.json"
 
         steps = [
-            ("environment_preflight", [sys.executable, str(SCRIPTS / "check_environment.py")]),
+            ("environment_preflight", [sys.executable, str(SCRIPTS / "check_environment.py"), "--capability", "strict_reproduction"]),
             ("offline_manifest", [sys.executable, str(SCRIPTS / "check_offline_packages.py"), "--strict"]),
             ("offline_resolution", [sys.executable, str(SCRIPTS / "check_offline_packages.py"), "--strict", "--resolve"]),
             ("root_package", [sys.executable, str(SCRIPTS / "validate_skill_package.py"), "--root", str(ROOT)]),
@@ -198,7 +245,8 @@ def main() -> int:
         else:
             checks["official_example"] = "missing_manifest"
 
-    status = "pass" if all(value in {"pass", "semantic_strict_pass"} for value in checks.values()) and checks.get("official_example") == "semantic_strict_pass" else "failed"
+    diagnostic_pass = all(value in {"pass", "semantic_strict_pass"} for value in checks.values()) and checks.get("official_example") == "semantic_strict_pass"
+    release_assessment = assess_release_eligibility(diagnostic_pass, metadata)
     failed_steps = [
         name
         for name, value in checks.items()
@@ -207,9 +255,8 @@ def main() -> int:
     environment_result = details.get("environment_preflight", {})
     missing_dependencies = parse_environment_failure(environment_result)
     report = {
-        "schema": "morepaper.figure_release_acceptance.v1",
+        "schema": "morepaper.figure_release_acceptance.v2",
         "version": version,
-        "status": status,
         "checks": checks,
         "details": details,
         "failure_stage": failed_steps[0] if failed_steps else None,
@@ -224,12 +271,16 @@ def main() -> int:
         ),
         "missing_dependencies": missing_dependencies,
     }
-    metadata = acceptance_metadata()
     report.update(metadata)
+    report.update(release_assessment)
     report["environment"] = metadata
     write_json(output, report)
     print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
-    return 0 if status == "pass" else 2
+    if not diagnostic_pass:
+        return 2
+    if args.require_clean and not report["release_eligible"]:
+        return 2
+    return 0
 
 
 if __name__ == "__main__":

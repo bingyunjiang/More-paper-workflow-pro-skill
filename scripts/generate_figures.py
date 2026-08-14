@@ -62,24 +62,12 @@ from paper_diagrams.engine import failure_report, render_from_file
 
 # ── Chart Type Registry ──────────────────────────────────────────────────────
 
-CHART_TYPES = {
+_CHART_METADATA = {
     "grouped_bar": {
         "name": "分组柱状图",
         "function": "grouped_bar",
         "description": "多条件对比（如不同方法在不同指标上的表现）",
         "data_format": "categories + groups dict",
-    },
-    "stacked_bar": {
-        "name": "堆叠柱状图",
-        "function": "stacked_bar",
-        "description": "组分占比对比",
-        "data_format": "categories + groups dict",
-    },
-    "horizontal_bar": {
-        "name": "水平柱状图",
-        "function": "horizontal_bar",
-        "description": "类别名较长时的对比（如文献分类统计）",
-        "data_format": "categories + values",
     },
     "trend_line": {
         "name": "趋势折线图",
@@ -116,12 +104,6 @@ CHART_TYPES = {
         "function": "gridspec_figure",
         "description": "复合图表（不同视角组合展示）",
         "data_format": "panel_specs list",
-    },
-    "fill_between": {
-        "name": "填充区域图",
-        "function": "fill_between",
-        "description": "不确定带/包络线展示",
-        "data_format": "x + y_mean + y_lower + y_upper",
     },
 }
 
@@ -321,6 +303,117 @@ def extract_figure_placeholders(md_text: str) -> list[dict]:
 
 # ── Figure Generation ────────────────────────────────────────────────────────
 
+def _render_grouped_bar(spec: FigureSpec, data: dict):
+    categories = data.get(spec.x_column, [])
+    groups = {ycol: data[ycol] for ycol in spec.y_columns if ycol in data}
+    if not categories or not groups:
+        return None
+    if isinstance(categories[0], (int, float)):
+        categories = [str(category) for category in categories]
+    return grouped_bar(
+        categories,
+        groups,
+        ylabel=spec.ylabel,
+        xlabel=spec.xlabel,
+        figsize=spec.figsize,
+        palette=get_palette(len(groups), spec.palette),
+    )
+
+
+def _render_trend_line(spec: FigureSpec, data: dict):
+    x = data.get(spec.x_column, [])
+    y_series = {ycol: data[ycol] for ycol in spec.y_columns if ycol in data}
+    if not x or not y_series:
+        return None
+    return trend_line(
+        x,
+        y_series,
+        xlabel=spec.xlabel,
+        ylabel=spec.ylabel,
+        figsize=spec.figsize,
+        palette=get_palette(len(y_series), spec.palette),
+    )
+
+
+def _render_heatmap(spec: FigureSpec, data: dict):
+    row_labels = data.get("row_label", [])
+    col_labels = [key for key in data if key != "row_label"]
+    matrix = [data.get(column, []) for column in col_labels]
+    if not matrix or not matrix[0]:
+        return None
+    matrix_t = [
+        [matrix[column][row] if row < len(matrix[column]) else 0 for column in range(len(matrix))]
+        for row in range(len(matrix[0]))
+    ]
+    return heatmap(
+        matrix_t,
+        row_labels,
+        col_labels,
+        center=0 if spec.chart_type == "heatmap_div" else None,
+        figsize=spec.figsize or (6, 4),
+    )
+
+
+def _render_bubble_scatter(spec: FigureSpec, data: dict):
+    x = data.get(spec.x_column, [])
+    y_values = data.get(spec.y_columns[0] if spec.y_columns else "y", [])
+    sizes = data.get("size", [10] * len(x))
+    labels = data.get("label")
+    if not x or not y_values:
+        return None
+    return bubble_scatter(
+        x,
+        y_values,
+        sizes,
+        labels,
+        xlabel=spec.xlabel,
+        ylabel=spec.ylabel,
+        figsize=spec.figsize,
+    )
+
+
+def _render_radar(spec: FigureSpec, data: dict):
+    categories = data.get(spec.x_column, [])
+    groups = {ycol: data[ycol] for ycol in spec.y_columns if ycol in data}
+    if not categories or not groups:
+        return None
+    return radar_chart(
+        categories,
+        groups,
+        figsize=spec.figsize or (5, 5),
+        palette=get_palette(len(groups), spec.palette),
+    )
+
+
+def _render_gridspec(spec: FigureSpec, data: dict):
+    panel_specs = _build_panel_specs(spec, data)
+    if not panel_specs:
+        return None
+    return gridspec_figure(
+        panel_specs,
+        figsize=spec.figsize,
+        panel_labels=spec.panel_labels,
+    )
+
+
+CHART_RENDERERS = {
+    "grouped_bar": _render_grouped_bar,
+    "trend_line": _render_trend_line,
+    "heatmap_seq": _render_heatmap,
+    "heatmap_div": _render_heatmap,
+    "bubble_scatter": _render_bubble_scatter,
+    "radar_polar": _render_radar,
+    "gridspec": _render_gridspec,
+}
+
+# Public quick-chart registry: every listed type has a real renderer above.
+CHART_TYPES = {key: _CHART_METADATA[key] for key in CHART_RENDERERS}
+
+
+def render_quick_chart(spec: FigureSpec, data: dict):
+    renderer = CHART_RENDERERS.get(spec.chart_type)
+    return renderer(spec, data) if renderer else None
+
 def generate_figure(spec: FigureSpec, output_dir: str) -> list[str]:
     """Generate a single figure from its specification.
 
@@ -335,94 +428,10 @@ def generate_figure(spec: FigureSpec, output_dir: str) -> list[str]:
         return []
 
     with nature_style(cjk=False):
-        fig = None
-
-        if spec.chart_type == "grouped_bar":
-            categories = data.get(spec.x_column, [])
-            groups = {}
-            for ycol in spec.y_columns:
-                if ycol in data:
-                    groups[ycol] = data[ycol]
-            if categories and groups:
-                if isinstance(categories[0], (int, float)):
-                    categories = [str(c) for c in categories]
-                fig = grouped_bar(
-                    categories, groups,
-                    ylabel=spec.ylabel, xlabel=spec.xlabel,
-                    figsize=spec.figsize,
-                    palette=get_palette(len(groups), spec.palette),
-                )
-
-        elif spec.chart_type == "trend_line":
-            x = data.get(spec.x_column, [])
-            y_series = {}
-            for ycol in spec.y_columns:
-                if ycol in data:
-                    y_series[ycol] = data[ycol]
-            if x and y_series:
-                fig = trend_line(
-                    x, y_series,
-                    xlabel=spec.xlabel, ylabel=spec.ylabel,
-                    figsize=spec.figsize,
-                    palette=get_palette(len(y_series), spec.palette),
-                )
-
-        elif spec.chart_type in ("heatmap_seq", "heatmap_div"):
-            # Data should be loaded as 2D matrix
-            row_labels = data.get("row_label", [])
-            col_labels = [k for k in data if k not in ("row_label",)]
-            matrix = []
-            for col in col_labels:
-                matrix.append(data.get(col, []))
-            # Transpose: rows x cols
-            if matrix:
-                matrix_t = [[matrix[j][i] if i < len(matrix[j]) else 0
-                             for j in range(len(matrix))]
-                            for i in range(len(matrix[0]))]
-                center = 0 if spec.chart_type == "heatmap_div" else None
-                fig = heatmap(
-                    matrix_t, row_labels, col_labels,
-                    center=center,
-                    figsize=spec.figsize or (6, 4),
-                )
-
-        elif spec.chart_type == "bubble_scatter":
-            x = data.get(spec.x_column, [])
-            y_vals = data.get(spec.y_columns[0] if spec.y_columns else "y", [])
-            sizes = data.get("size", [1.0] * len(x)) if "size" in data else [10] * len(x)
-            labels = data.get("label", []) if "label" in data else None
-            if x and y_vals:
-                fig = bubble_scatter(
-                    x, y_vals, sizes, labels,
-                    xlabel=spec.xlabel, ylabel=spec.ylabel,
-                    figsize=spec.figsize,
-                )
-
-        elif spec.chart_type == "radar_polar":
-            categories = data.get(spec.x_column, [])
-            groups = {}
-            for ycol in spec.y_columns:
-                if ycol in data:
-                    groups[ycol] = data[ycol]
-            if categories and groups:
-                fig = radar_chart(
-                    categories, groups,
-                    figsize=spec.figsize or (5, 5),
-                    palette=get_palette(len(groups), spec.palette),
-                )
-
-        elif spec.chart_type == "gridspec":
-            panel_specs = _build_panel_specs(spec, data)
-            if panel_specs:
-                fig = gridspec_figure(
-                    panel_specs,
-                    figsize=spec.figsize,
-                    panel_labels=spec.panel_labels,
-                )
-
-        else:
+        if spec.chart_type not in CHART_RENDERERS:
             print(f"   ⚠️ 未知图表类型: {spec.chart_type}")
             return []
+        fig = render_quick_chart(spec, data)
 
         if fig is None:
             print(f"   ⚠️ 无法生成图表 {spec.figure_id}")
@@ -488,6 +497,57 @@ def generate_figure_checklist(specs: list[FigureSpec], output_dir: str) -> str:
     md += "- [ ] SVG 导出时文字是否保持可编辑？（svg.fonttype='none'）\n"
 
     return md
+
+
+def chart_test_fixture(chart_type: str) -> tuple[FigureSpec, dict]:
+    """Return an in-memory fixture rendered through the production dispatcher."""
+    if chart_type == "grouped_bar":
+        return FigureSpec("test_grouped_bar", chart_type, "", x_column="category", y_columns=["Method 1", "Method 2"], ylabel="Value"), {
+            "category": ["A", "B", "C"],
+            "Method 1": [3.2, 4.1, 2.8],
+            "Method 2": [2.8, 3.5, 3.1],
+        }
+    if chart_type == "trend_line":
+        return FigureSpec("test_trend_line", chart_type, "", x_column="x", y_columns=["Series A", "Series B"], xlabel="X", ylabel="Y"), {
+            "x": [1, 2, 3, 4],
+            "Series A": [1.0, 2.1, 3.0, 4.2],
+            "Series B": [0.8, 1.9, 2.8, 3.9],
+        }
+    if chart_type in {"heatmap_seq", "heatmap_div"}:
+        return FigureSpec(f"test_{chart_type}", chart_type, ""), {
+            "row_label": ["Row1", "Row2", "Row3"],
+            "Col1": [1, 4, 7],
+            "Col2": [2, 5, 8],
+            "Col3": [3, 6, 9],
+        }
+    if chart_type == "bubble_scatter":
+        return FigureSpec("test_bubble_scatter", chart_type, "", x_column="x", y_columns=["y"], xlabel="X", ylabel="Y"), {
+            "x": [1, 2, 3, 4],
+            "y": [2, 3, 4, 3],
+            "size": [10, 20, 30, 20],
+            "label": ["A", "B", "C", "D"],
+        }
+    if chart_type == "radar_polar":
+        return FigureSpec("test_radar_polar", chart_type, "", x_column="metric", y_columns=["Method 1", "Method 2"]), {
+            "metric": ["Accuracy", "Speed", "Robustness"],
+            "Method 1": [0.8, 0.6, 0.9],
+            "Method 2": [0.7, 0.9, 0.6],
+        }
+    if chart_type == "gridspec":
+        return FigureSpec(
+            "test_gridspec",
+            chart_type,
+            "",
+            x_column="category",
+            y_columns=["bar", "bar"],
+            panel_layout=(1, 2),
+            panel_labels=["a", "b"],
+        ), {
+            "category": ["A", "B", "C"],
+            "panel_0": [1, 2, 3],
+            "panel_1": [3, 2, 1],
+        }
+    raise KeyError(chart_type)
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
@@ -598,40 +658,12 @@ def main() -> int:
             print(f"❌ 未知图表类型: {chart_type}")
             return 2
         import matplotlib.pyplot as plt
-        with nature_style():
-            if chart_type == "grouped_bar":
-                fig = grouped_bar(
-                    ["A", "B", "C", "D"],
-                    {"Method 1": [3.2, 4.1, 2.8, 3.5],
-                     "Method 2": [2.8, 3.5, 3.1, 2.9]},
-                    ylabel="Value", xlabel="Category",
-                )
-            elif chart_type == "trend_line":
-                fig = trend_line(
-                    [1, 2, 3, 4, 5],
-                    {"Series A": [1.0, 2.1, 3.0, 4.2, 5.1],
-                     "Series B": [0.8, 1.9, 2.8, 3.9, 4.8]},
-                    xlabel="X", ylabel="Y",
-                )
-            elif chart_type == "bubble_scatter":
-                fig = bubble_scatter(
-                    [1, 2, 3, 4, 5],
-                    [2, 3, 4, 3, 5],
-                    [10, 20, 30, 20, 40],
-                    xlabel="X", ylabel="Y",
-                )
-            elif chart_type == "heatmap_seq":
-                fig = heatmap(
-                    [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-                    ["Row1", "Row2", "Row3"],
-                    ["Col1", "Col2", "Col3"],
-                )
-            else:
-                fig = grouped_bar(
-                    ["A", "B", "C"],
-                    {"Test": [1, 2, 3]},
-                    ylabel="Value",
-                )
+        spec, data = chart_test_fixture(chart_type)
+        with nature_style(cjk=False):
+            fig = render_quick_chart(spec, data)
+            if fig is None:
+                print(f"❌ 图表类型未生成真实输出: {chart_type}")
+                return 2
             path = f"test_{chart_type}.svg"
             export_figure(fig, path.replace('.svg', ''), ['svg'])
             plt.close(fig)

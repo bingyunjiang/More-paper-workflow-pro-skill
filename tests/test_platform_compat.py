@@ -221,12 +221,20 @@ class PlatformCompatTest(unittest.TestCase):
         self.assertEqual(args.browser, "chrome")
 
     def test_router_doi_file_entry_prefers_parse_doi_file(self):
-        argv = ["unified_download_router.py", "--doi-file", "C:\\demo\\dois.txt", "--dry-run"]
-        with patch.object(sys, "argv", argv), \
-             patch.object(router, "parse_doi_file", return_value=["10.1016/j.test.2024.01.001"]) as parse_doi_file, \
-             patch.object(router, "parse_input") as parse_input, \
-             redirect_stdout(io.StringIO()):
-            router.main()
+        with tempfile.TemporaryDirectory() as tmp:
+            argv = [
+                "unified_download_router.py",
+                "--doi-file",
+                "C:\\demo\\dois.txt",
+                "--output",
+                tmp,
+                "--dry-run",
+            ]
+            with patch.object(sys, "argv", argv), \
+                 patch.object(router, "parse_doi_file", return_value=["10.1016/j.test.2024.01.001"]) as parse_doi_file, \
+                 patch.object(router, "parse_input") as parse_input, \
+                 redirect_stdout(io.StringIO()):
+                router.main()
 
         parse_doi_file.assert_called_once_with("C:\\demo\\dois.txt")
         parse_input.assert_not_called()
